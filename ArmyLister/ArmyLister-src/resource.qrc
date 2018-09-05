@@ -1,0 +1,13 @@
+<RCC>
+    <qresource prefix="/icons">
+        <file alias="E">Elite.png</file>
+        <file alias="FA">FA.png</file>
+        <file alias="F">Fly.png</file>
+        <file alias="HQ">HQ.png</file>
+        <file alias="HS">HS.png</file>
+        <file alias="TP">TP.png</file>
+        <file alias="T">Troop.png</file>
+        <file alias="Fort">Fort.png</file>
+        <file alias="Lord">Lord.png</file>
+    </qresource>
+</RCC>
