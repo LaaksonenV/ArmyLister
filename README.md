@@ -4,7 +4,7 @@ As now, building armydata files is done with a text input, with limited and poss
 Many functions may not work, if I haven't needed them yet.
 The goal of my project is to create a listing tool able to stand up with the oter tools currently available, though I don't expect to ever meet this goal.
 
-The code is written with Qt 5.9, and requires no additional libraries.
+The code is written with Qt 5.9 C++, and requires no additional libraries.
 
 To use the program, it's first neccessary to create the armydata files. Each is made with a different editor under the "Create" menu.
 Editors should contain information for items with special limitations and such. All editors create a treelist.
