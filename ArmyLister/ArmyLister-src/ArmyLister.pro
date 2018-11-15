@@ -39,7 +39,8 @@ SOURCES += \
     settings.cpp \
     speciallabel.cpp \
     limitmihandler.cpp \
-    textedit.cpp
+    textedit.cpp \
+    itemfactory.cpp
 
 HEADERS += \
         mainwindow.h \
@@ -57,7 +58,8 @@ HEADERS += \
     speciallabel.h \
     limitmihandler.h \
     pointcontainer.h \
-    textedit.h
+    textedit.h \
+    itemfactory.h
 
 RESOURCES += \
     resource.qrc
