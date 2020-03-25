@@ -145,7 +145,7 @@ LimitMIhandler *ItemFactory::parseTree(TempTreeModelItem *branch,
                                      int amount, LimitMIhandler *sharedLimit,
                                      ModelItem *itm)
 {
-//    QChar ctrlchar;
+    QChar ctrlchar;
     bool setUpItem = true;
 
 /*    foreach (QString ctrl, branch->_control)
@@ -234,7 +234,7 @@ QString s = text;//        foreach (QString s, text)
 /*    LimitMIhandler *limt;
     ModelItem *newitm2;
 
-    foreach (QString ctrl, branch->_control)
+*/    foreach (QString ctrl, branch->_control)
     {
         ctrlchar = ctrl.at(0);
         ctrl.remove(0,1);
@@ -242,8 +242,8 @@ QString s = text;//        foreach (QString s, text)
         if (ctrlchar == ':' || ctrlchar == '*')
         {
             if (ctrlchar == ':')
-                newItem->setAlwaysActive();
-            if (!ctrl.isEmpty())
+                newItem->setAlwaysChecked(true);
+/*            if (!ctrl.isEmpty())
             {
                 if (ctrl.startsWith('A'))
                 {
@@ -260,9 +260,9 @@ QString s = text;//        foreach (QString s, text)
                 {
                     newItem->on_multiplierChange(ctrl.toInt()-1, true);
                 }
-            }
+            }*/
         }
-        else if (ctrlchar == '=')
+/*        else if (ctrlchar == '=')
         {
             newItem->setClonable(ctrl.toInt());
 
@@ -314,8 +314,8 @@ QString s = text;//        foreach (QString s, text)
                 limt->addPickTarget(newitm2);
             }
             return sharedLimit;
-        }
-    }*/
+        }*/
+    }
 
     foreach (TempTreeModelItem *i, branch->_unders)
         sharedLimit = parseTree(i, newItem, minMods, sharedLimit);

@@ -105,7 +105,7 @@ public:
 //    virtual void setPoints(const QList<int> &ps);
  //   virtual void setModifierIntake(bool b = true);
     virtual void setCost(int c);
-//    virtual void setAlwaysActive(bool b = true);
+    virtual void setAlwaysChecked(bool b = true);
 //    virtual void setClonable(int i);
 //    virtual void setLimit(int limt, bool force = false);
 //    virtual void setLimitable(bool = true);
@@ -194,7 +194,7 @@ private:
     bool _expanded;
     bool _checked;
     bool _checkable;
-//    bool _alwaysChecked;
+    bool _alwaysChecked;
 //    int *_clonable;
     bool _mouseIn;
 };

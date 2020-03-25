@@ -151,7 +151,7 @@ ModelItem::ModelItem(Settings *set, TopModelItem *parent, bool)
     , _expanded(false)
     , _checked(false)
     , _checkable(true)
-//    , _alwaysChecked(false)
+    , _alwaysChecked(false)
 //    , _clonable(nullptr)
     , _mouseIn(false)
 {}
@@ -512,17 +512,18 @@ void ModelItem::setCost(int c)
     _basecost = c;
 }
 
-/*void ModelItem::setAlwaysActive(bool b)
+void ModelItem::setAlwaysChecked(bool b)
 {
-    if (b)
+
+    if (b && !_checked)
     {
         _checked = true;
-
         _above->changeOtherCosts(_cost,_index);
     }
+
     _alwaysChecked = b;
     update();
-}*/
+}
 
 /*void ModelItem::setClonable(int i)
 {
@@ -887,7 +888,7 @@ bool ModelItem::toggleCheck()
         _spinner->setValue(1);
     _checked = !_checked;
     _above->childChecked(_checked, _index);
-    int total = _cost + _otherCosts;
+    int total = _cost;
     int sign = 1;
     if (!_checked)
         sign = -1;
