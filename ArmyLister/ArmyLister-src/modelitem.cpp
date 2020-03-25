@@ -10,7 +10,7 @@
 #include <QTimer>
 
 #include "settings.h"
-#include "speciallabel.h"
+//#include "speciallabel.h"
 
 TopModelItem::TopModelItem(Settings *set, QWidget *parent)
     : QWidget(parent)
@@ -130,27 +130,29 @@ ModelItem* TopModelItem::getChild(int id)
 ModelItem::ModelItem(Settings *set, TopModelItem *parent, bool)
     : TopModelItem(set, parent)
     , _above(parent)
-    , _limitClone(false)
+//    , _limitClone(false)
     , _index(0)
-    , _texts(QList<SpecialLabel*>())
-    , _mshs(QList<MultiSelectionHandler*>())
+    , _text(nullptr)//    , _texts(QList<SpecialLabel*>())
+//    , _mshs(QList<MultiSelectionHandler*>())
     , _cost(0)
-    , _costFor1(0)
-    , _baseCostFor1(QList<int>())
+    , _basecost(0)
+//    , _baseCostFor1(QList<int>())
     , _multiplier(1)
-    , _modifier(0)
-    , _hasModifier(0)
-    , _takesModels(false)
-    , _takesModifier(false)
+    , _multiplierismodels(false)
+    , _baseModels(0)
+//    , _modifier(0)
+//    , _hasModifier(0)
+//    , _takesModels(false)
+//    , _takesModifier(false)
     , _spinner(nullptr)
-    , _hasModels(false)
-    , _hasLimit(false)
+//    , _hasModels(false)
+//    , _hasLimit(false)
     , _expandButton(nullptr)
     , _expanded(false)
     , _checked(false)
     , _checkable(true)
-    , _alwaysChecked(false)
-    , _clonable(nullptr)
+//    , _alwaysChecked(false)
+//    , _clonable(nullptr)
     , _mouseIn(false)
 {}
 
@@ -164,6 +166,8 @@ ModelItem::ModelItem(Settings *set, TopModelItem *parent)
     show();
 }
 
+// TODO CHECK
+/*
 ModelItem::ModelItem(ModelItem *copy, TopModelItem *parent, int index)
     : ModelItem(copy->_settings, parent, true)
 {     
@@ -171,8 +175,8 @@ ModelItem::ModelItem(ModelItem *copy, TopModelItem *parent, int index)
     {
         _index = _above->addItem(this);
 
+        // inform Limithandlers of a new customer
         emit copy->cloning(this);
- //       copy->copycloning(this);
     }
     else
     {
@@ -180,6 +184,7 @@ ModelItem::ModelItem(ModelItem *copy, TopModelItem *parent, int index)
         _above->insertItem(this, index);
     }
 
+    // id
     _id = copy->_id;
     if (_id % 100)
     {
@@ -237,12 +242,12 @@ ModelItem::ModelItem(ModelItem *copy, TopModelItem *parent, int index)
 
     updateCost();
     show();
-}
+}*/
 
 ModelItem::~ModelItem()
 {
-    if (_clonable)
-        delete _clonable;
+//    if (_clonable)
+//        delete _clonable;
 }
 
 void ModelItem::reset()
@@ -257,11 +262,11 @@ void ModelItem::reset()
     {
         itm = _belows.at(i);
         itm->reset();
-        if (itm->_limitClone)
+/*        if (itm->_limitClone)
         {
             delete _belows.takeAt(i);
             --i;
-        }
+        }*/
     }
 }
 
@@ -269,14 +274,14 @@ QStringList ModelItem::createTexts() const
 {
     QStringList ret;
 
-    foreach (SpecialLabel *l, _texts)
+/*    foreach (SpecialLabel *l, _texts)
         ret << l->text();
 
     QString text = ret.join(", ");
     ret.clear();
-
-    ret << text
-        << QString::number(_multiplier - _modifier)
+*/
+    ret << _text->text()
+        << QString::number(_multiplier)// - _modifier)
         << QString::number(_cost + _otherCosts)
         << QString::number(_id);
 
@@ -312,7 +317,7 @@ void ModelItem::modifyIndex(int amount)
     _index += amount;
 }
 
-ModelItem *ModelItem::cloneItem()
+/*ModelItem *ModelItem::cloneItem()
 {
     ModelItem *ret = nullptr;
     if (_clonable && *_clonable)
@@ -328,16 +333,16 @@ ModelItem *ModelItem::cloneItem()
     }
 
     return ret;
-}
+}*/
 
-void ModelItem::setText(QString text, int at)
+void ModelItem::setText(QString text)
 {
     text = text.remove(QRegExp("[{}]")).trimmed();
     QRegExp xp("^\\|.+\\|$");
     int ind = -1;
     if (!text.isEmpty() && (ind = xp.indexIn(text)) < 0)
     {
-        text = text.remove(QRegExp("\\|.+\\|"));
+/*        text = text.remove(QRegExp("\\|.+\\|"));
         if (at >= 0 && _texts.count() > at)
         {
 
@@ -349,20 +354,21 @@ void ModelItem::setText(QString text, int at)
         else if (at < 0)
         {
             SpecialLabel *label = new SpecialLabel(text.trimmed(), this,
-                                                   _texts.count());
+                                                   _texts.count());*/
+        QLabel *label = new QLabel(text.trimmed(),this);
             label->setFixedHeight(_settings->itemHeight);
             QFont f(QString(_settings->font),
                     _settings->textFontSize);
             f.setBold(true);
             label->setFont(f);
-            if (_texts.count())
+            /*if (_texts.count())
                 label->move(_texts.last()->pos().x()+_texts.last()->width()
                             +QFontMetrics(f).width(", "),0);
-            else
+            else*/
                 label->move(_settings->expandButtonSize+10,0);
-            _texts << label;
+            _text = label;//_texts << label;
             label->show();
-        }
+        //}
     }
     else
     {
@@ -370,7 +376,7 @@ void ModelItem::setText(QString text, int at)
     }
 }
 
-void ModelItem::removeText(int at)
+/*void ModelItem::removeText(int at)
 {
     SpecialLabel *removing;
     if (at >= 0 && _texts.count() > at)
@@ -378,24 +384,26 @@ void ModelItem::removeText(int at)
         removing = _texts.takeAt(at);
         _baseCostFor1.removeAt(at);
     }
+    else
+        return;
     for (int i = at; i < _texts.count(); ++i)
         _texts.at(i)->move(_texts.at(i)->pos().x()-removing->width(),0);
 
     if (removing)
         delete removing;
     updateCost();
-}
+}*/
 
-void ModelItem::setTexts(const QStringList &texts)
+/*void ModelItem::setTexts(const QStringList &texts)
 {
     _texts.clear();
     for (int i = 0; i < texts.count(); ++i)
         setText(texts.at(i));
 
     update();
-}
+}*/
 
-QStringList ModelItem::getTexts() const
+/*QStringList ModelItem::getTexts() const
 {
     QStringList ret;
     for (int i = 0; i < _texts.count(); ++i)
@@ -403,9 +411,9 @@ QStringList ModelItem::getTexts() const
         ret << _texts.at(i)->text();
     }
     return ret;
-}
+}*/
 
-void ModelItem::updateTexts(int at)
+/*void ModelItem::updateTexts(int at)
 {
     if (_texts.count())
     {
@@ -424,16 +432,8 @@ void ModelItem::updateTexts(int at)
         }
     }
     update();
-}
-
-void ModelItem::setModels(int min, int max)
-{
-    _hasModels = true;
-    if (max < 0)
-        max = min;
-    createSpinner(min,max);
-}
-
+}*/
+/* Was ist modifier
 void ModelItem::setModifier(int i, bool up)
 {
     if (_takesModifier)
@@ -467,10 +467,15 @@ void ModelItem::adjustModifier(int i)
 
 }
 
-void ModelItem::addPoint(int p)
+void ModelItem::setModifierIntake(bool b)
+{
+    _takesModifier = b;
+}*/
+
+/*void ModelItem::addPoint(int p)
 {
     _cost += p;
-    _costFor1 += p;
+
     if (_texts.count() > _baseCostFor1.count())
     {
         _texts.at(_baseCostFor1.count())->setPoint(p);
@@ -499,21 +504,15 @@ void ModelItem::setPoints(const QList<int> &ps)
     }
     _costFor1 = _cost;
     _baseCostFor1 = ps;
-}
+}*/
 
-void ModelItem::setModelIntake(bool b)
+void ModelItem::setCost(int c)
 {
-    if (_hasModels)
-        return;
-    _takesModels = b;
+    _cost = c;
+    _basecost = c;
 }
 
-void ModelItem::setModifierIntake(bool b)
-{
-    _takesModifier = b;
-}
-
-void ModelItem::setAlwaysActive(bool b)
+/*void ModelItem::setAlwaysActive(bool b)
 {
     if (b)
     {
@@ -523,9 +522,9 @@ void ModelItem::setAlwaysActive(bool b)
     }
     _alwaysChecked = b;
     update();
-}
+}*/
 
-void ModelItem::setClonable(int i)
+/*void ModelItem::setClonable(int i)
 {
     if (_clonable)
         *_clonable = i;
@@ -535,7 +534,6 @@ void ModelItem::setClonable(int i)
 
 void ModelItem::setLimit(int limt, bool force)
 {
-//    _hasLimit = true;
     int limit = limt;
 
     if (_spinner)
@@ -581,7 +579,7 @@ int ModelItem::getCurrentLimit() const
     if (_checkable)
         return 1;
     return 0;
-}
+}*/
 
 void ModelItem::setValue(int val)
 {
@@ -589,7 +587,7 @@ void ModelItem::setValue(int val)
         _spinner->setValue(val);
 }
 
-void ModelItem::changeTexts(const QString &txts)
+/*void ModelItem::changeTexts(const QString &txts)
 {
     QStringList lst = txts.split(", ");
     for (int i = 0; i < lst.count(); ++i)
@@ -668,19 +666,26 @@ void ModelItem::removeSelection(int at, const QString &text)
 void ModelItem::denySelection(int at, bool denied)
 {
     _texts.at(at)->denySelection(denied);
+}*/
+
+void ModelItem::setModels(int min,int max)
+{
+    _multiplierismodels = true;
+    if (max < 0)
+        max = min;
+    createSpinner(min,max);
 }
 
 void ModelItem::updateCost()
 {
     int change = _cost;
 
-    _costFor1 = 0;
+//    _costFor1 = 0;
 
-    foreach (int i, _baseCostFor1)
-        _costFor1 += i;
+//    foreach (int i, _baseCostFor1)
+  //      _costFor1 += i;
 
-//    if (!_spinner)
-        _cost = _costFor1*(_multiplier-_modifier);
+    _cost = (_basecost+_otherCosts)*_multiplier;
 
     change = _cost - change;
 
@@ -777,14 +782,15 @@ void ModelItem::paintEvent(QPaintEvent *)
     f.setBold(true);
     p.setFont(f);
 
-    QRect comma(0,0,QFontMetrics(f).width(", ")
+/*    QRect comma(0,0,QFontMetrics(f).width(", ")
                 ,_settings->itemHeight);
 
     for (int i = 0; i < _texts.count()-1; ++i)
     {
         comma.moveLeft(_texts.at(i)->x() + _texts.at(i)->width());
         p.drawText(comma, Qt::AlignVCenter | Qt::AlignLeft, ", ");
-    }
+    }*/
+
 
     p.drawLine(width()-_settings->costFieldWidth,0,
                width()-_settings->costFieldWidth,height());
@@ -818,7 +824,8 @@ void ModelItem::leaveEvent(QEvent*)
 
 void ModelItem::mousePressEvent(QMouseEvent *e)
 {
-    if (!_alwaysChecked && e->button() == Qt::LeftButton)
+    if (//!_alwaysChecked &&
+            e->button() == Qt::LeftButton)
     {
         if (!_checked && !_checkable)
             return;
@@ -832,8 +839,8 @@ void ModelItem::mouseDoubleClickEvent(QMouseEvent *e)
 {
     if (e->button() == Qt::LeftButton)
     {
-        ModelItem *cp = cloneItem();
-        if (cp)
+//        ModelItem *cp = cloneItem();
+  //      if (cp)
             e->accept();
     }
 }
@@ -872,8 +879,9 @@ void ModelItem::togglePlus()
 
 bool ModelItem::toggleCheck()
 {
-    if ((!_checked && !_checkable) ||
-        (_alwaysChecked && _checked))
+    if ((!_checked && !_checkable)
+            //|| (_alwaysChecked && _checked)
+            )
         return false;
     if (_spinner && !_spinner->value() && _spinner->maximum() && !_checked)
         _spinner->setValue(1);
@@ -885,8 +893,8 @@ bool ModelItem::toggleCheck()
         sign = -1;
     emit checked(_multiplier*sign, this);
 //    if (_checked)
-    if (_hasModifier > 0)
-        _above->setModifier(sign*_hasModifier,true);
+//    if (_hasModifier > 0)
+//        _above->setModifier(sign*_hasModifier,true);
     _above->changeOtherCosts(total*sign, _index);
     update();
    // if (_checked && _clonable)
@@ -896,10 +904,6 @@ bool ModelItem::toggleCheck()
     return true;
 }
 
-void ModelItem::copycloning(ModelItem *item)
-{
-    emit cloning(item);
-}
 
 void ModelItem::createSpinner(int min, int max)
 {
@@ -908,9 +912,9 @@ void ModelItem::createSpinner(int min, int max)
             this, SLOT(on_spinnerChanged(int)));
     _spinner->setRange(min, max);
     _spinner->setSuffix(QString("/")+QString::number(max));
-    if (_texts.count())
-        _spinner->move(_texts.last()->pos().x() +
-                       _texts.last()->width() + 20,
+//    if (_texts.count())
+        _spinner->move(_text->pos().x() +
+                       _text->width() + 20,
                        0);
     _spinner->setMinimumHeight(_settings->itemHeight);
     if (min < max)
@@ -921,17 +925,23 @@ void ModelItem::createSpinner(int min, int max)
 
 void ModelItem::on_spinnerChanged(int now)
 {
-    int change = now-_multiplier;
-    if (_hasModels || _checked)
-        emit multiplierChanged(change, this);
+//    int change = now-_multiplier;
+//    if (_hasModels || _checked)
+  //      emit multiplierChanged(change, this);
     _multiplier = now;
+
+    //if(_multiplierismodels)
+    //{
+    // Inform children for cost/model and limit
+    // Inform parent for model count
+    //}
     updateCost();
-    foreach (ModelItem *i, _belows)
-        i->on_multiplierChange(change);
+//    foreach (ModelItem *i, _belows)
+  //      i->on_multiplierChange(change);
 
 }
 
-void ModelItem::on_multiplierChange(int now, bool force)
+/*void ModelItem::on_multiplierChange(int now, bool force)
 {
 //    int change = now-_multiplier;
 
@@ -944,4 +954,5 @@ void ModelItem::on_multiplierChange(int now, bool force)
 
     foreach (ModelItem *i, _belows)
         i->on_multiplierChange(now);
-}
+}*/
+

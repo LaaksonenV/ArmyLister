@@ -75,11 +75,12 @@ private:
 
 public:
     ModelItem(Settings *set, TopModelItem *parent);
-    ModelItem(ModelItem *copy, TopModelItem *parent, int index = -1);
+//    ModelItem(ModelItem *copy, TopModelItem *parent, int index = -1);
     virtual ~ModelItem();
 
     void reset();
 
+    //Print function
     QStringList createTexts() const;
 
     virtual QSize sizeHint() const;
@@ -88,37 +89,38 @@ public:
     virtual TopModelItem *parentItem() const;
     virtual void insertItem(ModelItem *item, int to);
     virtual void modifyIndex(int amount);
-    virtual ModelItem *cloneItem();
 
-    virtual void setText(QString text, int at = -1);
-    virtual void removeText(int at);
-    virtual void setTexts(const QStringList &texts);
-    virtual QStringList getTexts() const;
-    virtual void updateTexts(int at = -1);
-    virtual void setModels(int min, int max = -1);
-    virtual void setModifier(int i, bool up);
-    virtual void setModifierGiver(int i);
-    virtual void adjustModifier(int i);
-    virtual void addPoint(int p);
-    virtual void setPoint(int p, int at);
-    virtual void setPoints(const QList<int> &ps);
-    virtual void setModelIntake(bool b = true);
-    virtual void setModifierIntake(bool b = true);
-    virtual void setAlwaysActive(bool b = true);
-    virtual void setClonable(int i);
-    virtual void setLimit(int limt, bool force = false);
-    virtual void setLimitable(bool = true);
-    virtual int getCurrentLimit() const;
+    //virtual ModelItem *cloneItem();
+
+    virtual void setText(QString text);
+//    virtual void removeText(int at);
+//    virtual void setTexts(const QStringList &texts);
+//    virtual QStringList getTexts() const;
+//    virtual void updateTexts(int at = -1);
+//    virtual void setModifier(int i, bool up);
+//    virtual void setModifierGiver(int i);
+//    virtual void adjustModifier(int i);
+//    virtual void addPoint(int p);
+//    virtual void setPoint(int p, int at);
+//    virtual void setPoints(const QList<int> &ps);
+ //   virtual void setModifierIntake(bool b = true);
+    virtual void setCost(int c);
+//    virtual void setAlwaysActive(bool b = true);
+//    virtual void setClonable(int i);
+//    virtual void setLimit(int limt, bool force = false);
+//    virtual void setLimitable(bool = true);
+//    virtual int getCurrentLimit() const;
     virtual void setValue(int val);
-    virtual void changeTexts(const QString &txts);
+//    virtual void changeTexts(const QString &txts);
 
-    virtual int addSelection(const QString &text,
-                      const QList<std::pair<QString,int> > &list);
-    virtual void changeSelection(int at,
-                                 const QString &text,
-                                 int points);
-    virtual void removeSelection(int at, const QString &text);
-    virtual void denySelection(int at, bool denied);
+//    virtual int addSelection(const QString &text,
+  //                    const QList<std::pair<QString,int> > &list);
+//    virtual void changeSelection(int at,
+  //                               const QString &text,
+    //                             int points);
+//    virtual void removeSelection(int at, const QString &text);
+//    virtual void denySelection(int at, bool denied);
+    virtual void setModels(int min, int max);
 
     virtual void updateCost();
     virtual void changeOtherCosts(int c, int);
@@ -146,8 +148,7 @@ private:
 public:
     virtual bool toggleCheck();
     virtual bool isChecked() const {return _checked;}
-private:
-    virtual void copycloning(ModelItem *item);
+protected:
 
     virtual void createSpinner(int min, int max);
 
@@ -164,38 +165,39 @@ protected slots:
     virtual void on_spinnerChanged(int now);
 
 public slots:
-    virtual void on_multiplierChange(int now, bool force = false);
+//    virtual void on_multiplierChange(int now, bool force = false);
 
 private:
 
     TopModelItem *_above;
-    bool _limitClone;
+//    bool _limitClone;
     int _index;
 
-    QList<SpecialLabel*> _texts;
-    QList<MultiSelectionHandler*> _mshs;
+    QLabel *_text;//    QList<SpecialLabel*> _texts;
+//    QList<MultiSelectionHandler*> _mshs;
 
     int _cost;
-    int _costFor1;
-    QList<int> _baseCostFor1;
+    int _basecost;
+//    QList<int> _baseCostFor1;
 
     int _multiplier;
-    int _modifier;
-    int _hasModifier;
-    bool _takesModels;
-    bool _takesModifier;
+    bool _multiplierismodels;
+    int _baseModels;
+//    int _modifier;
+//    int _hasModifier;
+//    bool _takesModifier;
 
     QSpinBox *_spinner;
-    bool _hasModels;
-    bool _hasLimit;
+//    bool _hasLimit;
 
     QPushButton *_expandButton;
     bool _expanded;
     bool _checked;
     bool _checkable;
-    bool _alwaysChecked;
-    int *_clonable;
+//    bool _alwaysChecked;
+//    int *_clonable;
     bool _mouseIn;
 };
+
 
 #endif // MODELITEM_H

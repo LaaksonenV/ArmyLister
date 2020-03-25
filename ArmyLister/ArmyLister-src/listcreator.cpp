@@ -100,7 +100,7 @@ ListCreator::ListCreator(const QString &file,
     chLay = new QHBoxLayout();
 
     QLabel *label;
-    QLineEdit *edit, *edittemp;
+    QLineEdit *edit = nullptr, *edittemp = nullptr;
     for (int i = 0; i < columns; ++i)
     {
         label = new QLabel(header.value(i) + ':', this);
@@ -122,7 +122,7 @@ ListCreator::ListCreator(const QString &file,
 
         _lines << edit;
 
-        connect(edit, &QLineEdit::textEdited,
+        connect(edit, &QLineEdit::textChanged,
                 this, [=](const QString &text)
         {_list->currentItem()->setText(i,text);});
         //chLay->addWidget(edit);
@@ -140,7 +140,9 @@ ListCreator::ListCreator(const QString &file,
         }
         else
             chLay->setStretch((i*2)+1,2);
+
     }
+    _editor->setEnabled(false);
     _list->setColumnWidth(0,200);
 
     lay->addLayout(chLay);
@@ -485,12 +487,13 @@ void ListCreator::on_currentChanged(QTreeWidgetItem *now, QTreeWidgetItem *)
 
     _lines.at(0)->setFocus();
     _lines.at(0)->selectAll();
+    _editor->setEnabled(true);
 }
 
 void ListCreator::readFile()
 {
     QFile f(_fileName);
-    QTreeWidgetItem *currentItem;
+    QTreeWidgetItem *currentItem = nullptr;
     if (!f.exists())
     {
  //       currentItem = new QTreeWidgetItem(QStringList("New"));

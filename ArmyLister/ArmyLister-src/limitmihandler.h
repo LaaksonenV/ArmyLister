@@ -1,7 +1,7 @@
 #ifndef LIMITMIHANDLER_H
 #define LIMITMIHANDLER_H
 
-#include <QObject>
+/*#include <QObject>
 #include <QStringList>
 #include <QList>
 #include <QMap>
@@ -77,6 +77,6 @@ private:
     ModelItem *_followed;
 
     LimitMIhandler* _limitClone;
-};
+};*/
 
 #endif // LIMITMIHANDLER_H

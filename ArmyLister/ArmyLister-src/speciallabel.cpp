@@ -1,4 +1,4 @@
-#include "speciallabel.h"
+/*#include "speciallabel.h"
 #include "modelitem.h"
 
 #include <QPainter>
@@ -310,3 +310,4 @@ void MultiSelectionHandler::selectionChanged(int at, const QString &text,
             }
     }
 }
+*/

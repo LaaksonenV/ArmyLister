@@ -8,15 +8,16 @@
 class TopModelItem;
 class Settings;
 class QTextStream;
-class TempTreeModelItem;
+struct TempTreeModelItem;
 class ModelItem;
 class LimitMIhandler;
 #include "pointcontainer.h"
 
 class ItemFactory
 {
+
 public:
-    ItemFactory(TopModelItem *top);
+    ItemFactory(TopModelItem *top, Settings *set);
     ~ItemFactory();
 
     bool addArmyFile(const QString &fileName);
@@ -33,16 +34,16 @@ private:
                          ModelItem *parent, int amount,
                          LimitMIhandler *sharedLimit = nullptr,
                          ModelItem *itm = nullptr);
-    LimitMIhandler *parseSelection(TempTreeModelItem *branch,
-                        ModelItem *parent,
-                        int amount,
-                        LimitMIhandler *sharedLimit = nullptr);
-    LimitMIhandler *createLimiter(ModelItem *par,
-                                  int models = 0);
+//    LimitMIhandler *parseSelection(TempTreeModelItem *branch,
+  //                      ModelItem *parent,
+    //                    int amount,
+      //                  LimitMIhandler *sharedLimit = nullptr);
+//    LimitMIhandler *createLimiter(ModelItem *par,
+  //                                int models = 0);
 
-signals:
+/*signals:
     void roleSelected(int role, int amount);
-    void valueChanged(int value, int role);
+    void valueChanged(int value, int role);*/
 
 private:
     QString parseIncludes(QTextStream &str);

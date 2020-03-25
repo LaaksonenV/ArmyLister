@@ -145,7 +145,7 @@ void ListCreatorDetach::readFile()
     QString line;
     QStringList splitline;
     int indx;
-    QList<RoleSlotStruct> *list;
+    QList<RoleSlotStruct> *list = nullptr;
     while (!str.atEnd())
     {
         line = str.read(1);

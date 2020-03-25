@@ -1,7 +1,7 @@
 #ifndef SPECIALLABEL_H
 #define SPECIALLABEL_H
 
-#include <QLabel>
+/*#include <QLabel>
 #include <QList>
 
 class Selection;
@@ -93,5 +93,5 @@ private:
     QList<int> _ats;
     QStringList _texts;
 };
-
+*/
 #endif // SPECIALLABEL_H

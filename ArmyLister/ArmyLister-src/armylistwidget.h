@@ -5,6 +5,7 @@
 
 
 class TopModelItem;
+class ModelItem;
 class Settings;
 class QTextStream;
 
@@ -16,6 +17,8 @@ class ArmyListWidget : public QScrollArea
 public:
     ArmyListWidget(Settings *set, QWidget *parent);
     ~ArmyListWidget();
+
+    bool addArmyFile(const QString &fileName);
 
 public slots:
     void printList() const;

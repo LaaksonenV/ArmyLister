@@ -8,7 +8,7 @@
 #include <QTextStream>
 #include <QRegExp>
 
-ItemFactory::ItemFactory(TopModelItem* top)
+ItemFactory::ItemFactory(TopModelItem* top, Settings *set)
     : _settings(set)
     , _topItem(top)
     , _pointList(QList<PointContainer*>())
@@ -97,6 +97,7 @@ QString ItemFactory::parseTextRec(const QString &line, QTextStream &str,
     return nLine;
 }
 
+// Currently NA
 QStringList ItemFactory::parseControl(QString &text)
 {
     QStringList ret;
@@ -123,6 +124,7 @@ QStringList ItemFactory::parseControl(QString &text)
     return ret;
 }
 
+// Currently NA
 QStringList ItemFactory::parseSpecial(QString &text)
 {
     QStringList ret;
@@ -138,15 +140,15 @@ QStringList ItemFactory::parseSpecial(QString &text)
     return ret;
 }
 
-LimitMIhandler *ArmyListWidget::parseTree(TempTreeModelItem *branch,
+LimitMIhandler *ItemFactory::parseTree(TempTreeModelItem *branch,
                                      ModelItem *parent,
                                      int amount, LimitMIhandler *sharedLimit,
                                      ModelItem *itm)
 {
-    QChar ctrlchar;
+//    QChar ctrlchar;
     bool setUpItem = true;
 
-    foreach (QString ctrl, branch->_control)
+/*    foreach (QString ctrl, branch->_control)
     {
         ctrlchar = ctrl.at(0);
 
@@ -157,7 +159,7 @@ LimitMIhandler *ArmyListWidget::parseTree(TempTreeModelItem *branch,
         }
         if (ctrlchar == '#' || ctrlchar == '%')
             setUpItem = false;
-    }
+    }*/
 
     ModelItem *newItem = itm;
     if (!newItem)
@@ -167,8 +169,8 @@ LimitMIhandler *ArmyListWidget::parseTree(TempTreeModelItem *branch,
 
     if (setUpItem)
     {
-        QStringList text = branch->_text.split(',');
-        newItem->setTexts(text);
+        QString text = branch->_text;//.split(',');
+        newItem->setText(text);
 
         PointContainer *pr = nullptr, *temppr;
         int points = 0;
@@ -177,8 +179,8 @@ LimitMIhandler *ArmyListWidget::parseTree(TempTreeModelItem *branch,
         int effModif = 1;
         QRegExp xp("^(\\d+)");
 
-        foreach (QString s, text)
-        {
+QString s = text;//        foreach (QString s, text)
+
             if (modif.isEmpty())
                 modif << 1;
 
@@ -218,7 +220,7 @@ LimitMIhandler *ArmyListWidget::parseTree(TempTreeModelItem *branch,
             }
             if (pr)
             {
-                newItem->addPoint(points*effModif);
+                newItem->setCost(points*effModif);
                 if (pr->max)
                 {
                     minMods = pr->min;
@@ -226,11 +228,10 @@ LimitMIhandler *ArmyListWidget::parseTree(TempTreeModelItem *branch,
 
                 }
             }
-        }
     }
 
     QRegExp limitxp("\\((\\d+)@(\\d+)\\)");
-    LimitMIhandler *limt;
+/*    LimitMIhandler *limt;
     ModelItem *newitm2;
 
     foreach (QString ctrl, branch->_control)
@@ -270,11 +271,7 @@ LimitMIhandler *ArmyListWidget::parseTree(TempTreeModelItem *branch,
         {
             if (limitxp.indexIn(ctrl) >= 0)
             {
-/*                newItem->setModelIntake(true);
-                newItem->setLimitsbyModels(limitxp.cap(1).toInt(),
-                                   limitxp.cap(2).toInt());
-                newItem->on_multiplierChange(amount);
-                */
+
                 limt = createLimiter(parent, amount);
                 limt->setLimits(limitxp.cap(1).toInt(),
                                 limitxp.cap(2).toInt());
@@ -318,14 +315,14 @@ LimitMIhandler *ArmyListWidget::parseTree(TempTreeModelItem *branch,
             }
             return sharedLimit;
         }
-    }
+    }*/
 
     foreach (TempTreeModelItem *i, branch->_unders)
         sharedLimit = parseTree(i, newItem, minMods, sharedLimit);
     return nullptr;
 }
 
-LimitMIhandler *ItemFactory::parseSelection(TempTreeModelItem *branch,
+/*LimitMIhandler *ItemFactory::parseSelection(TempTreeModelItem *branch,
                                     ModelItem *parent, int amount,
                                     LimitMIhandler *sharedLimit)
 {
@@ -487,16 +484,16 @@ LimitMIhandler *ItemFactory::parseSelection(TempTreeModelItem *branch,
         sharedLimit = parseSelection(it, parent, amnt, sharedLimit);
     }
     return sharedLimit;
-}
+}*/
 
-LimitMIhandler *ItemFactory::createLimiter(ModelItem *par,
+/*LimitMIhandler *ItemFactory::createLimiter(ModelItem *par,
                                               int models)
 {
     LimitMIhandler *limt = new LimitMIhandler(this);
     limt->setFollowing(par);
     limt->on_modelChange(models, nullptr);
     return limt;
-}
+}*/
 
 QString ItemFactory::parseIncludes(QTextStream &str)
 {
@@ -509,7 +506,7 @@ QString ItemFactory::parseIncludes(QTextStream &str)
     return line;
 }
 
-void ItemFactory::parseIncludeFile(const QString &fileName)
+void ItemFactory::parseFile(const QString &fileName)
 {
     QFile file(fileName);
     if (!file.open(QFile::Text | QFile::ReadOnly))

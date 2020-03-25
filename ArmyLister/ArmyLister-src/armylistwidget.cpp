@@ -32,8 +32,14 @@ ArmyListWidget::ArmyListWidget(Settings *set, QWidget *parent)
 
 ArmyListWidget::~ArmyListWidget()
 {
-    foreach (PointContainer *p, _pointList)
-        delete p;
+//    foreach (PointContainer *p, _pointList)
+  //      delete p;
+}
+
+bool ArmyListWidget::addArmyFile(const QString &fileName)
+{
+    ItemFactory fctr(_topItem, _settings);
+    return fctr.addArmyFile(fileName);
 }
 
 void ArmyListWidget::printList() const
@@ -108,13 +114,13 @@ void ArmyListWidget::loadList(const QString &filename)
     if (str.atEnd())
         return;
 
-    ItemFactory fctr(_topItem);
+    ItemFactory fctr(_topItem, _settings);
     if (!fctr.addArmyFile(line + ".txt"))
         return;
 
     resize(500,400);
 
-    _name = QFileInfo(fileName).baseName();
+    _name = QFileInfo(filename).baseName();
 
     ModelItem *itm;
     QStringList dat;
@@ -247,11 +253,11 @@ QString ArmyListWidget::recurseLoad(QTextStream &str, ModelItem *parnt,
         else
         {
             itm = parnt->getChild((dat.at(3).toInt()/100)-1);
-            itm = itm->cloneItem();
+//            itm = itm->cloneItem();
         }
 
         itm->toggleCheck();
-        itm->changeTexts(dat.at(0));
+//        itm->changeTexts(dat.at(0));
         itm->setValue(dat.at(1).toInt());
 
         line = recurseLoad(str, itm, d+1);
