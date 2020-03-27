@@ -8,9 +8,11 @@
 #include <QFontMetrics>
 #include <QLabel>
 #include <QTimer>
+#include <QResizeEvent>
+#include <QMouseEvent>
 
 #include "settings.h"
-//#include "speciallabel.h"
+#include "slotslabel.h"
 
 TopModelItem::TopModelItem(Settings *set, QWidget *parent)
     : QWidget(parent)
@@ -355,19 +357,13 @@ void ModelItem::setText(QString text)
         {
             SpecialLabel *label = new SpecialLabel(text.trimmed(), this,
                                                    _texts.count());*/
-        QLabel *label = new QLabel(text.trimmed(),this);
-            label->setFixedHeight(_settings->itemHeight);
-            QFont f(QString(_settings->font),
-                    _settings->textFontSize);
-            f.setBold(true);
-            label->setFont(f);
-            /*if (_texts.count())
-                label->move(_texts.last()->pos().x()+_texts.last()->width()
-                            +QFontMetrics(f).width(", "),0);
-            else*/
-                label->move(_settings->expandButtonSize+10,0);
-            _text = label;//_texts << label;
-            label->show();
+
+        if (!_text)
+             _text = new BaseLabel(this, _settings, text);
+        else
+            _text->setText(text);
+
+        _text->show();
         //}
     }
     else
@@ -597,49 +593,26 @@ void ModelItem::setValue(int val)
            _texts.at(i)->text() != lst.at(i))
             _texts.at(i)->select(lst.at(i));
     }
-}
+}*/
 
-int ModelItem::addSelection(const QString &text,
-                             const QList<std::pair<QString, int> > &list)
+void ModelItem::setSelection(Gear& pr, int at)
 {
-    QStringList multi = text.split(',');
-    MultiSelectionHandler *handler = nullptr;
-    for (int i = 0; i < multi.count(); ++i)
-    {
-        multi[i] = multi.at(i).trimmed();
-    }
-    if (multi.count()>1)
-    {
-        handler = new MultiSelectionHandler(this);
-        _mshs << handler;
-        handler->addText(list);
-    }
 
-    SpecialLabel *l;
-    int ret = 0;
-    for (int i = 0; i < _texts.count(); ++i)
-    {
-        l = _texts.at(i);
-        if (multi.at(0).isEmpty())
-        {
-            l->addSelection(list);
-        }
-        else if (l->text() == multi.at(0))
-        {
-            l->addSelection(list);
-            if (handler)
-                handler->addAt(i);
-            ret = i;
-        }
-        else if (multi.contains(l->text()))
-        {
-            if (handler)
-                handler->addAt(i);
-        }
-    }
-    return ret;
+    if (!_text)
+         _text = new SlotLabel(this, _settings);
+
+    _text->hide();
+    setCost(_cost+pr.cost);
+    _text->setDefault(pr, at);
+    _text->show();
 }
 
+void ModelItem::addSelection(const QList<Gear> &list, int at)
+{
+    _text->addSelection(list, at);
+//    _text->show();
+}
+/*
 void ModelItem::changeSelection(int at, const QString &text,
                                 int points)
 {
@@ -825,7 +798,7 @@ void ModelItem::leaveEvent(QEvent*)
 
 void ModelItem::mousePressEvent(QMouseEvent *e)
 {
-    if (//!_alwaysChecked &&
+    if (!_alwaysChecked &&
             e->button() == Qt::LeftButton)
     {
         if (!_checked && !_checkable)

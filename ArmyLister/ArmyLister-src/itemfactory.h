@@ -3,7 +3,7 @@
 
 #include <QMap>
 
-#define CONTROL_C ":/#~^+*?"
+#define CONTROL_C "\\:/#~^+*?"
 
 class TopModelItem;
 class Settings;
@@ -11,7 +11,8 @@ class QTextStream;
 struct TempTreeModelItem;
 class ModelItem;
 class LimitMIhandler;
-#include "pointcontainer.h"
+struct PointContainer;
+
 
 class ItemFactory
 {
@@ -34,10 +35,11 @@ private:
                          ModelItem *parent, int amount,
                          LimitMIhandler *sharedLimit = nullptr,
                          ModelItem *itm = nullptr);
-//    LimitMIhandler *parseSelection(TempTreeModelItem *branch,
-  //                      ModelItem *parent,
-    //                    int amount,
-      //                  LimitMIhandler *sharedLimit = nullptr);
+    void createSelection(TempTreeModelItem *branch,
+                         ModelItem *parent);
+    void parseSelection(TempTreeModelItem *branch,
+                                   ModelItem *item,
+                                   QMap<QString,int> &ats);
 //    LimitMIhandler *createLimiter(ModelItem *par,
   //                                int models = 0);
 
@@ -51,6 +53,8 @@ private:
     void parseFile(const QString &fileName);
     QString parseList(QTextStream &str, QString line);
 
+    PointContainer* countItems(const QString &text,
+                            const QStringList &special);
     PointContainer* findPair(const QString &text,
                             const QStringList &special);
 private:

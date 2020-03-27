@@ -37,10 +37,11 @@ SOURCES += \
     sortedstringlist.cpp \
     armylistwidget.cpp \
     settings.cpp \
-    speciallabel.cpp \
     limitmihandler.cpp \
     textedit.cpp \
-    itemfactory.cpp
+    itemfactory.cpp \
+    slotsllabel.cpp \
+    slotselection.cpp
 
 HEADERS += \
         mainwindow.h \
@@ -55,11 +56,12 @@ HEADERS += \
     sortedstringlist.h \
     armylistwidget.h \
     settings.h \
-    speciallabel.h \
     limitmihandler.h \
-    pointcontainer.h \
     textedit.h \
-    itemfactory.h
+    itemfactory.h \
+    slotslabel.h \
+    slotselection.h \
+    structs.h
 
 RESOURCES += \
     resource.qrc

@@ -11,9 +11,11 @@ class QSpinBox;
 class QLabel;
 
 class Settings;
-class SpecialLabel;
+class SlotLabel;
+class BaseLabel;
 class MultiSelectionHandler;
 class ModelItem;
+struct Gear;
 class TopModelItem : public QWidget
 {
     Q_OBJECT
@@ -113,8 +115,8 @@ public:
     virtual void setValue(int val);
 //    virtual void changeTexts(const QString &txts);
 
-//    virtual int addSelection(const QString &text,
-  //                    const QList<std::pair<QString,int> > &list);
+    virtual void setSelection(Gear &pr, int at);
+    virtual void addSelection(const QList<Gear> &list, int at);
 //    virtual void changeSelection(int at,
   //                               const QString &text,
     //                             int points);
@@ -173,7 +175,7 @@ private:
 //    bool _limitClone;
     int _index;
 
-    QLabel *_text;//    QList<SpecialLabel*> _texts;
+    BaseLabel *_text;//    QList<SpecialLabel*> _texts;
 //    QList<MultiSelectionHandler*> _mshs;
 
     int _cost;

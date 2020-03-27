@@ -15,7 +15,7 @@
 #include <QStringList>
 #include <QTextEdit>
 #include <QFileDialog>
-
+#include <QKeyEvent>
 #include "textedit.h"
 
 ListCreator::ListCreator(const QString &file,
@@ -205,21 +205,24 @@ void ListCreator::initialiseArmy()
                    " whitespaces.\n"
                    "X denotes a number, usually replacable with:\n"
                    " A for every model,\n"
-                   " M for every model except leader, \n"
+                   //" M for every model except leader, \n"
                    " (X@Y) X for every Y models.\n"
                    "Items without ! and control characters are normal"
                    " selectable items.\n"
-                   "'=X' limited to X selections. (e.g. named characters\n"
+                  // "'=X' limited to X selections. (e.g. named characters\n"
                    "':' item is not selectable (always selected).\n"
-                   "'/' item replaces previous items.\n"
-                   " Optional:\n"
-                   " '<AAA>' replaces item AAA;\n"
-                   " '<AAA,BBB,...>' replaces all items;\n"
-                   " 'X' replace up to X.\n"
-                   "'&X' add X items from a list.\n"
-                   "'+X' item is selectable X times.\n"
-                   "'%X' select up to X items from below.\n"
-                   "'*X' item cost multiplied by X.\n\n"
+                   "'\\' equipment slots; each slot is placed in bracets (),"
+                   "  and may be preceded with slot name without whitespaces (if not, they will be named"
+                   "    with increasing number from 1)"
+                   "'/X' item replaces equipment in previous slot X.\n"
+                   " Multiple slots may be replaced by '/X,Y,...'"
+                   " Separate different choices with a comma ,"
+                   " Combine different choises with ampedsand &"
+                 //  " 'X' replace up to X.\n"
+                 //  "'&X' add X items from a list.\n"
+                //   "'+X' item is selectable X times.\n"
+                //   "'%X' select up to X items from below.\n"
+                //   "'*X' item cost multiplied by X.\n\n"
                    "You can prefix an item with an amount number, and group "
                    "items with curly braces {}.\n"
                    "Putting items inside straight lines || means it will not "

@@ -1,7 +1,13 @@
-#ifndef POINTCONTAINER_H
-#define POINTCONTAINER_H
+#ifndef STRUCTS_H
+#define STRUCTS_H
 
 #include <QStringList>
+
+struct Gear
+{
+    QString name;
+    int cost;
+};
 
 struct PointContainer
 {
@@ -32,4 +38,5 @@ struct PointContainer
 
 };
 
-#endif // POINTCONTAINER_H
+
+#endif // STRUCTS_H

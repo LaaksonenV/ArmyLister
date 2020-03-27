@@ -3,6 +3,7 @@
 #include "modelitem.h"
 #include "limitmihandler.h"
 #include "settings.h"
+#include "structs.h"
 
 #include <QFile>
 #include <QTextStream>
@@ -148,18 +149,18 @@ LimitMIhandler *ItemFactory::parseTree(TempTreeModelItem *branch,
     QChar ctrlchar;
     bool setUpItem = true;
 
-/*    foreach (QString ctrl, branch->_control)
+    foreach (QString ctrl, branch->_control)
     {
         ctrlchar = ctrl.at(0);
 
-        if (ctrlchar == '/' || ctrlchar == '&')
+        if (ctrlchar == '\\')// || ctrlchar == '&')
         {
-            sharedLimit = parseSelection(branch, parent, amount, sharedLimit);
+            createSelection(branch, parent);
             return sharedLimit;
         }
-        if (ctrlchar == '#' || ctrlchar == '%')
-            setUpItem = false;
-    }*/
+//        if (ctrlchar == '#' || ctrlchar == '%')
+  //          setUpItem = false;
+    }
 
     ModelItem *newItem = itm;
     if (!newItem)
@@ -172,62 +173,17 @@ LimitMIhandler *ItemFactory::parseTree(TempTreeModelItem *branch,
         QString text = branch->_text;//.split(',');
         newItem->setText(text);
 
-        PointContainer *pr = nullptr, *temppr;
-        int points = 0;
-        QStringList items;
-        QList<int> modif; modif << 1;
-        int effModif = 1;
-        QRegExp xp("^(\\d+)");
-
-QString s = text;//        foreach (QString s, text)
-
-            if (modif.isEmpty())
-                modif << 1;
-
-            effModif = 1;
-
-            s = s.remove('|').trimmed();
-            if (xp.indexIn(s) >= 0)
+        PointContainer *pr = countItems(text, branch->_spec);
+        if (pr)
+        {
+            newItem->setCost(pr->points);
+            if (pr->max)
             {
-                effModif = modif.last() * xp.cap(1).toInt();
-                s = s.remove(xp.cap(1));
-                s = s.trimmed();
-                if (s.startsWith('{'))
-                {
-                    modif << effModif;
-                    s = s.remove(0,1);
-                    s = s.trimmed();
-                }
-                if (s.endsWith('}'))
-                {
-                    modif.removeLast();
-                    s.chop(1);
-                    s = s.trimmed();
-                }
+                minMods = pr->min;
+                newItem->setModels(pr->min, pr->max);
 
             }
-            items = s.split('&');
-            points = 0;
-            foreach (QString t, items)
-            {
-                t = t.trimmed();
-                temppr = nullptr;
-                if ((temppr = findPair(t,branch->_spec)))
-                {
-                    pr = temppr;
-                    points += pr->points;
-                }
-            }
-            if (pr)
-            {
-                newItem->setCost(points*effModif);
-                if (pr->max)
-                {
-                    minMods = pr->min;
-                    newItem->setModels(pr->min, pr->max);
-
-                }
-            }
+        }
     }
 
     QRegExp limitxp("\\((\\d+)@(\\d+)\\)");
@@ -322,14 +278,47 @@ QString s = text;//        foreach (QString s, text)
     return nullptr;
 }
 
-/*LimitMIhandler *ItemFactory::parseSelection(TempTreeModelItem *branch,
-                                    ModelItem *parent, int amount,
-                                    LimitMIhandler *sharedLimit)
+void ItemFactory::createSelection(TempTreeModelItem *branch,
+                                  ModelItem *parent)
 {
-    QStringList contrl;
-    QChar ctrlchar;
-    QString splitters = "/&#";
-    bool NAs = false;
+    ModelItem *newItem = new ModelItem(_settings, parent);
+
+    QStringList texts = branch->_text.split(")", QString::SkipEmptyParts);
+    QMap<QString,int> ats;
+    Gear g;
+
+    for (int i = 0; i < texts.count(); ++i)
+    {
+        QString text = texts.at(i);
+        ats.insert(text.section("(",0,0),i);
+        text = text.section("(",1);
+
+        PointContainer *pr = countItems(text, branch->_spec);
+        if (pr)
+        {
+            g.name = text;
+            g.cost = pr->points;
+
+            newItem->setSelection(g,i);
+
+        }
+    }
+    newItem->setAlwaysChecked(true);
+
+    foreach (TempTreeModelItem *i, branch->_unders)
+        parseSelection(i, newItem, ats);
+
+}
+
+void ItemFactory::parseSelection(TempTreeModelItem *branch,
+                                            ModelItem *item, QMap<QString, int> &ats)
+{
+    QStringList contrl = branch->_control;
+    if (!contrl.count())
+        return;
+//    QChar ctrlchar;
+
+/*    QString splitters = "/&#";
     foreach (QString ctrl, branch->_control)
     {
         ctrlchar = ctrl.at(0);
@@ -340,9 +329,9 @@ QString s = text;//        foreach (QString s, text)
                 NAs = true;
             break;
         }
-    }
-    QStringList replaced;
-    int amnt = amount;
+    }*/
+
+/*    QStringList replaced;
     int modif = 1;
     int times = 0, divs = 0;
     bool limitmod = false;
@@ -420,71 +409,53 @@ QString s = text;//        foreach (QString s, text)
 
     if (!replaced.count())
         replaced << QString();
+*/
 
 
     if (!branch->_text.isEmpty())
     {
-        QList<std::pair<QString,int> > list;
-        PointContainer *pr, *temppr;
+        QString ctrl = contrl.first().remove(0,1);
+        int at = ats.value(ctrl);
+
+        QList<Gear> list;
+        PointContainer *pr;
         QStringList text = branch->_text.split(',');
-        QStringList texts;
-        QStringList items;
-        int points = 0;
-        QString s, u;
+        QString u;
         for(int i = 0; i < text.count(); ++i)
         {
-            s = u = text.at(i).trimmed();
-            modif = 1;
-            if (xp.indexIn(u) >= 0)
-            {
-                modif = xp.cap(1).toInt();
-                u = u.remove(xp.cap(1));
-                u = u.trimmed();
-            }
+            u = text.at(i).trimmed();
 
             if (u.startsWith('['))
             {
                 foreach (QString t, _listList.value(u))
                     if (!text.contains(t))
                         text << t;
-                continue;
             }
-
-            items = u.split('&');
-            points = 0;
-            foreach (QString t, items)
+            else
             {
-                t = t.remove('|').trimmed();
-                temppr = nullptr;
-                if ((temppr = findPair(t,branch->_spec)))
+
+                pr = countItems(u, branch->_spec);
+
+                if (pr)
                 {
-                    pr = temppr;
-                    points += pr->points;
+                    list << Gear{u, pr->points};
                 }
             }
-            if (pr)
-            {
-                list << std::make_pair(s, points*modif);
-                texts << items.at(0);
-            }
-
 
         }
-        int j;
+
+        item->addSelection(list, at);
+
+/*        int j;
         foreach (QString str, replaced)
         {
             j = parent->addSelection(str,list);
             if (sharedLimit)
                 sharedLimit->addSelections(j, texts, times, divs, limitmod);
-        }
+        }*/
     }
-    foreach (TempTreeModelItem *it, branch->_unders)
-    {
-//        it->_control.append(branch->_control);
-        sharedLimit = parseSelection(it, parent, amnt, sharedLimit);
-    }
-    return sharedLimit;
-}*/
+
+}
 
 /*LimitMIhandler *ItemFactory::createLimiter(ModelItem *par,
                                               int models)
@@ -576,6 +547,61 @@ QString ItemFactory::parseList(QTextStream &str, QString line)
     }
     _listList.insert(listname, list);
     return line;
+}
+
+PointContainer *ItemFactory::countItems(const QString &text,
+                                        const QStringList &special)
+{
+    PointContainer *pr = nullptr, *temppr;
+    int points = 0;
+    QStringList items;
+    QList<int> modif; modif << 1;
+    int effModif = 1;
+    QRegExp xp("^(\\d+)");
+
+    QString s = text;
+
+    if (modif.isEmpty())
+        modif << 1;
+
+    effModif = 1;
+
+    s = s.remove('|').trimmed();
+    if (xp.indexIn(s) >= 0)
+    {
+        effModif = modif.last() * xp.cap(1).toInt();
+        s = s.remove(xp.cap(1));
+        s = s.trimmed();
+        if (s.startsWith('{'))
+        {
+            modif << effModif;
+            s = s.remove(0,1);
+            s = s.trimmed();
+        }
+        if (s.endsWith('}'))
+        {
+            modif.removeLast();
+            s.chop(1);
+            s = s.trimmed();
+        }
+
+    }
+    items = s.split('&');
+    points = 0;
+    foreach (QString t, items)
+    {
+        t = t.trimmed();
+        temppr = nullptr;
+        if ((temppr = findPair(t,special)))
+        {
+            pr = temppr;
+            points += pr->points;
+        }
+    }
+
+    if (pr)
+        pr->points = points*effModif;
+    return pr;
 }
 
 PointContainer *ItemFactory::findPair(const QString &text,
