@@ -598,8 +598,7 @@ void ModelItem::setValue(int val)
 void ModelItem::setSelection(Gear& pr, int at)
 {
 
-    if (!_text)
-         _text = new SlotLabel(this, _settings);
+    checkLabel();
 
     _text->hide();
     setCost(_cost+pr.cost);
@@ -611,6 +610,12 @@ void ModelItem::addSelection(const QList<Gear> &list, int at)
 {
     _text->addSelection(list, at);
 //    _text->show();
+}
+
+void ModelItem::addSpecialCase(Gear pr)
+{
+    checkLabel();
+    _text->addSpecial(pr);
 }
 /*
 void ModelItem::changeSelection(int at, const QString &text,
@@ -819,6 +824,16 @@ void ModelItem::mouseDoubleClickEvent(QMouseEvent *e)
     }
 }
 
+void ModelItem::checkLabel()
+{
+    if (!_text)
+    {
+         _text = new SlotLabel(this, _settings);
+         connect(_text, &BaseLabel::selectedCost,
+                 this, &ModelItem::on_specialCost);
+    }
+}
+
 void ModelItem::createPlus()
 {
     if (_expandButton)
@@ -913,6 +928,12 @@ void ModelItem::on_spinnerChanged(int now)
 //    foreach (ModelItem *i, _belows)
   //      i->on_multiplierChange(change);
 
+}
+
+void ModelItem::on_specialCost(int c)
+{
+    _basecost = c;
+    updateCost();
 }
 
 /*void ModelItem::on_multiplierChange(int now, bool force)

@@ -173,11 +173,12 @@ LimitMIhandler *ItemFactory::parseTree(TempTreeModelItem *branch,
         QString text = branch->_text;//.split(',');
         newItem->setText(text);
 
-        PointContainer *pr = countItems(text, branch->_spec);
-        if (pr)
+        int i = countItems(text, newItem, branch->_spec);
+        if (i >= 0)
         {
-            newItem->setCost(pr->points);
-            if (pr->max)
+            newItem->setCost(i);
+            PointContainer *pr = findPair(text, branch->_spec); // BAD, FIX
+            if (pr && pr->max)
             {
                 minMods = pr->min;
                 newItem->setModels(pr->min, pr->max);
@@ -286,23 +287,29 @@ void ItemFactory::createSelection(TempTreeModelItem *branch,
     QStringList texts = branch->_text.split(")", QString::SkipEmptyParts);
     QMap<QString,int> ats;
     Gear g;
+    QString name, text;
 
     for (int i = 0; i < texts.count(); ++i)
     {
-        QString text = texts.at(i);
-        ats.insert(text.section("(",0,0),i);
+        text = texts.at(i);
+        name = text.section("(",0,0);
+        if (name.isEmpty())
+            name = QString::number(i);
+        ats.insert(name,i);
         text = text.section("(",1);
 
-        PointContainer *pr = countItems(text, branch->_spec);
-        if (pr)
+        int pr = countItems(text, newItem, branch->_spec);
+        if (pr >= 0)
         {
             g.name = text;
-            g.cost = pr->points;
+            g.cost = pr;
 
             newItem->setSelection(g,i);
 
         }
+
     }
+
     newItem->setAlwaysChecked(true);
 
     foreach (TempTreeModelItem *i, branch->_unders)
@@ -418,12 +425,14 @@ void ItemFactory::parseSelection(TempTreeModelItem *branch,
         int at = ats.value(ctrl);
 
         QList<Gear> list;
-        PointContainer *pr;
+        int pr;
         QStringList text = branch->_text.split(',');
-        QString u;
+        QString u, s;
+        QRegExp xp("!.+\\b");
+        xp.setMinimal(true);
         for(int i = 0; i < text.count(); ++i)
         {
-            u = text.at(i).trimmed();
+            u = text.at(i);
 
             if (u.startsWith('['))
             {
@@ -433,12 +442,21 @@ void ItemFactory::parseSelection(TempTreeModelItem *branch,
             }
             else
             {
+                s = u;
+                u = u.remove(xp).trimmed();
 
-                pr = countItems(u, branch->_spec);
-
-                if (pr)
+                if (u.isEmpty())
                 {
-                    list << Gear{u, pr->points};
+                    list << Gear{s, -1};
+                }
+                else
+                {
+                    pr = countItems(u, item, branch->_spec);
+
+                    if (pr >= 0)
+                    {
+                        list << Gear{s, pr};
+                    }
                 }
             }
 
@@ -486,10 +504,13 @@ void ItemFactory::parseFile(const QString &fileName)
     QString line;
     QStringList splitLine;
     PointContainer text;
-    QRegExp xp("!<(.+)>");
+    QRegExp xp("!<(.+)>"), xd("(\\d\\+?)");
+    xp.setMinimal(true);
     int pos = 0;
+    bool specialcase = false;
     while (!str.atEnd())
     {
+        specialcase = false;
         line = str.readLine();
         while (line.startsWith('['))
             line = parseList(str, line);
@@ -501,14 +522,25 @@ void ItemFactory::parseFile(const QString &fileName)
             if (line.startsWith("\t\t"))
                 text.special << text.text;
             pos = 0;
-            while ((pos = xp.indexIn(splitLine.at(0),pos)) >= 0)
+            text.text = line = splitLine.at(0).trimmed();
+            text.text = text.text.remove(xp).trimmed();
+            while ((pos = xp.indexIn(line,pos)) >= 0)
             {
                 foreach (QString s, xp.cap(1).split(','))
+                {
                     text.special << s.trimmed();
+                    if (line.contains(_pointList.last()->text) &&
+                            xd.indexIn(s) >= 0)
+                    {
+                        text.text.prepend(s.trimmed() + " ");
+                        specialcase = true;
+                        break;
+                    }
+                }
                 pos += xp.cap(0).count();
             }
-            line = splitLine.at(0);
-            text.text = line.remove(xp).trimmed();
+
+
             text.points = 0;
             text.min = 0;
             text.max = 0;
@@ -528,7 +560,10 @@ void ItemFactory::parseFile(const QString &fileName)
             else if (splitLine.count() > 1)
                 text.points = splitLine.at(1).toInt();
 
-            _pointList << new PointContainer(text);
+            if (specialcase)
+                _pointList.last()->specialcase = Gear{text.text, text.points};
+            else
+                _pointList << new PointContainer(text);
         }
     }
 }
@@ -540,7 +575,7 @@ QString ItemFactory::parseList(QTextStream &str, QString line)
     line = str.readLine();
     while (line.startsWith('\t'))
     {
-        list << line;
+        list << line.trimmed();
         if (str.atEnd())
             break;
         line = str.readLine();
@@ -549,25 +584,30 @@ QString ItemFactory::parseList(QTextStream &str, QString line)
     return line;
 }
 
-PointContainer *ItemFactory::countItems(const QString &text,
+int ItemFactory::countItems(const QString &text,
+                            ModelItem *item,
                                         const QStringList &special)
 {
-    PointContainer *pr = nullptr, *temppr;
+    PointContainer *pr = nullptr;
     int points = 0;
     QStringList items;
-    QList<int> modif; modif << 1;
+//    QList<int> modif; modif << 1;
     int effModif = 1;
-    QRegExp xp("^(\\d+)");
-
+    QRegExp xp("^(\\d+)(.?)"), xd("!.+\\s");
+    xd.setMinimal(true);
     QString s = text;
 
-    if (modif.isEmpty())
-        modif << 1;
+
+//    if (modif.isEmpty())
+  //      modif << 1;
 
     effModif = 1;
 
     s = s.remove('|').trimmed();
-    if (xp.indexIn(s) >= 0)
+
+    items = s.split('&');
+
+/*    if (xp.indexIn(s) >= 0)
     {
         effModif = modif.last() * xp.cap(1).toInt();
         s = s.remove(xp.cap(1));
@@ -585,23 +625,46 @@ PointContainer *ItemFactory::countItems(const QString &text,
             s = s.trimmed();
         }
 
-    }
-    items = s.split('&');
+    }*/
     points = 0;
     foreach (QString t, items)
     {
+        effModif = 1;
+        t.remove(xd);
         t = t.trimmed();
-        temppr = nullptr;
-        if ((temppr = findPair(t,special)))
+        s = "";
+        if (xp.indexIn(t) >= 0)
         {
-            pr = temppr;
-            points += pr->points;
+            effModif = xp.cap(1).toInt();
+            s = t;
+            t = t.remove(xp.cap(1));
+            t = t.trimmed();
+        }
+
+        if ((pr = findPair(t,special)))
+        {
+            t = pr->specialcase.name;
+            if (!t.isEmpty())
+            {
+                if (s.isEmpty())
+                    item->addSpecialCase(pr->specialcase);
+                else
+                {
+                    xp.indexIn(t);
+                    if ((xp.cap(2) == "+" && effModif >= xp.cap(1).toInt())
+                            || (xp.cap(2) != "+" && effModif ==
+                                xp.cap(1).toInt()))
+                        points = pr->specialcase.cost;
+                }
+            }
+//            else
+                points += pr->points*effModif;
         }
     }
 
     if (pr)
-        pr->points = points*effModif;
-    return pr;
+        return points;
+    return -1;
 }
 
 PointContainer *ItemFactory::findPair(const QString &text,
@@ -615,9 +678,16 @@ PointContainer *ItemFactory::findPair(const QString &text,
             if (pr->special.count())
             {
                 foreach (QString s, pr->special)
+                {
+
                     foreach (QString p, special)
-                        if (p==s)
+                    {
+                        if (p == s)
+                        {
                             return pr;
+                        }
+                    }
+                }
             }
             else
                 found = pr;

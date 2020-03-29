@@ -53,9 +53,9 @@ private:
     void parseFile(const QString &fileName);
     QString parseList(QTextStream &str, QString line);
 
-    PointContainer* countItems(const QString &text,
+    int countItems(const QString &text, ModelItem *item,
                             const QStringList &special);
-    PointContainer* findPair(const QString &text,
+    PointContainer *findPair(const QString &text,
                             const QStringList &special);
 private:
     Settings *_settings;

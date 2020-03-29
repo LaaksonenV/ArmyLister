@@ -2,11 +2,13 @@
 #define SLOTSELECTION_H
 
 #include <QWidget>
+#include <QMap>
 
 class QPushButton;
 class QButtonGroup;
 class QHBoxLayout;
 class QVBoxLayout;
+class SelectionLimiter;
 #include "structs.h"
 
 class SlotSelection : public QWidget
@@ -28,7 +30,7 @@ public slots:
     void on_selection(int);
 
 signals:
-    void selected(const QStringList &text, int cost);
+    void selected(const QStringList &text, QList<int> cost);
 
 private:
     void addToSelection(const QStringList &list, int at);
@@ -39,6 +41,32 @@ private:
     QHBoxLayout *_lay;
     QList <QVBoxLayout *> _laycols;
     QList <QButtonGroup *> _labels;
+    SelectionLimiter *_limiter;
+};
+
+struct Limit
+{
+    int current;
+    int max;
+};
+
+class SelectionLimiter : public QObject
+{
+    Q_OBJECT
+
+public:
+    SelectionLimiter(QObject *parent);
+
+    void addButton(QPushButton *label, int group, int col);
+    void addLimit(int group, int limit);
+
+public slots:
+    void buttonPress(bool check, int group, int col);
+signals:
+    void disableButtons(bool check, int group, int col);
+
+private:
+    QMap<int,Limit> _limits;
 };
 
 /*class MultiSelectionHandler : public QObject

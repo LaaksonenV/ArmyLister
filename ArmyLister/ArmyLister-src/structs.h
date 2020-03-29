@@ -16,6 +16,7 @@ struct PointContainer
     int points;
     int min;
     int max;
+    Gear specialcase;
 
     PointContainer()
         : text(QString())
@@ -23,6 +24,7 @@ struct PointContainer
         , points(0)
         , min(0)
         , max(0)
+        , specialcase({"",0})
     {
     }
 
@@ -32,6 +34,7 @@ struct PointContainer
         , points(c.points)
         , min(c.min)
         , max(c.max)
+        , specialcase(c.specialcase)
     {
     }
 

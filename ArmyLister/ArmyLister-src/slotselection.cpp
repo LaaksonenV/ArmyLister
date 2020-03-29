@@ -12,6 +12,7 @@ SlotSelection::SlotSelection(const QFont &f)
     , _lay(new QHBoxLayout(this))
     , _laycols(QList<QVBoxLayout*>())
     , _labels(QList<QButtonGroup*>())
+    , _limiter(nullptr)
 {
     setWindowFlags(Qt::Popup);
 //    setFixedSize(0,0);
@@ -36,6 +37,7 @@ void SlotSelection::addSelection(const QList<Gear> &list, int at)
 
     for (int i = 0; i < list.count(); ++i)
     {
+
         texts << list.at(i).name + ", " + QString::number(list.at(i).cost);
     }
 
@@ -94,11 +96,11 @@ void SlotSelection::on_selection(int)
 {
     QStringList list;
     QString buttontext;
-    int cost = 0;
+    QList<int> cost;
     for (int i = 0; i < _labels.count(); ++i)
     {
         buttontext = _labels.at(i)->checkedButton()->text();
-        cost += buttontext.section(",",-1).toInt();
+        cost << buttontext.section(",",-1).toInt();
         list << buttontext.section(",",0,-2);
     }
     emit selected(list,cost);
@@ -124,7 +126,7 @@ void SlotSelection::addToSelection(const QStringList &list, int at)
         {
             grp = new QButtonGroup(this);
             _labels << grp;
-            col = new QVBoxLayout();
+            col = new QVBoxLayout(this);
             col->setAlignment(Qt::AlignLeft);
             _lay->addLayout(col);
             _laycols << col;
@@ -133,26 +135,100 @@ void SlotSelection::addToSelection(const QStringList &list, int at)
         }
     }
 
+    QRegExp xp("!<(.+)>"), xd("!(.)(\\d+)");
+    int group;
 
     for (int i = 0; i < list.count(); ++i)
     {
+        group = -1;
         text = list.at(i);
-        label = new QPushButton(text, this);
-        label->setCheckable(true);
-        label->setFont(_f);
-        label->setFlat(true);
-        label->setFixedHeight(itemHeight);
-//        label->move(0, vpos);
-//        label->show();
-//        vpos += itemHeight;
-//        if (label->width() > hpos)
-  //          hpos = label->width();
+        if (xp.indexIn(text) >= 0)
+        {
+            group = xp.cap(1).toInt();
+            text.remove(xp);
+        }
 
-        col->addWidget(label);
-        if (col->count() == 1)
-            label->toggle();
-        grp->addButton(label);
+        if (xd.indexIn(text) >= 0)
+        {
+            if (!_limiter)
+                _limiter = new SelectionLimiter(this);
+            _limiter->addLimit(group, xd.cap(2).toInt());
+        }
+        else
+        {
 
+            label = new QPushButton(text, this);
+            label->setCheckable(true);
+            label->setFont(_f);
+            label->setFlat(true);
+            label->setFixedHeight(itemHeight);
+            //        label->move(0, vpos);
+            //        label->show();
+            //        vpos += itemHeight;
+            //        if (label->width() > hpos)
+            //          hpos = label->width();
+
+            if (group >= 0)
+            {
+                if (!_limiter)
+                    _limiter = new SelectionLimiter(this);
+
+                _limiter->addButton(label, group, at);
+            }
+
+            col->addWidget(label);
+            if (col->count() == 1)
+                label->toggle();
+            grp->addButton(label);
+        }
     }
 //    setFixedSize(hpos, vpos);
+}
+
+SelectionLimiter::SelectionLimiter(QObject *parent)
+    : QObject (parent)
+    , _limits(QMap<int, Limit>())
+{
+}
+
+void SelectionLimiter::addLimit(int group, int limit)
+{
+    _limits.insert(group, Limit{0,limit});
+}
+
+void SelectionLimiter::addButton(QPushButton *label, int group, int col)
+{
+    connect(label, &QPushButton::toggled,
+            [=](bool check){buttonPress(check, group, col);});
+    connect(this, &SelectionLimiter::disableButtons,
+            [=](bool chck, int grp, int cl)
+    {
+        if (grp == group)
+            if (col != cl)
+                label->setDisabled(chck);
+    });
+}
+
+void SelectionLimiter::buttonPress(bool check, int group, int col)
+{
+    bool dsable = false;
+    bool need = false;
+    if (check)
+    {
+        _limits[group].current++;
+        if (_limits[group].current == _limits[group].max)
+        {
+            need = true;
+            dsable = true;
+        }
+    }
+    else
+    {
+        if (_limits[group].current == _limits[group].max)
+            need = true;
+        _limits[group].current--;
+
+    }
+    if (need)
+        emit disableButtons(dsable, group, col);
 }

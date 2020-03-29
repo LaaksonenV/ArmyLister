@@ -117,6 +117,7 @@ public:
 
     virtual void setSelection(Gear &pr, int at);
     virtual void addSelection(const QList<Gear> &list, int at);
+    virtual void addSpecialCase(Gear pr);
 //    virtual void changeSelection(int at,
   //                               const QString &text,
     //                             int points);
@@ -145,6 +146,7 @@ protected:
     friend int visibleUnders();
 
 private:
+    virtual void checkLabel();
     virtual void createPlus();
     virtual void togglePlus();
 public:
@@ -167,6 +169,7 @@ protected slots:
     virtual void on_spinnerChanged(int now);
 
 public slots:
+    virtual void on_specialCost(int c);
 //    virtual void on_multiplierChange(int now, bool force = false);
 
 private:

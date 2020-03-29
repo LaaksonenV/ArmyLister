@@ -18,11 +18,15 @@ public:
 
     virtual void setDefault(Gear&, int){}
     virtual void addSelection(QList<Gear>, int){}
-    virtual bool hasSelections() const{return false;}
+    virtual void addSpecial(Gear &){}
+//    virtual bool hasSelections() const{return false;}
 
 public slots:
     virtual void setTexts(const QStringList&){}
-    virtual void on_selection(const QStringList &, int ){}
+    virtual void on_selection(const QStringList &, QList<int> ){}
+
+signals:
+    void selectedCost(int c);
 };
 
 class SlotLabel : public BaseLabel
@@ -38,6 +42,7 @@ public:
 
     void setDefault(Gear& def, int at);
     void addSelection(QList<Gear> list, int at);
+    void addSpecial(Gear &gr);
 //    void removeSelection(const QString &text);
 //    void denySelection(bool denied);
     bool hasSelections() const;
@@ -52,10 +57,9 @@ public slots:
     void setText(const QString& );
     void setTexts(const QStringList& s);
 //    void setPoint(int p);
-    void on_selection(const QStringList &text, int cost);
+    void on_selection(const QStringList &text, QList<int> cost);
 
-signals:
-    void selectedCost(int c);
+
 
 private:
 //    ModelItem *_modelParent;
@@ -63,6 +67,8 @@ private:
     QList<int> _defaultPoints;
 
     SlotSelection *_selection;
+    QList<Gear> _specials;
+
 //    bool _selectionDenied;
 
     bool _mouseIn;

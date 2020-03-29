@@ -6,6 +6,7 @@
 
 #include <QPainter>
 #include <QMouseEvent>
+#include <QRegExp>
 
 BaseLabel::BaseLabel(QWidget *parent, Settings *set, const QString& text)
     : QLabel (text, parent)
@@ -25,6 +26,7 @@ SlotLabel::SlotLabel(QWidget *parent, Settings *set)
     , _defaultTexts(QStringList())
     , _defaultPoints(QList<int>())
     , _selection(nullptr)
+    , _specials(QList<Gear>())
 //    , _selectionDenied(false)
     , _mouseIn(false)
 {
@@ -68,7 +70,7 @@ void SlotLabel::setDefault(Gear& def, int at)
     _defaultTexts.replace(at, def.name);
     _defaultPoints.replace(at, def.cost);
 
-    setTexts(_defaultTexts);
+    on_selection(_defaultTexts,_defaultPoints);
 }
 
 void SlotLabel::addSelection(QList<Gear > list, int at)
@@ -96,6 +98,12 @@ void SlotLabel::addSelection(QList<Gear > list, int at)
 
 
     _selection->addSelection(list, at);
+}
+
+void SlotLabel::addSpecial(Gear &gr)
+{
+    _specials << gr; // Don't add multiples
+    on_selection(_defaultTexts, _defaultPoints);
 }
 
 /*void SlotLabel::removeSelection(const QString &text)
@@ -176,6 +184,7 @@ void SlotLabel::setTexts(const QStringList& s)
 {
     QString text = s.join(", ");
     QLabel::setText(text);
+    adjustSize();
 }
 
 /*void SlotLabel::setPoint(int p)
@@ -183,11 +192,58 @@ void SlotLabel::setTexts(const QStringList& s)
     _basePoints = p;
 }*/
 
-void SlotLabel::on_selection(const QStringList &text, int cost)
+void SlotLabel::on_selection(const QStringList &text, QList<int> cost)
 {
+    QStringList texts;
+    QList<int> counts, costs;
+    int ind;
+    for (int i = 0; i < text.count(); ++i)
+    {
+        ind = texts.indexOf(text.at(i));
+        if (ind >= 0)
+        {
+            ++counts[ind];
+        }
+        else
+        {
+            texts << text.at(i);
+            counts << 1;
+            costs << cost.at(i);
+        }
+    }
+    bool found = false;
+    if (texts.count() != text.count())
+    {
+        QRegExp xp("^(\\d+)(\\+?) (.*)");
+        for (int i = 0; i < texts.count(); ++i)
+        {
+            if (counts.at(i) > 1)
+            {
+                foreach (Gear gr, _specials)
+                {
+                    xp.indexIn(gr.name);
+                    if (xp.cap(3) == texts.at(i))
+                        if ((xp.cap(2) == "+" &&
+                             counts.at(i) >= xp.cap(1).toInt())
+                             || (xp.cap(2) != "+" &&
+                                 counts.at(i) == xp.cap(1).toInt()))
+                        {
+                            costs[i] = gr.cost;
+                            found = true;
+                            break;
+                        }
+                }
+                if (!found)
+                    costs[i] *= counts.at(i);
+                texts[i].prepend(QString::number(counts.at(i)) + "X " );
+            }
+        }
+    }
 
-    setTexts(text);
-    emit selectedCost(cost);
+    int c = 0;
+    foreach(int i, costs) c+=i;
+    setTexts(texts);
+    emit selectedCost(c);
 }
 
 
