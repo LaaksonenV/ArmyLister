@@ -20,6 +20,7 @@ public:
     virtual void addSelection(QList<Gear>, int){}
     virtual void addSpecial(Gear &){}
 //    virtual bool hasSelections() const{return false;}
+    virtual void changeMultiplier(int){}
 
 public slots:
     virtual void setTexts(const QStringList&){}

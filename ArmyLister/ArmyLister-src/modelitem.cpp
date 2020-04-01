@@ -139,9 +139,10 @@ ModelItem::ModelItem(Settings *set, TopModelItem *parent, bool)
     , _cost(0)
     , _basecost(0)
 //    , _baseCostFor1(QList<int>())
-    , _multiplier(1)
-    , _multiplierismodels(false)
-    , _baseModels(0)
+    , _models(-1)
+    , _limitPer(0)
+//    , _multiplierismodels(false)
+//    , _baseModels(0)
 //    , _modifier(0)
 //    , _hasModifier(0)
 //    , _takesModels(false)
@@ -283,7 +284,7 @@ QStringList ModelItem::createTexts() const
     ret.clear();
 */
     ret << _text->text()
-        << QString::number(_multiplier)// - _modifier)
+        << QString::number(_models)// - _modifier)
         << QString::number(_cost + _otherCosts)
         << QString::number(_id);
 
@@ -647,12 +648,24 @@ void ModelItem::denySelection(int at, bool denied)
     _texts.at(at)->denySelection(denied);
 }*/
 
-void ModelItem::setModels(int min,int max)
+// If models is set, then max is read as "for 'max' models"
+void ModelItem::setLimits(int min, int max, int models)
 {
-    _multiplierismodels = true;
     if (max < 0)
         max = min;
     createSpinner(min,max);
+    if (models >= 0)
+    {
+        _limitPer = max;
+        _models = 0;
+        on_multiplierChange(models);
+    }
+}
+
+void ModelItem::setModelIntake(int models)
+{
+    _models = models;
+    updateCost();
 }
 
 void ModelItem::updateCost()
@@ -664,7 +677,13 @@ void ModelItem::updateCost()
 //    foreach (int i, _baseCostFor1)
   //      _costFor1 += i;
 
-    _cost = (_basecost+_otherCosts)*_multiplier;
+    if (_spinner)
+        _cost = _basecost*_spinner->value()+_otherCosts;
+    else if (_models >= 0)
+        _cost = _basecost*_models+_otherCosts;
+    else
+        _cost = _basecost+_otherCosts;
+
 
     change = _cost - change;
 
@@ -679,7 +698,7 @@ void ModelItem::changeOtherCosts(int c, int)
     _otherCosts += c;
     if (_checked)
         _above->changeOtherCosts(c,_index);
-    update();
+    updateCost();
 }
 
 void ModelItem::move(int step)
@@ -880,7 +899,7 @@ bool ModelItem::toggleCheck()
     int sign = 1;
     if (!_checked)
         sign = -1;
-    emit checked(_multiplier*sign, this);
+    emit checked(sign, this);
 //    if (_checked)
 //    if (_hasModifier > 0)
 //        _above->setModifier(sign*_hasModifier,true);
@@ -914,20 +933,15 @@ void ModelItem::createSpinner(int min, int max)
 
 void ModelItem::on_spinnerChanged(int now)
 {
-//    int change = now-_multiplier;
-//    if (_hasModels || _checked)
-  //      emit multiplierChanged(change, this);
-    _multiplier = now;
-
-    //if(_multiplierismodels)
-    //{
-    // Inform children for cost/model and limit
-    // Inform parent for model count
-    //}
     updateCost();
-//    foreach (ModelItem *i, _belows)
-  //      i->on_multiplierChange(change);
 
+    int change = now-_models;
+
+    if (_checked)
+        emit multiplierChanged(change, this);
+
+    foreach (ModelItem *i, _belows)
+        i->on_multiplierChange(change);
 }
 
 void ModelItem::on_specialCost(int c)
@@ -936,18 +950,18 @@ void ModelItem::on_specialCost(int c)
     updateCost();
 }
 
-/*void ModelItem::on_multiplierChange(int now, bool force)
+void ModelItem::on_multiplierChange(int change)
 {
-//    int change = now-_multiplier;
-
-    if (_takesModels || force)
+    if (_models >= 0)
     {
-        _multiplier += now;
-        emit multiplierChanged(now, this);
+        _models += change;
+        if (_limitPer)
+            _spinner->setMaximum(_models/_limitPer);
+
         updateCost();
     }
 
     foreach (ModelItem *i, _belows)
-        i->on_multiplierChange(now);
-}*/
+        i->on_multiplierChange(change);
+}
 

@@ -135,7 +135,7 @@ void SlotSelection::addToSelection(const QStringList &list, int at)
         }
     }
 
-    QRegExp xp("!<(.+)>"), xd("!(.)(\\d+)");
+    QRegExp xp("!<(.+)>"), xd("(.)(\\d+)!");
     int group;
 
     for (int i = 0; i < list.count(); ++i)

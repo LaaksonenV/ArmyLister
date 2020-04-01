@@ -181,7 +181,7 @@ LimitMIhandler *ItemFactory::parseTree(TempTreeModelItem *branch,
             if (pr && pr->max)
             {
                 minMods = pr->min;
-                newItem->setModels(pr->min, pr->max);
+                newItem->setLimits(pr->min, pr->max);
 
             }
         }
@@ -196,16 +196,43 @@ LimitMIhandler *ItemFactory::parseTree(TempTreeModelItem *branch,
         ctrlchar = ctrl.at(0);
         ctrl.remove(0,1);
 
-        if (ctrlchar == ':' || ctrlchar == '*')
+        if (ctrlchar == ':')
+            newItem->setAlwaysChecked(true);
+        else if (ctrlchar == '*')
+            newItem->setModelIntake(amount);
+        else if (ctrlchar == '+')
         {
-            if (ctrlchar == ':')
-                newItem->setAlwaysChecked(true);
-/*            if (!ctrl.isEmpty())
+            if (limitxp.indexIn(ctrl) >= 0)
             {
+                newItem->setLimits(limitxp.cap(1).toInt()
+                                   , limitxp.cap(2).toInt()
+                                   , amount);
+/*                limt = createLimiter(parent, amount);
+                limt->setLimits(limitxp.cap(1).toInt(),
+                                limitxp.cap(2).toInt());
+                limt->setAddSource(newItem);*/
+
+            }
+            else if (ctrl.startsWith('A') || ctrl.startsWith('M'))
+            {
+                newItem->setLimits(0, 1, amount);
+/*                limt = createLimiter(parent, amount);
+                limt->setLimits(1, 1);
+                if (ctrl.startsWith('M'))
+                    limt->setModifiable(true);
+                limt->setAddSource(newItem);*/
+
+            }
+            else
+            {
+                newItem->setLimits(0, ctrl.toInt());
+            }
+        }
+/*
                 if (ctrl.startsWith('A'))
                 {
-                    newItem->setModelIntake(true);
-                    newItem->on_multiplierChange(amount-1);
+                    newItem->setModelIntake(amount);
+//                    newItem->on_multiplierChange(amount-1);
                 }
                 else if (ctrl.startsWith('M'))
                 {
@@ -216,38 +243,12 @@ LimitMIhandler *ItemFactory::parseTree(TempTreeModelItem *branch,
                 else
                 {
                     newItem->on_multiplierChange(ctrl.toInt()-1, true);
-                }
-            }*/
-        }
+                }*/
+
 /*        else if (ctrlchar == '=')
         {
             newItem->setClonable(ctrl.toInt());
 
-        }
-        else if (ctrlchar == '+')
-        {
-            if (limitxp.indexIn(ctrl) >= 0)
-            {
-
-                limt = createLimiter(parent, amount);
-                limt->setLimits(limitxp.cap(1).toInt(),
-                                limitxp.cap(2).toInt());
-                limt->setAddSource(newItem);
-
-            }
-            else if (ctrl.startsWith('A') || ctrl.startsWith('M'))
-            {
-                limt = createLimiter(parent, amount);
-                limt->setLimits(1, 1);
-                if (ctrl.startsWith('M'))
-                    limt->setModifiable(true);
-                limt->setAddSource(newItem);
-
-            }
-            else
-            {
-                newItem->setLimit(ctrl.toInt());
-            }
         }
         else if (ctrlchar == '#')
         {
@@ -428,7 +429,7 @@ void ItemFactory::parseSelection(TempTreeModelItem *branch,
         int pr;
         QStringList text = branch->_text.split(',');
         QString u, s;
-        QRegExp xp("!.+\\b");
+        QRegExp xp("!.+[\\s!]");
         xp.setMinimal(true);
         for(int i = 0; i < text.count(); ++i)
         {
@@ -605,7 +606,7 @@ int ItemFactory::countItems(const QString &text,
 
     s = s.remove('|').trimmed();
 
-    items = s.split('&');
+    items = s.split(QRegExp("[&,]"));
 
 /*    if (xp.indexIn(s) >= 0)
     {

@@ -80,9 +80,9 @@ void MCLineEdit::keyPressEvent(QKeyEvent *e)
 
 QString MCLineEdit::cursorWord(const QString &sentence) const
 {
-    QChar sep = ' ';
+    QRegExp sep = "[ ,<([{]";
     QString ret = sentence.left(cursorPosition());
-    int i = ret.lastIndexOf(sep);
+/*    int i = ret.lastIndexOf(sep);
     int j = ret.lastIndexOf('<');
     int k = ret.lastIndexOf(',');
     if (j>i)
@@ -92,18 +92,19 @@ QString MCLineEdit::cursorWord(const QString &sentence) const
             sep = ',';
     }
     else if (k>i)
-        sep = ',';
+        sep = ',';*/
     i = ret.lastIndexOf(sep);
-    j = cursorPosition() - ret.lastIndexOf(sep);
+
+    j = cursorPosition() - i;
     ret = sentence.mid(i+1, j-1);
     return ret;
 }
 
 void MCLineEdit::insertCompletion(QString arg)
 {
-    QChar sep = ' ';
+    QRegExp sep = "[ ,<([{]";
     QString ret = text().left(cursorPosition());
-    int i = ret.lastIndexOf(sep);
+/*    int i = ret.lastIndexOf(sep);
     int j = ret.lastIndexOf('<');
     int k = ret.lastIndexOf(',');
     if (j>i)
@@ -113,9 +114,9 @@ void MCLineEdit::insertCompletion(QString arg)
             sep = ',';
     }
     else if (k>i)
-        sep = ',';
+        sep = ',';*/
     i = ret.lastIndexOf(sep);
-    j = cursorPosition() - ret.lastIndexOf(sep);
+    j = cursorPosition() - i;
 
     setText(text().replace(i+1,j-1,arg));
     emit QLineEdit::textEdited(text());

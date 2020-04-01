@@ -123,7 +123,8 @@ public:
     //                             int points);
 //    virtual void removeSelection(int at, const QString &text);
 //    virtual void denySelection(int at, bool denied);
-    virtual void setModels(int min, int max);
+    virtual void setLimits(int min, int max, int models = -1);
+    virtual void setModelIntake(int models);
 
     virtual void updateCost();
     virtual void changeOtherCosts(int c, int);
@@ -163,14 +164,14 @@ signals:
     void checked(int amount, ModelItem *);
     void multiplierChanged(int,ModelItem *);
     void modifierChanged(int);
-    void selectionChanged(int at, const QString &slct, ModelItem *ths);
+//    void selectionChanged(int at, const QString &slct, ModelItem *ths);
 
 protected slots:
     virtual void on_spinnerChanged(int now);
 
 public slots:
     virtual void on_specialCost(int c);
-//    virtual void on_multiplierChange(int now, bool force = false);
+    virtual void on_multiplierChange(int change);
 
 private:
 
@@ -185,15 +186,15 @@ private:
     int _basecost;
 //    QList<int> _baseCostFor1;
 
-    int _multiplier;
-    bool _multiplierismodels;
-    int _baseModels;
+    int _models;
+    int _limitPer;
+//    bool _multiplierismodels;
+//    int _baseModels;
 //    int _modifier;
 //    int _hasModifier;
 //    bool _takesModifier;
 
     QSpinBox *_spinner;
-//    bool _hasLimit;
 
     QPushButton *_expandButton;
     bool _expanded;
