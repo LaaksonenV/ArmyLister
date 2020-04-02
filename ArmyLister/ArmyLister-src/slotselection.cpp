@@ -1,9 +1,10 @@
 #include "slotselection.h"
 #include "structs.h"
+#include "slotbutton.h"
 
 #include <QMouseEvent>
-#include <QPushButton>
-#include <QButtonGroup>
+//#include <QPushButton>
+//#include <QButtonGroup>
 #include <QGridLayout>
 
 SlotSelection::SlotSelection(const QFont &f)
@@ -11,7 +12,7 @@ SlotSelection::SlotSelection(const QFont &f)
     , _f(f)
     , _lay(new QHBoxLayout(this))
     , _laycols(QList<QVBoxLayout*>())
-    , _labels(QList<QButtonGroup*>())
+    , _labels(QList<SlotButtonGroup*>())
     , _limiter(nullptr)
 {
     setWindowFlags(Qt::Popup);
@@ -92,27 +93,29 @@ void SlotSelection::mousePressEvent(QMouseEvent *e)
     }
 }*/
 
-void SlotSelection::on_selection(int)
+void SlotSelection::on_selection()
 {
-    QStringList list;
-    QString buttontext;
+    QStringList list, texts;
     QList<int> cost;
     for (int i = 0; i < _labels.count(); ++i)
     {
-        buttontext = _labels.at(i)->checkedButton()->text();
-        cost << buttontext.section(",",-1).toInt();
-        list << buttontext.section(",",0,-2);
+        texts = _labels.at(i)->checkedTexts();
+        foreach (QString buttontext, texts)
+        {
+            cost << buttontext.section(",",-1).toInt();
+            list << buttontext.section(",",0,-2);
+        }
     }
     emit selected(list,cost);
 }
 
 void SlotSelection::addToSelection(const QStringList &list, int at)
 {
-    QPushButton *label = nullptr;
+    SlotButton *label = nullptr;
     QString text;
 //    int vpos = this->height();
 //    int hpos = this->width();
-    QButtonGroup *grp = nullptr;
+    SlotButtonGroup *grp = nullptr;
     QVBoxLayout *col = nullptr;
 
     if (_labels.count() > at)
@@ -124,13 +127,14 @@ void SlotSelection::addToSelection(const QStringList &list, int at)
     {
         while (_labels.count() <= at)
         {
-            grp = new QButtonGroup(this);
+            grp = new SlotButtonGroup(this);
+            grp->setExclusive();
             _labels << grp;
             col = new QVBoxLayout(this);
             col->setAlignment(Qt::AlignLeft);
             _lay->addLayout(col);
             _laycols << col;
-            connect(grp, QOverload<int>::of(&QButtonGroup::buttonClicked),
+            connect(grp, &SlotButtonGroup::buttonClicked,
                     this, &SlotSelection::on_selection);
         }
     }
@@ -157,11 +161,8 @@ void SlotSelection::addToSelection(const QStringList &list, int at)
         else
         {
 
-            label = new QPushButton(text, this);
-            label->setCheckable(true);
+            label = new SlotButton(text, -1, this);
             label->setFont(_f);
-            label->setFlat(true);
-            label->setFixedHeight(itemHeight);
             //        label->move(0, vpos);
             //        label->show();
             //        vpos += itemHeight;
@@ -178,7 +179,7 @@ void SlotSelection::addToSelection(const QStringList &list, int at)
 
             col->addWidget(label);
             if (col->count() == 1)
-                label->toggle();
+                label->toggleCheck(true);
             grp->addButton(label);
         }
     }
@@ -196,16 +197,16 @@ void SelectionLimiter::addLimit(int group, int limit)
     _limits.insert(group, Limit{0,limit});
 }
 
-void SelectionLimiter::addButton(QPushButton *label, int group, int col)
+void SelectionLimiter::addButton(SlotButton *label, int group, int col)
 {
-    connect(label, &QPushButton::toggled,
+    connect(label, &SlotButton::toggled,
             [=](bool check){buttonPress(check, group, col);});
     connect(this, &SelectionLimiter::disableButtons,
-            [=](bool chck, int grp, int cl)
+            [=](int chck, int grp, int cl)
     {
         if (grp == group)
             if (col != cl)
-                label->setDisabled(chck);
+                label->changeLimit(-chck);
     });
 }
 

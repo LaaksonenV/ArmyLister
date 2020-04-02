@@ -4,8 +4,8 @@
 #include <QWidget>
 #include <QMap>
 
-class QPushButton;
-class QButtonGroup;
+class SlotButton;
+class SlotButtonGroup;
 class QHBoxLayout;
 class QVBoxLayout;
 class SelectionLimiter;
@@ -27,7 +27,7 @@ public:
 //    void select(const QString &s);
 
 public slots:
-    void on_selection(int);
+    void on_selection();
 
 signals:
     void selected(const QStringList &text, QList<int> cost);
@@ -40,7 +40,7 @@ private:
     QFont _f;
     QHBoxLayout *_lay;
     QList <QVBoxLayout *> _laycols;
-    QList <QButtonGroup *> _labels;
+    QList <SlotButtonGroup *> _labels;
     SelectionLimiter *_limiter;
 };
 
@@ -57,7 +57,7 @@ class SelectionLimiter : public QObject
 public:
     SelectionLimiter(QObject *parent);
 
-    void addButton(QPushButton *label, int group, int col);
+    void addButton(SlotButton *label, int group, int col);
     void addLimit(int group, int limit);
 
 public slots:
