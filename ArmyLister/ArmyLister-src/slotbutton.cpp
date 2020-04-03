@@ -2,12 +2,12 @@
 
 #include <QPainter>
 
-SlotButton::SlotButton(const QString &text, int amount, QWidget *parent)
+SlotButton::SlotButton(const QString &text, QWidget *parent)
     : QWidget(parent)
     , _text(text)
     , _spinner(nullptr)
     , _checked(false)
-    , _amount(amount)
+    , _amount(-1)
 {
     setFixedHeight(20);
 }
@@ -32,7 +32,20 @@ void SlotButton::setText(QString text)
 
 QString SlotButton::getText() const
 {
+    QString ret = _text;
+    if (_spinner)
+    {
+        if (_spinner->value() > 1)
+            ret = QString::number(_spinner->value()) + " " + _text;
+    }
+    else if (_amount > 1)
+       ret = QString::number(_amount) + " " + _text;
     return _text;
+}
+
+void SlotButton::setAmount(int amount)
+{
+    _amount = amount;
 }
 
 void SlotButton::setLimits(int min, int max)
@@ -134,6 +147,10 @@ void SlotButton::paintEvent(QPaintEvent *)
         p.drawText(_spinner->width()+10,
                    (height()/2)+(font().pointSize()/2),
                    _text);
+    else if (_amount > 1)
+        p.drawText(10,
+                   (height()/2)+(font().pointSize()/2),
+                   QString::number(_amount) + " " + _text);
     else
         p.drawText(10,
                    (height()/2)+(font().pointSize()/2),
@@ -171,7 +188,7 @@ void SlotButton::changeLimit(int change)
 {
     if (_spinner)
     {
-        if (change > 0 || _spinner->value())
+        if (change > 0 || _spinner->maximum())
         {
             _spinner->setMaximum(_spinner->maximum()+change);
         }
@@ -181,6 +198,7 @@ void SlotButton::changeLimit(int change)
         if (change > 0 || _amount)
         {
             _amount += change;
+            update();
         }
     }
     else
@@ -193,9 +211,15 @@ void SlotButton::changeLimit(int change)
     }
 }
 
+void SlotButton::changeModels(int change)
+{
+    _amount += change;
+    update();
+}
+
 void SlotButton::on_spinnerChanged(int now)
 {
-    int change = now - _amount;
+    int change = now - _spinner->value();
     emit checked(change);
 }
 
@@ -234,19 +258,17 @@ void SlotButtonGroup::addButton(SlotButton *but)
 void SlotButtonGroup::buttonClick(int index, int amount)
 {
     SlotButton *button;
-    if (amount != 0)
+    if (_exclusive && amount != 0)
     {
         for (int i = 0; i < _buttons.count(); ++i)
         {
             button = _buttons.at(i);
             if (i != index)
             {
-                if (!_exclusive)
-                    button->changeLimit(-amount);
-                else if (amount > 0)
+                if (amount > 0)
                     button->toggleCheck(false, false);
             }
-            else if (_exclusive && amount < 0)
+            else if (amount < 0)
                 button->toggleCheck(true, false);
         }
     }

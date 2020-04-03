@@ -59,21 +59,31 @@ SlotLabel::~SlotLabel()
     _modelParent->changeSelection(_position, _baseText, _basePoints);
 }*/
 
-void SlotLabel::setDefault(Gear& def, int at)
+void SlotLabel::setDefault(Gear& def, int at, int models)
 {
-    while (_defaultTexts.count() <= at)
+    if (!_selection)
+    {
+        _selection = new SlotSelection(font());
+        connect(_selection, &SlotSelection::selected,
+                this, &SlotLabel::on_selection);
+    }
+
+/*    while (_defaultTexts.count() <= at)
     {
         _defaultTexts << "";
         _defaultPoints << 0;
     }
 
     _defaultTexts.replace(at, def.name);
-    _defaultPoints.replace(at, def.cost);
+    _defaultPoints.replace(at, def.cost);*/
 
-    on_selection(_defaultTexts,_defaultPoints);
+    _selection->setDefault(def, at, models);
+    _selection->on_selection();
+
+//    on_selection(_defaultTexts,_defaultPoints);
 }
 
-void SlotLabel::addSelection(QList<Gear > list, int at)
+void SlotLabel::addSelection(QList<Gear > list, int at, int perModels)
 {
     if (!_selection)
     {
@@ -83,7 +93,9 @@ void SlotLabel::addSelection(QList<Gear > list, int at)
     }
 
     // check if the default exists in the list, and add if not
-    if (_defaultTexts.count() > at)
+/*    if (_defaultTexts.count() <= at)
+        list.prepend(Gear{"-",0}); // Move to when showing for first time so setdefault may be called after adding
+    else
     {
         bool found = false;
         for (int i = 0; i < list.count(); ++i)
@@ -92,18 +104,17 @@ void SlotLabel::addSelection(QList<Gear > list, int at)
 
         if (!found)
             list.prepend(Gear{_defaultTexts.at(at),_defaultPoints.at(at)});
-    }
-    else
-        list.prepend(Gear{"-",0}); // Move to when showing for first time so setdefault may be called after adding
+    }*/
 
-
-    _selection->addSelection(list, at);
+    _selection->addSelection(list, at, perModels);
 }
 
 void SlotLabel::addSpecial(Gear &gr)
 {
     _specials << gr; // Don't add multiples
-    on_selection(_defaultTexts, _defaultPoints);
+    if (_selection)
+        _selection->on_selection();
+//    on_selection(_defaultTexts, _defaultPoints);
 }
 
 /*void SlotLabel::removeSelection(const QString &text)
@@ -129,6 +140,12 @@ bool SlotLabel::hasSelections() const
     if (_selection)
         _selection->select(s);
 }*/
+
+void SlotLabel::changeMultiplier(int change)
+{
+    if (_selection)
+        _selection->modelsChange(change);
+}
 
 void SlotLabel::enterEvent(QEvent *)
 {

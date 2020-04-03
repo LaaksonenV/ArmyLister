@@ -16,10 +16,10 @@ class BaseLabel : public QLabel
 public:
     BaseLabel(QWidget *parent, Settings *set, const QString& text = "");
 
-    virtual void setDefault(Gear&, int){}
-    virtual void addSelection(QList<Gear>, int){}
+    virtual void setDefault(Gear&, int, int = -1){}
+    virtual void addSelection(QList<Gear>, int, int = 0){}
     virtual void addSpecial(Gear &){}
-//    virtual bool hasSelections() const{return false;}
+    virtual bool hasSelections() const{return false;}
     virtual void changeMultiplier(int){}
 
 public slots:
@@ -41,13 +41,14 @@ public:
 
 //    void reset();
 
-    void setDefault(Gear& def, int at);
-    void addSelection(QList<Gear> list, int at);
+    void setDefault(Gear& def, int at, int models = -1);
+    void addSelection(QList<Gear> list, int at, int perModels = 0);
     void addSpecial(Gear &gr);
 //    void removeSelection(const QString &text);
 //    void denySelection(bool denied);
     bool hasSelections() const;
 //    void select(const QString &s);
+    void changeMultiplier(int change);
 
     void enterEvent(QEvent*);
     void leaveEvent(QEvent*);

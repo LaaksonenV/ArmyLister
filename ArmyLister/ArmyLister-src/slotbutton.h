@@ -13,12 +13,14 @@ class SlotButton : public QWidget
     Q_OBJECT
 
 public:
-    SlotButton(const QString& text, int amount = -1, QWidget *parent = nullptr);
+    SlotButton(const QString& text, QWidget *parent = nullptr);
 
     virtual QSize sizeHint() const;
 
     virtual void setText(QString text);
     virtual QString getText() const;
+
+    virtual void setAmount(int amount);
 
     virtual void setLimits(int min, int max);
 
@@ -36,6 +38,7 @@ protected:
 
 public slots:
     virtual void changeLimit(int change);
+    virtual void changeModels(int change);
 
 protected slots:
     virtual void on_spinnerChanged(int now);
@@ -64,6 +67,7 @@ public:
     QStringList checkedTexts();
 
     void addButton(SlotButton *but);
+
 
 signals:
     void buttonClicked();

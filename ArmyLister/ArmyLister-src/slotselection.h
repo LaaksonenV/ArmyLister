@@ -19,9 +19,11 @@ public:
     SlotSelection(const QFont &f);
 //    Selection(Selection *copy);
 
-    void addSelection(const QList<Gear> &list, int at);
-//    void removeSelection(const QString &text);
+    void setDefault(Gear& def, int at, int models);
+    void addSelection(const QList<Gear> &list, int at, int perModels = 0);
     bool hasSelections() const;
+
+    void modelsChange(int change);
 
     void mousePressEvent(QMouseEvent *e);
 //    void select(const QString &s);
@@ -31,9 +33,12 @@ public slots:
 
 signals:
     void selected(const QStringList &text, QList<int> cost);
+    void modelsChanged(int change);
 
 private:
-    void addToSelection(const QStringList &list, int at);
+    SlotButtonGroup *createGroup(int at);
+    SlotButton *createBlanc();
+    SlotButton *createButton(QString text);
 
 private:
     const unsigned short itemHeight = 24;
@@ -42,12 +47,15 @@ private:
     QList <QVBoxLayout *> _laycols;
     QList <SlotButtonGroup *> _labels;
     SelectionLimiter *_limiter;
+
+    int _models;
 };
 
 struct Limit
 {
     int current;
     int max;
+    int per;
 };
 
 class SelectionLimiter : public QObject
@@ -58,15 +66,21 @@ public:
     SelectionLimiter(QObject *parent);
 
     void addButton(SlotButton *label, int group, int col);
-    void addLimit(int group, int limit);
+    void addCrossLimit(int group, int limit, int perModel);
+    int addLimit(int limit, int perModel);
+
+    void modelsChanged(int models);
 
 public slots:
-    void buttonPress(bool check, int group, int col);
+    void buttonPress(bool check, int group, int col, int index);
+
 signals:
-    void disableButtons(bool check, int group, int col);
+    void disableButtons(bool check, int group, int col, int index);
+    void modelChange(int change, int group);
 
 private:
     QMap<int,Limit> _limits;
+    int _indexCounter;
 };
 
 /*class MultiSelectionHandler : public QObject

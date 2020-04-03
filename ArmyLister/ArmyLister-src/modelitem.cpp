@@ -596,20 +596,23 @@ void ModelItem::setValue(int val)
     }
 }*/
 
-void ModelItem::setSelection(Gear& pr, int at)
+void ModelItem::setSelection(Gear& pr, int at, bool forAll)
 {
 
     checkLabel();
 
     _text->hide();
     setCost(_cost+pr.cost);
-    _text->setDefault(pr, at);
+    if (forAll)
+        _text->setDefault(pr, at, _models);
+    else
+        _text->setDefault(pr, at, -1);
     _text->show();
 }
 
-void ModelItem::addSelection(const QList<Gear> &list, int at)
+void ModelItem::addSelection(const QList<Gear> &list, int at, int perModel)
 {
-    _text->addSelection(list, at);
+    _text->addSelection(list, at, perModel);
 //    _text->show();
 }
 
@@ -955,6 +958,7 @@ void ModelItem::on_multiplierChange(int change)
     if (_models >= 0)
     {
         _models += change;
+        _text->changeMultiplier(change);
         if (_limitPer)
             _spinner->setMaximum(_models/_limitPer);
 

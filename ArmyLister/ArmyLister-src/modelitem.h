@@ -115,8 +115,9 @@ public:
     virtual void setValue(int val);
 //    virtual void changeTexts(const QString &txts);
 
-    virtual void setSelection(Gear &pr, int at);
-    virtual void addSelection(const QList<Gear> &list, int at);
+    virtual void setSelection(Gear &pr, int at, bool forAll = false);
+    virtual void addSelection(const QList<Gear> &list, int at
+                              , int perModel = 0);
     virtual void addSpecialCase(Gear pr);
 //    virtual void changeSelection(int at,
   //                               const QString &text,

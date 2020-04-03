@@ -14,6 +14,7 @@ SlotSelection::SlotSelection(const QFont &f)
     , _laycols(QList<QVBoxLayout*>())
     , _labels(QList<SlotButtonGroup*>())
     , _limiter(nullptr)
+    , _models(-1)
 {
     setWindowFlags(Qt::Popup);
 //    setFixedSize(0,0);
@@ -32,42 +33,104 @@ SlotSelection::SlotSelection(const QFont &f)
     createSelection(texts);
 }*/
 
-void SlotSelection::addSelection(const QList<Gear> &list, int at)
+void SlotSelection::setDefault(Gear &def, int at, int models)
 {
-    QStringList texts;
+    QString text;
+    text = def.name + ", " + QString::number(def.cost);
+
+    SlotButtonGroup *grp = createGroup(at);
+    SlotButton * but = createButton(text);
+    but->setAmount(models);
+    if (models >= 0)
+    {
+        _models = models;
+        connect(this, &SlotSelection::modelsChanged,
+                but, &SlotButton::changeModels);
+    }
+    else
+        grp->setExclusive();
+    but->toggleCheck(true);
+    grp->addButton(but);
+    _laycols.at(at)->addWidget(but);
+}
+
+void SlotSelection::addSelection(const QList<Gear> &list, int at
+                                 , int perModels)
+{
+    SlotButtonGroup *grp = createGroup(at);
+    SlotButton * but;
+
+    if (grp)
+    {
+        but = createBlanc();
+        grp->addButton(but);
+    }
+    else
+        grp = _labels.at(at);
+
+    QVBoxLayout *col = _laycols.at(at);
+
+    QRegExp xp("!<(.+)>"), xd("(.)(\\d+)!");
+    int group = -1;
+    QString text;
+
+    if (perModels > 0)
+    {
+        if (!_limiter)
+            _limiter = new SelectionLimiter(this);
+        group = _limiter->addLimit(_models/perModels, perModels);
+    }
 
     for (int i = 0; i < list.count(); ++i)
     {
+        text = list.at(i).name + ", " + QString::number(list.at(i).cost);
 
-        texts << list.at(i).name + ", " + QString::number(list.at(i).cost);
-    }
-
-    addToSelection(texts, at);
-}
-
-/*void Selection::removeSelection(const QString &text)
-{
-    int hpos = 0;
-    for (int i = 0; i < _labels.count(); ++i)
-    {
-        if (_labels.at(i)->text().startsWith(text + ","))
+        if (xp.indexIn(text) >= 0)
         {
-            for (int j = i+1; j < _labels.count(); ++j)
-                _labels.at(j)->move(0,i*itemHeight);
-            delete _labels.takeAt(i);
-            --i;
+            group = xp.cap(1).toInt();
+            text.remove(xp);
         }
-        if (_labels.at(i)->width() > hpos)
-            hpos = _labels.at(i)->width();
+
+        if (xd.indexIn(text) >= 0)
+        {
+            if (!_limiter)
+                _limiter = new SelectionLimiter(this);
+            _limiter->addCrossLimit(group, xd.cap(2).toInt(), perModels);
+        }
+        else
+        {
+            but = createButton(text);
+            grp->addButton(but);
+            col->addWidget(but);
+            if (group >= 0 || perModels > 0)
+            {
+                if (!_limiter)
+                    _limiter = new SelectionLimiter(this);
+
+                _limiter->addButton(but, group, at);
+            }
+        }
+        if (perModels <= 0)
+            group = -1;
     }
-    setFixedSize(hpos, _labels.count()*itemHeight);
-}*/
+}
 
 bool SlotSelection::hasSelections() const
 {
     if(_lay->count())
         return true;
     return false;
+}
+
+void SlotSelection::modelsChange(int change)
+{
+    if (_models >= 0)
+    {
+        emit modelsChanged(change);
+        _models += change;
+        if (_limiter)
+            _limiter->modelsChanged(_models);
+    }
 }
 
 void SlotSelection::mousePressEvent(QMouseEvent *e)
@@ -109,108 +172,102 @@ void SlotSelection::on_selection()
     emit selected(list,cost);
 }
 
-void SlotSelection::addToSelection(const QStringList &list, int at)
+SlotButtonGroup *SlotSelection::createGroup(int at)
 {
-    SlotButton *label = nullptr;
-    QString text;
-//    int vpos = this->height();
-//    int hpos = this->width();
-    SlotButtonGroup *grp = nullptr;
-    QVBoxLayout *col = nullptr;
-
-    if (_labels.count() > at)
+    while (_labels.count() <= at)
     {
-        grp = _labels.at(at);
-        col = _laycols.at(at);
+        _labels << nullptr;
+        _laycols << nullptr;
     }
-    else
-    {
-        while (_labels.count() <= at)
-        {
-            grp = new SlotButtonGroup(this);
-            grp->setExclusive();
-            _labels << grp;
-            col = new QVBoxLayout(this);
-            col->setAlignment(Qt::AlignLeft);
-            _lay->addLayout(col);
-            _laycols << col;
-            connect(grp, &SlotButtonGroup::buttonClicked,
-                    this, &SlotSelection::on_selection);
-        }
-    }
+    if (_labels.at(at))
+        return nullptr;
 
-    QRegExp xp("!<(.+)>"), xd("(.)(\\d+)!");
-    int group;
+    SlotButtonGroup *grp = new SlotButtonGroup(this);
+    grp->setExclusive();
+    _labels.replace(at, grp);
+    QVBoxLayout *col = new QVBoxLayout(this);
+    col->setAlignment(Qt::AlignLeft);
+    _lay->addLayout(col);
+    _laycols.replace(at, col);
+    connect(grp, &SlotButtonGroup::buttonClicked,
+            this, &SlotSelection::on_selection);
 
-    for (int i = 0; i < list.count(); ++i)
-    {
-        group = -1;
-        text = list.at(i);
-        if (xp.indexIn(text) >= 0)
-        {
-            group = xp.cap(1).toInt();
-            text.remove(xp);
-        }
+    return grp;
+}
 
-        if (xd.indexIn(text) >= 0)
-        {
-            if (!_limiter)
-                _limiter = new SelectionLimiter(this);
-            _limiter->addLimit(group, xd.cap(2).toInt());
-        }
-        else
-        {
+SlotButton *SlotSelection::createBlanc()
+{
+    return createButton("-");
+}
 
-            label = new SlotButton(text, -1, this);
-            label->setFont(_f);
-            //        label->move(0, vpos);
-            //        label->show();
-            //        vpos += itemHeight;
-            //        if (label->width() > hpos)
-            //          hpos = label->width();
+SlotButton *SlotSelection::createButton(QString text)
+{
+    SlotButton *label = new SlotButton(text, this);
+    label->setFont(_f);
 
-            if (group >= 0)
-            {
-                if (!_limiter)
-                    _limiter = new SelectionLimiter(this);
-
-                _limiter->addButton(label, group, at);
-            }
-
-            col->addWidget(label);
-            if (col->count() == 1)
-                label->toggleCheck(true);
-            grp->addButton(label);
-        }
-    }
-//    setFixedSize(hpos, vpos);
+    return label;
 }
 
 SelectionLimiter::SelectionLimiter(QObject *parent)
     : QObject (parent)
     , _limits(QMap<int, Limit>())
+    , _indexCounter(0)
 {
-}
-
-void SelectionLimiter::addLimit(int group, int limit)
-{
-    _limits.insert(group, Limit{0,limit});
 }
 
 void SelectionLimiter::addButton(SlotButton *label, int group, int col)
 {
     connect(label, &SlotButton::toggled,
-            [=](bool check){buttonPress(check, group, col);});
-    connect(this, &SelectionLimiter::disableButtons,
-            [=](int chck, int grp, int cl)
+            [=](bool check){buttonPress(check, group, col, _indexCounter);});
+    connect(this, &SelectionLimiter::modelChange,
+            [=](int change, int grp)
     {
         if (grp == group)
-            if (col != cl)
-                label->changeLimit(-chck);
+        {
+            label->changeLimit(change);
+        }
     });
+    connect(this, &SelectionLimiter::disableButtons,
+            [=](int chck, int grp, int cl, int index)
+    {
+        if (grp == group)
+        {
+            if ((group >= 0 && col != cl)
+                    || (group < 0 && col == cl && index != _indexCounter))
+                label->changeLimit(-chck);
+        }
+    });
+    ++_indexCounter;
 }
 
-void SelectionLimiter::buttonPress(bool check, int group, int col)
+void SelectionLimiter::addCrossLimit(int group, int limit, int perModel)
+{
+    _limits.insert(group, Limit{0,limit, perModel});
+}
+
+int SelectionLimiter::addLimit(int limit, int perModel)
+{
+    int c = -(_limits.count()+1);
+    _limits.insert(c, Limit{0, limit, perModel});
+    return c;
+}
+
+void SelectionLimiter::modelsChanged(int models)
+{
+    int lim, max;
+    foreach (int ind, _limits.keys())
+    {
+        if (ind < 0)
+        {
+            max = _limits.value(ind).max;
+            lim = models/_limits.value(ind).per;
+            _limits[ind].max = lim;
+            emit modelChange(lim-max, ind);
+        }
+    }
+}
+
+void SelectionLimiter::buttonPress(bool check, int group, int col, int index)
 {
     bool dsable = false;
     bool need = false;
@@ -231,5 +288,5 @@ void SelectionLimiter::buttonPress(bool check, int group, int col)
 
     }
     if (need)
-        emit disableButtons(dsable, group, col);
+        emit disableButtons(dsable, group, col, index);
 }
