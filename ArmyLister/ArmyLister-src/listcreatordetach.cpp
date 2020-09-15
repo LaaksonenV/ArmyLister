@@ -18,13 +18,14 @@
 
 #include "detachment.h"
 
-ListCreatorDetach::ListCreatorDetach(QWidget *parent)
+ListCreatorDetach::ListCreatorDetach(QWidget *parent, const QString &filename)
     : QDialog(parent)
     , v_currentIndex(-1)
     , qv_mins(QList<QSpinBox*>())
     , qv_maxs(QList<QSpinBox*>())
     , qv_spes(QList<QComboBox*>())
     , qv_structs(QList<DetachmentStruct>())
+    , qv_currentFile(filename)
 {
     QGridLayout *lay = new QGridLayout(this);
 
@@ -104,78 +105,9 @@ ListCreatorDetach::ListCreatorDetach(QWidget *parent)
     readFile();
 }
 
-void ListCreatorDetach::writeFile()
+QString ListCreatorDetach::getDetachmentList(const QString &filename)
 {
-    QFile f(c_fileName);
-    if (!f.open(QFile::Text | QFile::WriteOnly))
-        return;
-    QTextStream str(&f);
-    QList<RoleSlotStruct> list;
-    RoleSlotStruct strct;
-    QListWidgetItem *item;
-    for (int i = 0; i < qv_structs.count(); ++i)
-    {
-        item = qv_detachmentList->item(i);
-        if (!item)
-            continue;
-        str << '#' << item->text()
-            << ',' << QString::number(qv_structs.at(i).cp)
-            << '\n';
-        list = qv_structs.at(i).roles;
-        for (int j = 0; j < list.count(); ++j)
-        {
-            strct = list.at(j);
-            if (strct.min | strct.max | strct.special)
-                str << '\t' << QString::number(j)
-                    << ','  << QString::number(strct.min)
-                    << ','  << QString::number(strct.max)
-                    << ','  << QString::number(strct.special)
-                    << '\n';
-        }
-    }
-    f.close();
-}
-
-void ListCreatorDetach::readFile()
-{
-    QFile f(c_fileName);
-    if (!f.open(QFile::Text | QFile::ReadOnly))
-        return;
-    QTextStream str(&f);
-    QString line;
-    QStringList splitline;
-    int indx;
-    QList<RoleSlotStruct> *list = nullptr;
-    while (!str.atEnd())
-    {
-        line = str.read(1);
-        if (line == "#")
-        {
-            indx = addItem();
-            splitline = str.readLine().split(',');
-            qv_detachmentList->item(indx)->setText(splitline.at(0));
-            if (splitline.count()>1)
-                qv_cp->setText(splitline.at(1));
-            else
-                qv_cp->setText("0");
-
-            list = &(qv_structs[indx].roles);
-        }
-        else
-        {
-            splitline = str.readLine().split(',');
-            (*list)[splitline.at(0).toInt()].min = splitline.at(1).toInt();
-            (*list)[splitline.at(0).toInt()].max = splitline.at(2).toInt();
-            (*list)[splitline.at(0).toInt()].special = splitline.at(3).toInt();
-        }
-    }
-
-    f.close();
-}
-
-QString ListCreatorDetach::getDetachmentList()
-{
-    QFile f(c_fileName);
+    QFile f(filename);
     if (!f.open(QFile::Text | QFile::ReadOnly))
         return QString();
     QTextStream str(&f);
@@ -253,6 +185,75 @@ void ListCreatorDetach::on_OK()
     saveCurrent();
     writeFile();
     accept();
+}
+
+void ListCreatorDetach::writeFile()
+{
+    QFile f(qv_currentFile);
+    if (!f.open(QFile::Text | QFile::WriteOnly))
+        return;
+    QTextStream str(&f);
+    QList<RoleSlotStruct> list;
+    RoleSlotStruct strct;
+    QListWidgetItem *item;
+    for (int i = 0; i < qv_structs.count(); ++i)
+    {
+        item = qv_detachmentList->item(i);
+        if (!item)
+            continue;
+        str << '#' << item->text()
+            << ',' << QString::number(qv_structs.at(i).cp)
+            << '\n';
+        list = qv_structs.at(i).roles;
+        for (int j = 0; j < list.count(); ++j)
+        {
+            strct = list.at(j);
+            if (strct.min | strct.max | strct.special)
+                str << '\t' << QString::number(j)
+                    << ','  << QString::number(strct.min)
+                    << ','  << QString::number(strct.max)
+                    << ','  << QString::number(strct.special)
+                    << '\n';
+        }
+    }
+    f.close();
+}
+
+void ListCreatorDetach::readFile()
+{
+    QFile f(qv_currentFile);
+    if (!f.open(QFile::Text | QFile::ReadOnly))
+        return;
+    QTextStream str(&f);
+    QString line;
+    QStringList splitline;
+    int indx;
+    QList<RoleSlotStruct> *list = nullptr;
+    while (!str.atEnd())
+    {
+        line = str.read(1);
+        if (line == "#")
+        {
+            indx = addItem();
+            splitline = str.readLine().split(',');
+            qv_detachmentList->item(indx)->setText(splitline.at(0));
+            if (splitline.count()>1)
+                qv_cp->setText(splitline.at(1));
+            else
+                qv_cp->setText("0");
+
+            list = &(qv_structs[indx].roles);
+        }
+        else
+        {
+            splitline = str.readLine().split(',');
+            (*list)[splitline.at(0).toInt()].min = splitline.at(1).toInt();
+            (*list)[splitline.at(0).toInt()].max = splitline.at(2).toInt();
+            (*list)[splitline.at(0).toInt()].special = splitline.at(3).toInt();
+        }
+    }
+
+    f.close();
 }
 
 void ListCreatorDetach::saveCurrent()

@@ -3,8 +3,7 @@
 
 #include <QMainWindow>
 
-class BattleForged;
-class ArmyListWidget;
+class ArmyWidget;
 class Settings;
 
 class MainWindow : public QMainWindow
@@ -22,19 +21,15 @@ public slots:
     void on_loadList();
     void on_loadArmy(const QString &fileName);
 
-    void on_createBattleforge();
+    void on_createOrg();
     void on_createWPList();
     void on_createUPList();
     void on_createWGList();
     void on_createArmyList();
 
-    void on_valueChange(int i, int r);
-
 private:
     Settings *_settings;
-    BattleForged *_army;
-    ArmyListWidget *_list;
-
+    ArmyWidget *_mainwidget;
 };
 
 #endif // MAINWINDOW_H

@@ -11,19 +11,15 @@ class QComboBox;
 class QListWidgetItem;
 class QLineEdit;
 
-const QString c_fileName = "BattleForged.txt";
-
 class ListCreatorDetach : public QDialog
 {
     Q_OBJECT
     
 public:
     
-    ListCreatorDetach(QWidget *parent);
+    ListCreatorDetach(QWidget *parent, const QString &filename);
 
-    void writeFile();
-    void readFile();
-    QString getDetachmentList();
+    static QString getDetachmentList(const QString &filename);
 
 public slots:
     int addItem();
@@ -36,6 +32,10 @@ public slots:
     void on_AddItem();
 
 private: //functions
+
+    void writeFile();
+    void readFile();
+
     void saveCurrent();
     
 private:
@@ -58,6 +58,8 @@ private:
     };
 
     QList<DetachmentStruct> qv_structs;
+
+    QString qv_currentFile;
 };
 
 

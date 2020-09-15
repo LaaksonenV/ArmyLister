@@ -98,11 +98,10 @@ QString ItemFactory::parseTextRec(const QString &line, QTextStream &str,
     return nLine;
 }
 
-// Currently NA
 QStringList ItemFactory::parseControl(QString &text)
 {
     QStringList ret;
-    if (text.startsWith('!'))
+    while (text.startsWith('!'))
     {
         int prevsep = 0;
         int sep;
@@ -119,13 +118,12 @@ QStringList ItemFactory::parseControl(QString &text)
                 break;
             prevsep = text.indexOf('>', prevsep)+1;
         }
-        ret = text.left(sep).split('!', QString::SkipEmptyParts);
+        ret << text.left(sep).split('!', QString::SkipEmptyParts);
         text.remove(0,sep);
     }
     return ret;
 }
 
-// Currently NA
 QStringList ItemFactory::parseSpecial(QString &text)
 {
     QStringList ret;

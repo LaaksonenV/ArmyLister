@@ -42,7 +42,8 @@ SOURCES += \
     textedit.cpp \
     itemfactory.cpp \
     slotsllabel.cpp \
-    slotselection.cpp
+    slotselection.cpp \
+    armywidget.cpp
 
 HEADERS += \
         mainwindow.h \
@@ -63,6 +64,7 @@ HEADERS += \
     itemfactory.h \
     slotslabel.h \
     slotselection.h \
+    armywidget.h \
     structs.h
 
 RESOURCES += \
