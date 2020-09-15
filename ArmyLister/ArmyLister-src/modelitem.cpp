@@ -699,8 +699,8 @@ void ModelItem::updateCost()
 void ModelItem::changeOtherCosts(int c, int)
 {
     _otherCosts += c;
-    if (_checked)
-        _above->changeOtherCosts(c,_index);
+//    if (_checked)
+//        _above->changeOtherCosts(c,_index);
     updateCost();
 }
 
@@ -798,7 +798,7 @@ void ModelItem::paintEvent(QPaintEvent *)
 
     p.drawText(width()-_settings->costFieldWidth + 10,
                (_settings->itemHeight/2)+(_settings->textFontSize/2),
-               QString::number(_cost + _otherCosts));
+               QString::number(_cost));
 }
 }
 
