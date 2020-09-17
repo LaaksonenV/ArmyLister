@@ -3,7 +3,7 @@
 
 #include <QWidget>
 
-class BattleForged;
+class Organisation;
 class ArmyListWidget;
 class Settings;
 
@@ -30,12 +30,12 @@ public slots:
 
 private:
 
-    BattleForged *create40k();
-    BattleForged *create9A(const QString &file);
+    Organisation *create40k();
+    Organisation *create9A(const QString &file);
 
     Settings *_settings;
 
-    BattleForged *_army;
+    Organisation *_army;
     ArmyListWidget *_list;
 };
 

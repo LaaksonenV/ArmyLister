@@ -4,10 +4,10 @@
 #include <algorithm>
 
 #include "detachment.h"
+#include "organisation.h"
 
 BattleForged::BattleForged(QWidget *parent)
-    : QWidget(parent)
-    , qv_detachmentList()
+    : Organisation(parent)
     , qv_currentMin()
     , qv_currentMax()
 {
@@ -16,35 +16,14 @@ BattleForged::BattleForged(QWidget *parent)
         qv_currentMax << 0;
         qv_currentMin << 0;
     }
-    setMinimumSize(100,200);
-    setSizePolicy(QSizePolicy::Fixed,QSizePolicy::Fixed);
+
 }
 
-QSize BattleForged::sizeHint() const
-{
-    if (!qv_detachmentList.count())
-        return QSize();
-    QSize ret(qv_detachmentList.at(0)->sizeHint());
-    ret.rheight() *= qv_detachmentList.count();
-    ret.rwidth() += 15;
-    return ret;
-}
+BattleForged::~BattleForged()
+{}
 
-void BattleForged::setLists(const QString &detachments)
-{
-    clear();
-    if (detachments.isEmpty())
-        return;
-    QStringList lst = detachments.split('#');
-    lst.removeFirst();
-    foreach (QString s, lst)
-    {
-        addDetachment(s.split(';'));
-    }
-    setMinimumSize(sizeHint());
-}
 
-void BattleForged::addDetachment(const QStringList &args)
+void BattleForged::addPart(const QStringList &args)
 {
     Detachment *det = new Detachment(args, this);
 //    int indx = qv_detachmentList.count();
@@ -53,23 +32,14 @@ void BattleForged::addDetachment(const QStringList &args)
     connect(det, &Detachment::clone,
             this, &BattleForged::detachmentCloned);
 //                    {detachmentSelected(indx,b);});
-    det->move(0,det->sizeHint().height()*qv_detachmentList.count());
-    qv_detachmentList << det;
+    det->move(0,det->sizeHint().height()*qv_partsList.count());
+    qv_partsList << det;
 
-}
-
-void BattleForged::clear()
-{
-    foreach (Detachment *d, qv_detachmentList)
-    {
-        delete d;
-    }
-    qv_detachmentList.clear();
 }
 
 void BattleForged::roleSelected(int role, int amount)
 {
-    foreach (Detachment *d, qv_detachmentList)
+    foreach (Detachment *d, qv_partsList)
     {
         d->roleSelected(role, amount);
     }
@@ -94,7 +64,7 @@ void BattleForged::detachmentSelected(Detachment *det, bool check)
     }
 
 //    for (int i = 0; i < qv_detachmentList.count(); ++i)
-    foreach (Detachment *d, qv_detachmentList)
+    foreach (Detachment *d, qv_partsList)
 //        if (i != index)
         if (d != det)
 //            qv_detachmentList.at(i)->selectionChange(mins, maxs);
@@ -103,20 +73,20 @@ void BattleForged::detachmentSelected(Detachment *det, bool check)
 
 void BattleForged::detachmentCloned(Detachment *det, QStringList args)
 {
-    int indx = qv_detachmentList.indexOf(det);
+    int indx = qv_partsList.indexOf(det);
     Detachment *d = new Detachment(args, this);
     connect(d, &Detachment::toggled,
             this, &BattleForged::detachmentSelected);
     connect(d, &Detachment::clone,
             this, &BattleForged::detachmentCloned);
     ++indx;
-    qv_detachmentList.insert(indx, d);
+    qv_partsList.insert(indx, d);
     d->selectionChange(qv_currentMin, qv_currentMax);
     d->show();
     for (int i = indx;
-         i < qv_detachmentList.count(); ++i)
+         i < qv_partsList.count(); ++i)
     {
-        d = qv_detachmentList.at(i);
+        d = qv_partsList.at(i);
         d->move(0,d->sizeHint().height()*i);
     }
 }

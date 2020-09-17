@@ -1,33 +1,35 @@
 #ifndef BATTLEFORGED_H
 #define BATTLEFORGED_H
 
-#include <QWidget>
+//#include "organisation.h"
 
-template<typename T> class QList;
-
+class Organisation;
+class QStringList;
 class Detachment;
+class QWidget;
 
-class BattleForged : public QWidget
+class BattleForged : public Organisation
 {
     Q_OBJECT
 public:
     explicit BattleForged(QWidget *parent = nullptr);
+    virtual ~BattleForged();
 
-    virtual QSize sizeHint() const;
-
-    void setLists(const QString &detachments);
-    void addDetachment(const QStringList &args);
-    void clear();
+//    virtual void setLists(const QString &detachments);
 
 signals:
 
 public slots:
-    void roleSelected(int role, int amount);
-    void detachmentSelected(Detachment *det, bool check);
-    void detachmentCloned(Detachment *det, QStringList args);
+    virtual void roleSelected(int role, int amount);
+
+    virtual void detachmentSelected(Detachment *det, bool check);
+    virtual void detachmentCloned(Detachment *det, QStringList args);
     
+protected:
+
+    virtual void addPart(const QStringList &args);
+
 private:
-    QList<Detachment*> qv_detachmentList;
 
     QList<int> qv_currentMin;
     QList<int> qv_currentMax;

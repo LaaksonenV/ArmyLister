@@ -3,6 +3,7 @@
 #include <QHBoxLayout>
 
 #include "battleforged.h"
+
 #include "armylistwidget.h"
 #include "settings.h"
 #include "listcreatordetach.h"
@@ -23,7 +24,7 @@ ArmyWidget::~ArmyWidget()
 
 bool ArmyWidget::createArmy(const QString &filename)
 {
-    BattleForged *army;
+    Organisation *army;
     if (filename.startsWith("9A"))
         army = create9A(filename);
     else
@@ -50,7 +51,7 @@ bool ArmyWidget::createArmy(const QString &filename)
     return true;
 }
 
-BattleForged *ArmyWidget::create40k()
+Organisation *ArmyWidget::create40k()
 {
     BattleForged *army = new ArmyListWidget(_settings, this);
 
@@ -62,9 +63,9 @@ BattleForged *ArmyWidget::create40k()
     return army;
 }
 
-BattleForged *ArmyWidget::create9A(const QString &file)
+Organisation *ArmyWidget::create9A(const QString &file)
 {
-    BattleForged *army = new ArmyListWidget(_settings, this);
+    Organisation *army = new ArmyListWidget(_settings, this);
 
     // Org listan alkuun, Battleforge leikkaus modelitemin tapaan
     army->setLists(ListCreatorDetach::getDetachmentList("9thAgeOrg.txt"));

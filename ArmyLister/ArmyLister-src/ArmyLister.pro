@@ -34,6 +34,7 @@ SOURCES += \
     fileio.cpp \
     listcreator.cpp \
     listcreatordetach.cpp \
+    organisation.cpp \
     slotbutton.cpp \
     sortedstringlist.cpp \
     armylistwidget.cpp \
@@ -55,6 +56,7 @@ HEADERS += \
     fileio.h \
     listcreator.h \
     listcreatordetach.h \
+    organisation.h \
     slotbutton.h \
     sortedstringlist.h \
     armylistwidget.h \
