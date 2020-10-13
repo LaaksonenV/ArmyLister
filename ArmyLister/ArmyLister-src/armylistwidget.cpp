@@ -1,8 +1,4 @@
 #include "armylistwidget.h"
-#include "modelitem.h"
-#include "limitmihandler.h"
-#include "settings.h"
-#include "itemfactory.h"
 
 #include <QFile>
 #include <QTextStream>
@@ -10,10 +6,14 @@
 #include <QtPrintSupport/QPrinter>
 #include <QFileInfo>
 
+#include "settings.h"
+#include "itemfactory.h"
+#include "modelitembase.h"
+
 ArmyListWidget::ArmyListWidget(Settings *set, QWidget *parent)
     : QScrollArea(parent)
     , _settings(set)
-    , _topItem(new TopModelItem(set, this))
+    , _topItem(new ModelItemBase(set, this))
     , _name(QString())
     , _points(0)
 {
@@ -23,9 +23,9 @@ ArmyListWidget::ArmyListWidget(Settings *set, QWidget *parent)
     setSizePolicy(QSizePolicy::Expanding,
                   QSizePolicy::MinimumExpanding);
 
-    connect(_topItem, &TopModelItem::itemChecked,
-            [this](int i, int b){emit roleSelected(i,b);});
-    connect(_topItem, &TopModelItem::valueChanged,
+    connect(_topItem, &ModelItemBase::itemSelected,
+            this, &ArmyListWidget::roleSelected);
+    connect(_topItem, &ModelItemBase::valueChanged,
             this, &ArmyListWidget::on_valueChange);
 
 }
@@ -38,8 +38,15 @@ ArmyListWidget::~ArmyListWidget()
 
 bool ArmyListWidget::addArmyFile(const QString &fileName)
 {
-    ItemFactory fctr(_topItem, _settings);
-    return fctr.addArmyFile(fileName);
+      // Reusable class, move to members
+    ItemFactory fctr(_settings);
+    if (!fctr.addArmyFile(_topItem, fileName))
+        return false;
+    QFileInfo forName;
+    forName.setFile(fileName);
+    _name = forName.completeBaseName();
+    adjustSize();
+    return true;
 }
 
 void ArmyListWidget::printList() const
@@ -59,16 +66,14 @@ void ArmyListWidget::printList() const
 
 
     int count = _name.size()+5;
-    str.setFieldWidth((printwidth-count)/2);
+    str.setFieldWidth((Settings::Number(Settings::PlainTextWidth)-count)/2);
     str << _name;
     str.setFieldWidth(0);
     str << " " << _points;
- //   endl(str);
+    endl(str);
 
-    foreach (ModelItem *i, _topItem->_belows)
-    {
-        printRecurseText(str, i, 0, f);
-    }
+    _topItem->printToStream(str);
+
     file.close();
 }
 
@@ -94,17 +99,18 @@ void ArmyListWidget::saveListAs(QString filename) const
     str << _name;
     endl(str);
 
-    foreach (ModelItem *i, _topItem->_belows)
+/*    foreach (ModelItem *i, _topItem->_branches)
     {
         printRecurseSave(str, i, 0);
     }
-    file.close();
+    file.close();*/
 }
 
 void ArmyListWidget::loadList(const QString &filename)
 {
 
-    QFile file(filename);
+    // Need a bit of work, remove getchild 41
+/*    QFile file(filename);
     if (!file.open(QFile::ReadOnly | QFile::Text))
         return;
     QTextStream str(&file);
@@ -114,8 +120,8 @@ void ArmyListWidget::loadList(const QString &filename)
     if (str.atEnd())
         return;
 
-    ItemFactory fctr(_topItem, _settings);
-    if (!fctr.addArmyFile(line + ".txt"))
+    ItemFactory fctr(_settings);
+    if (!fctr.addArmyFile(_topItem, line + ".txt"))
         return;
 
     resize(500,400);
@@ -136,89 +142,21 @@ void ArmyListWidget::loadList(const QString &filename)
         line = recurseLoad(str, itm, 0);
     }
 
-    file.close();
+    file.close();*/
 }
 
 void ArmyListWidget::on_valueChange(int i, int r)
 {
     if (r<0)
-        _points = i;
+        _points += i;
 
     emit valueChanged(i,r);
 }
 
-void ArmyListWidget::printRecurseText(QTextStream &str, ModelItem *itm, int d,
-                                  QFont &f) const
-{
-    if (!itm->isChecked())
-        return;
-
-    int textwidth = 0;
-
-    QStringList texts = itm->createTexts();
-
-    if (d <= 1)
-        endl(str);
-
-    for (int i = 0; i < d; ++i)
-    {
-        str << "  ";
-        textwidth += 4;
-    }
-    if (texts.at(1).toInt() > 1)
-    {
-        str << texts.at(1) << "X ";
-        textwidth += texts.at(1).size() + 2;
-    }
-
-    QStringList ret(texts.at(0).split(", "));
-    QString text("");
-    QString temp("");
-    int count;
-
-    while (ret.count())
-    {
-        if (!text.isEmpty())
-            text.append(", ");
-        temp = ret.first();
-        count = ret.count(temp);
-        ret.removeAll(temp);
-
-        if (count > 1)
-        {
-            if (!temp.endsWith('s'))
-                temp.append('s');
-            temp.prepend(QString::number(count) + " ");
-        }
-        text.append(temp);
-    }
-
-    str << text;
-    textwidth += text.size();
-
-    if (d == 1)
-        str.setPadChar('.');
-    str.setFieldWidth(printwidth-textwidth);
-    right(str);
-
-    str << texts.at(2);
-
-    str.setFieldWidth(0);
-    if (d == 1)
-        str.setPadChar(' ');
-    left(str);
-    endl(str);
-
-    foreach (ModelItem *i, itm->_belows)
-    {
-        printRecurseText(str, i, d+1, f);
-    }
-}
-
-void ArmyListWidget::printRecurseSave(QTextStream &str, ModelItem *itm,
+void ArmyListWidget::printRecurseSave(QTextStream &str, ModelItemBase *itm,
                                       int d) const
 {
-    if (!itm->isChecked())
+/*    if (!itm->isChecked())
         return;
     QStringList texts = itm->createTexts();
 
@@ -228,16 +166,17 @@ void ArmyListWidget::printRecurseSave(QTextStream &str, ModelItem *itm,
     str << texts.join(';');
     endl(str);
 
-    foreach (ModelItem *i, itm->_belows)
+    foreach (ModelItem *i, itm->_branches)
     {
         printRecurseSave(str, i, d+1);
-    }
+    }*/
 }
 
-QString ArmyListWidget::recurseLoad(QTextStream &str, ModelItem *parnt,
+QString ArmyListWidget::recurseLoad(QTextStream &str, ModelItemBase *parnt,
                                     int d)
 {
-    QStringList dat;
+
+/*    QStringList dat;
     ModelItem *itm;
 
     QString line = str.readLine();
@@ -263,6 +202,6 @@ QString ArmyListWidget::recurseLoad(QTextStream &str, ModelItem *parnt,
         line = recurseLoad(str, itm, d+1);
     }
 
-    return line;
-
+    return line;*/
+return QString();
 }

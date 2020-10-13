@@ -1,7 +1,7 @@
 #ifndef DETACHMENT_H
 #define DETACHMENT_H
 
-#include <QWidget>
+#include "organisationrole.h"
 
 /*                  |       |
  * Technically,     |       | <- air
@@ -13,7 +13,7 @@
 class QStringList;
 template<typename T> class QList;
 
-class RoleSlot;
+class DetachmentRoleType;
 class LimitHandler;
 
 
@@ -34,7 +34,7 @@ enum
 };
 }
 
-class Detachment : public QWidget
+class Detachment : public OrganisationRole
 {
     Q_OBJECT
     
@@ -47,12 +47,11 @@ public:
     };
 
     explicit Detachment(const QStringList &args, QWidget *parent = nullptr);
+    virtual ~Detachment();
     
-    virtual QSize sizeHint() const;
-
     void selectionChange(const QList<int> &mins,
                          const QList<int> &maxs);
-    void roleSelected(int role, int amount);
+    virtual void roleSelected(int role, int amount);
 
     QList<int> getMinimums();
     QList<int> getMaximums();
@@ -67,31 +66,25 @@ protected:
 
 signals:
     void toggled(Detachment *,bool);
-    void clone(Detachment *, QStringList);
+    void clone(const QStringList&);
 
 public slots:
     void on_betweenLimits(int from, bool check);
     
 
-private: //functions
-    void printFaultLabel();
     
 private:
     QStringList vq_args;
-    QList<RoleSlot*> vq_slotList;
+    QList<DetachmentRoleType*> vq_slotList;
     QList<bool> vq_availableList;
     QList<LimitHandler*> vq_handlerList;
-    QString vq_name;
     int v_points;
 
     bool v_isAvailable;
     bool v_isSelected;
     bool v_hasMouse;
 
-    const int c_fontsize = 12;
-    const int c_frameWidth = 6;
-    const int c_iconSideLength = 40;
-    const int c_labelHeight = 15;
+
 };
 
 #endif // DETACHMENT_H

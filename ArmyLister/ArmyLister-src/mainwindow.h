@@ -22,8 +22,8 @@ public slots:
     void on_loadArmy(const QString &fileName);
 
     void on_createOrg();
-    void on_createWPList();
-    void on_createUPList();
+//    void on_createWPList();
+  //  void on_createUPList();
     void on_createWGList();
     void on_createArmyList();
 

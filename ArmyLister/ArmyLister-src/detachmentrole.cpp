@@ -4,7 +4,7 @@
 #include <QPainter>
 #include <QBrush>
 
-RoleSlot::RoleSlot(QPixmap icon, QWidget *parent)
+DetachmentRoleType::DetachmentRoleType(QPixmap icon, QWidget *parent)
     : QWidget(parent)
     , vq_pixm(icon)
     , v_min(0)
@@ -16,13 +16,13 @@ RoleSlot::RoleSlot(QPixmap icon, QWidget *parent)
     setFixedSize(50,50);
 }
 
-void RoleSlot::setLimits(int min, int max)
+void DetachmentRoleType::setLimits(int min, int max)
 {
     setMax(max);
     setMin(min);
 }
 
-void RoleSlot::setMax(int max)
+void DetachmentRoleType::setMax(int max)
 {
     v_max = max;
     _effectiveMax = v_max;
@@ -30,7 +30,7 @@ void RoleSlot::setMax(int max)
     update();
 }
 
-void RoleSlot::setMin(int min)
+void DetachmentRoleType::setMin(int min)
 {
     v_min = min;
     _effectiveMin = v_min;
@@ -38,17 +38,17 @@ void RoleSlot::setMin(int min)
     update();
 }
 
-int RoleSlot::getMin()
+int DetachmentRoleType::getMin()
 {
     return v_min;
 }
 
-int RoleSlot::getMax()
+int DetachmentRoleType::getMax()
 {
     return v_max;
 }
 
-bool RoleSlot::isBetweenLimits()
+bool DetachmentRoleType::isBetweenLimits()
 {
     if (v_current < _effectiveMin
             || (v_max >= 0 && v_current > _effectiveMax))
@@ -56,13 +56,13 @@ bool RoleSlot::isBetweenLimits()
     return true;
 }
 
-void RoleSlot::selected(int amount)
+void DetachmentRoleType::selected(int amount)
 {
     v_current += amount;
     update();
 }
 
-void RoleSlot::paintEvent(QPaintEvent *)
+void DetachmentRoleType::paintEvent(QPaintEvent *)
 {
     QPainter p(this);
     QRect r(QPoint(), size());
@@ -85,7 +85,7 @@ void RoleSlot::paintEvent(QPaintEvent *)
     
 }
 
-void RoleSlot::on_Selection(int incrMin, int incrMax)
+void DetachmentRoleType::on_Selection(int incrMin, int incrMax)
 {  
     _effectiveMin += incrMin;
     _effectiveMax += incrMax;

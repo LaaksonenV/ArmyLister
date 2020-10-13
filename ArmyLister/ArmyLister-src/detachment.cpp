@@ -12,12 +12,11 @@
 #include "limithandler.h"
 
 Detachment::Detachment(const QStringList &args, QWidget *parent)
-    : QWidget(parent)
+    : OrganisationRole(args, parent)
     , vq_args(args)
     , vq_slotList()
     , vq_availableList()
     , vq_handlerList()
-    , vq_name("")
     , v_points(0)
     , v_isAvailable(false)
     , v_isSelected(false)
@@ -26,12 +25,6 @@ Detachment::Detachment(const QStringList &args, QWidget *parent)
     setFixedWidth(c_iconSideLength * BattlefieldRole::OverRoles
                   + 2*c_frameWidth);
 
-    if (!args.count())
-    {
-        printFaultLabel();
-        return;
-        
-    } 
     
     QStringList line(args.at(0).split(','));
     if (line.count() < 2)
@@ -45,7 +38,7 @@ Detachment::Detachment(const QStringList &args, QWidget *parent)
 
     if (args.count() > 1)
     {
-        RoleSlot *slot;
+        DetachmentRoleType *slot;
         for (int i = 0; i < BattlefieldRole::OverRoles; ++i)
         {
             vq_slotList << nullptr;
@@ -59,7 +52,7 @@ Detachment::Detachment(const QStringList &args, QWidget *parent)
             if (line.count() <= SlotIndex::Role)
                 continue;
             role = line.at(SlotIndex::Role).toInt();
-            slot = new RoleSlot(getIcon(role), this);
+            slot = new DetachmentRoleType(getIcon(role), this);
             vq_slotList[line.at(SlotIndex::Role).toInt()] = slot;
             slot->setFixedSize(c_iconSideLength,c_iconSideLength);
             slot->move((i-1)*c_iconSideLength + c_frameWidth
@@ -86,22 +79,16 @@ Detachment::Detachment(const QStringList &args, QWidget *parent)
             vq_availableList << slot->isBetweenLimits();
             if (!slot->isBetweenLimits())
                 v_isAvailable = false;
-            connect(slot, &RoleSlot::betweenLimits,
+            connect(slot, &DetachmentRoleType::betweenLimits,
                     this, [=](bool b){on_betweenLimits(i-1,b);});
         }
-        setFixedHeight(c_iconSideLength + c_labelHeight + 2*c_frameWidth);
-
 
     }
-    else
-        setFixedHeight(c_labelHeight + 2*c_frameWidth);
-
-    setSizePolicy(QSizePolicy());
 }
 
-QSize Detachment::sizeHint() const
+Detachment::~Detachment()
 {
-    return size();
+
 }
 
 void Detachment::roleSelected(int role, int amount)
@@ -189,7 +176,7 @@ void Detachment::mouseReleaseEvent(QMouseEvent *)
 
 void Detachment::mouseDoubleClickEvent(QMouseEvent *)
 {
-    emit clone(this, vq_args);
+    emit clone(vq_args);
 }
 
 void Detachment::paintEvent(QPaintEvent *)
@@ -254,11 +241,6 @@ void Detachment::on_betweenLimits(int from, bool check)
     update();
 }
 
-void Detachment::printFaultLabel()
-{
-    vq_name = "Faulty detachment line";
-    setFixedHeight(30);
-}
 
 QPixmap Detachment::getIcon(int ofRole)
 {

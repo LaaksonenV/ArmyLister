@@ -2,7 +2,7 @@
 
 #include "detachmentrole.h"
 
-LimitHandler::LimitHandler(RoleSlot *handleThis, QObject *parent)
+LimitHandler::LimitHandler(DetachmentRoleType *handleThis, QObject *parent)
     : QObject(parent)
     , _handled(handleThis)
     , _limited(0)
@@ -11,7 +11,7 @@ LimitHandler::LimitHandler(RoleSlot *handleThis, QObject *parent)
 
 }
 
-MinHandler::MinHandler(RoleSlot *handleThis, QObject *parent)
+MinHandler::MinHandler(DetachmentRoleType *handleThis, QObject *parent)
     : LimitHandler(handleThis, parent)
 {
     _limited = _handled->getMin();
@@ -24,7 +24,7 @@ void MinHandler::selection(int count)
     _handled->setMin(_limiter*_limited);
 }
 
-MaxHandler::MaxHandler(RoleSlot *handleThis, QObject *parent)
+MaxHandler::MaxHandler(DetachmentRoleType *handleThis, QObject *parent)
     : LimitHandler(handleThis, parent)
 {
     _limited = _handled->getMax();

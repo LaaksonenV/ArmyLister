@@ -1,12 +1,15 @@
 #include "textedit.h"
+
 #include <QCompleter>
 #include <QTextCursor>
 #include <QAbstractItemView>
 #include <QScrollBar>
 #include <QKeyEvent>
+#include <QStringListModel>
 
 MCLineEdit::MCLineEdit(QWidget *parent)
     : QLineEdit(parent)
+    , _compmod(nullptr)
     , c(nullptr)
 {
 }
@@ -60,39 +63,13 @@ void MCLineEdit::keyPressEvent(QKeyEvent *e)
     c->complete(cr); // popup it up!
 
 
-    /*
-//    QLineEdit::keyReleaseEvent(e);
-    if (!c || text().isEmpty())
-        return;
-
-    c->setCompletionPrefix(cursorWord(this->text()));
-    if (c->completionPrefix().length() < 1)
-    {
-        c->popup()->hide();
-        return;
-    }
-    QRect cr = cursorRect();
-         cr.setWidth(c->popup()->sizeHintForColumn(0)
-                     + c->popup()->verticalScrollBar()->sizeHint().width());
-    c->complete(cr);
-    */
 }
 
 QString MCLineEdit::cursorWord(const QString &sentence) const
 {
     QRegExp sep("[ ,<([{]");
     QString ret = sentence.left(cursorPosition());
-/*    int i = ret.lastIndexOf(sep);
-    int j = ret.lastIndexOf('<');
-    int k = ret.lastIndexOf(',');
-    if (j>i)
-    {
-        sep = '<';
-        if (k>j)
-            sep = ',';
-    }
-    else if (k>i)
-        sep = ',';*/
+
     int i = ret.lastIndexOf(sep);
 
     int j = cursorPosition() - i;
@@ -104,17 +81,7 @@ void MCLineEdit::insertCompletion(QString arg)
 {
     QRegExp sep("[ ,<([{]");
     QString ret = text().left(cursorPosition());
-/*    int i = ret.lastIndexOf(sep);
-    int j = ret.lastIndexOf('<');
-    int k = ret.lastIndexOf(',');
-    if (j>i)
-    {
-        sep = '<';
-        if (k>j)
-            sep = ',';
-    }
-    else if (k>i)
-        sep = ',';*/
+
     int i = ret.lastIndexOf(sep);
     int j = cursorPosition() - i;
 
@@ -122,10 +89,30 @@ void MCLineEdit::insertCompletion(QString arg)
     emit QLineEdit::textEdited(text());
 }
 
-void MCLineEdit::setMultipleCompleter(QCompleter* completer)
+void MCLineEdit::addToCompleter(const QStringList &list)
 {
-    c = completer;
-    c->setWidget(this);
-    connect(c, SIGNAL(activated(QString)),
-            this, SLOT(insertCompletion(QString)));
+
+    if (!c)
+    {
+        _compmod = new QStringListModel(list);
+        _compmod->sort(0);
+        c = new QCompleter(_compmod);
+        c->setWidget(this);
+        connect(c, SIGNAL(activated(QString)),
+                this, SLOT(insertCompletion(QString)));
+    }
+    else
+    {
+        int cnt = _compmod->rowCount();
+        QModelIndex index;
+        if(_compmod->insertRows(cnt, list.count()))
+        {
+            for (int i = cnt; i < _compmod->rowCount(); ++i)
+            {
+                index = _compmod->index(i, 0);
+                _compmod->setData(index, list.at(i-cnt));
+            }
+        }
+    }
+
 }

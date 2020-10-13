@@ -1,5 +1,15 @@
 #include "settings.h"
 
+const QColor& Settings::Color(Colours c)
+{
+    return _colours.at(c);
+}
+
+const unsigned short Settings::Number(Numbers i)
+{
+    return _numbers.at(i);
+}
+
 Settings::Settings()
     : QSettings("settings.ini", QSettings::IniFormat)
     , _allowUnderStrength(false)

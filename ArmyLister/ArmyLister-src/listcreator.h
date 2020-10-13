@@ -8,6 +8,11 @@ class QTreeWidgetItem;
 class QLineEdit;
 class QTextStream;
 class QTextEdit;
+class QLabel;
+class QVBoxLayout;
+
+class ListCreatorWidgetOrg;
+class ListCreatorWidgetIncl;
 class MCLineEdit;
 
 #define HQ_ROLE "HQ"
@@ -25,19 +30,24 @@ class ListCreator : public QDialog
     Q_OBJECT
 
 public:
+
+    static void CreateArmy(const QString &file, QWidget *parent);
+
+    static void CreateList(const QString &file,
+                      QWidget *parent = nullptr);
+
     ListCreator(const QString &file,
                 const QStringList &header,
                 QWidget *parent = nullptr);
 
     virtual ~ListCreator();
 
-    void initialiseArmy();
-    void initialiseWargear();
-    void initialiseList();
-
-    QStringList include(bool print = false);
-
 private slots:
+    void on_orgChange();
+
+    void on_includeAdd(const QString& filename);
+
+
     void on_OK();
 
     QTreeWidgetItem *on_createNext();
@@ -58,8 +68,14 @@ private slots:
     void on_currentChanged(QTreeWidgetItem *now, QTreeWidgetItem*);
 
 private:
+    void addOrg();
+    void addIncl();
+
     const int preMadeItem = 1001;
     QTreeWidgetItem *createPreMadeItem(const QString &text);
+
+    void initialise40k();
+    void initialise9A(const QStringList &org);
 
 
     void readFile();
@@ -73,6 +89,11 @@ private:
     void keyPressEvent(QKeyEvent *e);
 
 private:
+    QVBoxLayout *lay;
+
+    ListCreatorWidgetOrg *_org;
+    ListCreatorWidgetIncl *_incl;
+
     QTreeWidget *_list;
     QList<QLineEdit *> _lines;
     QTextEdit *_info;

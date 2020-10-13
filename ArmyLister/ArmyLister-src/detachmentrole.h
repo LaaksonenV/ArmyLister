@@ -7,11 +7,11 @@ class QString;
 class QSize;
 class QPixmap;
 
-class RoleSlot : public QWidget
+class DetachmentRoleType : public QWidget
 {
     Q_OBJECT
 public:
-    explicit RoleSlot(QPixmap icon, QWidget *parent = nullptr);
+    explicit DetachmentRoleType(QPixmap icon, QWidget *parent = nullptr);
 
     void setLimits(int min, int max);
     void setMax(int max);

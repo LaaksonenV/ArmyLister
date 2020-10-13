@@ -19,7 +19,7 @@ public:
     
     ListCreatorDetach(QWidget *parent, const QString &filename);
 
-    static QString getDetachmentList(const QString &filename);
+    static QString getOrganisationList(const QString &filename);
 
 public slots:
     int addItem();

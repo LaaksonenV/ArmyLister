@@ -105,28 +105,33 @@ ListCreatorDetach::ListCreatorDetach(QWidget *parent, const QString &filename)
     readFile();
 }
 
-QString ListCreatorDetach::getDetachmentList(const QString &filename)
+QString ListCreatorDetach::getOrganisationList(const QString &filename)
 {
     QFile f(filename);
     if (!f.open(QFile::Text | QFile::ReadOnly))
         return QString();
     QTextStream str(&f);
+    str.setCodec("utf-8");
     QString line;
     QString ret;
-    while (!str.atEnd())
+
+    bool ok;
+
+    // NEEDS WORK
+    while (!str.atEnd() && line != "ORGANISATION")
     {
-        line = str.read(1);
-        if (line == "#")
-        {
-            ret += '#';
-            ret += str.readLine();
-        }
-        else
-        {
-            ret += ';';
-            ret += str.readLine();
-        }
+        line = str.readLine();
     }
+    line = str.readLine();
+    while (!line.isNull() && line.startsWith('\t'))
+    {
+        ret += line.trimmed();
+        ret += ';';
+
+        line = str.readLine();
+    }
+    if (!ret.isEmpty())
+            ret.remove(ret.count()-1,1);
     f.close();
     return ret;
 }
@@ -193,6 +198,7 @@ void ListCreatorDetach::writeFile()
     if (!f.open(QFile::Text | QFile::WriteOnly))
         return;
     QTextStream str(&f);
+    str.setCodec("utf-8");
     QList<RoleSlotStruct> list;
     RoleSlotStruct strct;
     QListWidgetItem *item;

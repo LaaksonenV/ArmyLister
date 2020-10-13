@@ -1,8 +1,12 @@
 #include "armywidget.h"
 
 #include <QHBoxLayout>
+#include <QInputDialog>
+#include <QFile>
+#include <QTextStream>
 
 #include "battleforged.h"
+#include "organisation.h"
 
 #include "armylistwidget.h"
 #include "settings.h"
@@ -12,10 +16,13 @@
 ArmyWidget::ArmyWidget(Settings *set, QWidget *parent)
     : QWidget(parent)
     , _settings(set)
+    , _points(0)
+    , _army(nullptr)
     , _list(new ArmyListWidget(_settings, this))
 
 {
-
+    connect(_list, &ArmyListWidget::valueChanged,
+            this, &ArmyWidget::on_valueChange);
 }
 
 ArmyWidget::~ArmyWidget()
@@ -24,9 +31,23 @@ ArmyWidget::~ArmyWidget()
 
 bool ArmyWidget::createArmy(const QString &filename)
 {
+    QString org = ListCreatorDetach::getOrganisationList(filename);
+
+    QString orgtype = org.split('#').first();
+
+    // 1. Get army type from file 2. Get default size from settings
+    // 3. Set default as initial
+    bool ok = false;
+    int limit;
+
     Organisation *army;
-    if (filename.startsWith("9A"))
-        army = create9A(filename);
+    if (orgtype == "9A")
+    {
+        limit = QInputDialog::getInt(this, tr("Army size"), tr("Points"),
+                                 Settings::Number(Settings::DefaultArmySize9A),
+                                     0, 10000, 100, &ok);
+        army = create9A(org,limit);
+    }
     else
         army = create40k();
 
@@ -53,25 +74,24 @@ bool ArmyWidget::createArmy(const QString &filename)
 
 Organisation *ArmyWidget::create40k()
 {
-    BattleForged *army = new ArmyListWidget(_settings, this);
+    BattleForged *army = new BattleForged(this);
 
-    army->setLists(ListCreatorDetach::getDetachmentList("BattleForged.txt"));
+    army->setLists(ListCreatorDetach::getOrganisationList("BattleForged.txt"),0);
 
     connect(_list, &ArmyListWidget::roleSelected,
-            army, &BattleForged::roleSelected);
+            army, &BattleForged::onRoleSelection);
 
     return army;
 }
 
-Organisation *ArmyWidget::create9A(const QString &file)
+Organisation *ArmyWidget::create9A(const QString &text, int limit)
 {
-    Organisation *army = new ArmyListWidget(_settings, this);
+    Organisation *army = new Organisation(this);
 
-    // Org listan alkuun, Battleforge leikkaus modelitemin tapaan
-    army->setLists(ListCreatorDetach::getDetachmentList("9thAgeOrg.txt"));
+    army->setLists(text, limit);
 
     connect(_list, &ArmyListWidget::valueChanged,
-            this, &ArmyWidget::on_valueChange);
+            army, &Organisation::onRoleSelection);
 
     return army;
 }
@@ -91,5 +111,11 @@ void ArmyWidget::printList()
     _list->printList();
 }
 
-void ArmyWidget::on_valueChange(int, int)
-{}
+void ArmyWidget::on_valueChange(int amount, int role)
+{
+    if (role < 0)
+    {
+        _points += amount;
+//        setWindowTitle(QString::number(_points));
+    }
+}

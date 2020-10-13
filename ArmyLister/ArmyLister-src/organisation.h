@@ -3,6 +3,10 @@
 
 #include <QWidget>
 
+#include <QList>
+
+class OrganisationRole;
+
 template<typename T> class QList;
 
 class Organisation : public QWidget
@@ -14,19 +18,27 @@ public:
 
     virtual QSize sizeHint() const;
 
-    virtual void setLists(const QString &detachments);
+    virtual void setLists(const QString &detachments, int limit);
+
+    int getCount() const;
 
 signals:
+    void roleSelected(int, int);
+
+    void makeRoom(int);
 
 public slots:
-    virtual void roleSelected(int role, int amount) = 0;
+    virtual void onRoleSelection(int amount, int role);
 
 
 protected:
+    virtual void addPart(const QStringList &args, int limit);
+    virtual void insertPart(OrganisationRole *part,
+                            bool first = false);
 
-    virtual void addPart(const QStringList &args) = 0;
+private:
 
-    QList<Detachment*> qv_partsList;
+    QList<OrganisationRole*> _roles;
 };
 
 #endif // ORGANISATION_H

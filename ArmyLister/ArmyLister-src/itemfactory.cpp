@@ -1,126 +1,194 @@
 #include "itemfactory.h"
 
-#include "modelitem.h"
-#include "limitmihandler.h"
+#include "modelitemcat.h"
+#include "modelsatellitelimiter.h"
+#include "modelitemslot.h"
+#include "modelitemselection.h"
+#include "modelitemunit.h"
 #include "settings.h"
-#include "structs.h"
 
 #include <QFile>
 #include <QTextStream>
 #include <QRegExp>
+#include <QDebug>
+#include <QStringList>
 
-ItemFactory::ItemFactory(TopModelItem* top, Settings *set)
+ItemFactory::ItemFactory(Settings *set)
     : _settings(set)
-    , _topItem(top)
     , _pointList(QList<PointContainer*>())
     , _listList(QMap<QString, QStringList>())
+    , _globalLimiters(QMap<QString, ModelSatelliteLimiter*>())
+    , _nameMap(QMap<QString, int>())
 {
 
 }
 
 ItemFactory::~ItemFactory()
 {
-    foreach (PointContainer *p, _pointList)
-        delete p;
+    clear();
 }
 
-bool ItemFactory::addArmyFile(const QString &fileName)
+bool ItemFactory::addArmyFile(ModelItemBase* top, const QString &fileName)
 {
+    clear();
     QFile file(fileName);
     if (!file.open(QFile::Text | QFile::ReadOnly))
         return false;
 
     QTextStream str(&file);
-    TempTreeModelItem *tempitem = new TempTreeModelItem();
-    QString line;
+    str.setCodec("utf-8");
 
-    line = str.readLine();
-    while (!str.atEnd())
+    TempTreeModelItem *tempitem = new TempTreeModelItem();
+    QString line = str.readLine();
+
+    // Read through the list file. Each function reads lines until one starts
+    // without an indent
+    while (!line.isNull())
     {
         if (line.isEmpty())
-        {
             line = str.readLine();
-            continue;
-        }
+        // First to create points tables from 8-9th ed. 40k codices,
+        // separated into different files introduced before main list
         else if (line == "INCLUDES")
             line = parseIncludes(str);
+        // ORGANISATION is used to map category names to a number for
+        // units that count as other category in some cases
+        else if (line == "ORGANISATION")
+            line = mapOrganisation(str);
+        else if (line.startsWith('['))
+            line = parseList(str, line);
         else
-            line = parseTextRec(line,str,tempitem);
+            line = parseMainList(line,str,tempitem);
     }
 
-    ModelItem *newItem;
-    foreach (TempTreeModelItem *itm, tempitem->_unders)
-    {
-        newItem = new ModelItem(_settings, _topItem);
-        newItem->setText(itm->_text);
 
-        foreach (TempTreeModelItem *itm2, itm->_unders)
-            parseTree(itm2, newItem, 0);
-    }
+    compileCategories(tempitem, top);
+
+    foreach (ModelSatelliteLimiter *lim, _globalLimiters.values())
+        lim->setParent(top);
 
     return true;
 }
 
-QString ItemFactory::parseTextRec(const QString &line, QTextStream &str,
-                                      TempTreeModelItem *current,
+QString ItemFactory::parseMainList(const QString &line, QTextStream &str,
+                                      TempTreeModelItem *parentBranch,
                                       QStringList prev)
 {
+    // Main file is consructed with indented hierarchy
     int tabCount = line.count('\t');
     QString nLine = line.trimmed();
-    QStringList ctrl = parseControl(nLine);
-    if (tabCount == 1)
-    {
-        bool found = false;
-        foreach (QString s, ctrl)
-            if (s.contains('='))
-            {
-                found = true;
-                break;
-            }
-        if (!found)
-            ctrl << "=-1";
-    }
-    QStringList newspec = parseSpecial(nLine);
-    if (!newspec.isEmpty())
-        prev.append(newspec);
-    prev << nLine.trimmed();
 
+    // parseControl will list and remove control elements from the text
+    QStringList ctrl = parseControl(nLine);
+
+    // parseSpecial will list and remove special information from the text,
+    // that is added to prev with the entrys name //NO, IF NEEDED, CREATE
+    // SEPARATE SPECIAL ENTRY IN TEMP TREE FOR PRICE TABLE SEARCHING
+    QStringList newspec = parseSpecial(nLine);
+    QStringList splitText = nLine.split('|');
+    QString text = splitText.at(0).trimmed();
+
+    foreach (QString s, text.split(','))
+    {
+        s.remove(QRegExp("[\\d\\(\\)]"));
+        s = "+"+s.trimmed();
+        if (!newspec.contains(s))
+            newspec << s;
+    }
+/*    if (!newspec.isEmpty())
+        prev.append(newspec);
+    prev << nLine.trimmed();*/
 
     TempTreeModelItem *item = new TempTreeModelItem(nLine.trimmed(),ctrl,
-                                                    prev, current);
+                                                    newspec, parentBranch);
+
+    // Recursion control. EOF and empty lines will cease parsing
     if (str.atEnd())
         return QString();
     nLine = str.readLine();
+    // As long as the new line is further indented, it will further the
+    // recursion.
     while (!nLine.isEmpty() && nLine.count('\t') > tabCount)
     {
-        nLine = parseTextRec(nLine, str, item, prev);
+        nLine = parseMainList(nLine, str, item, prev);
     }
     return nLine;
+}
+
+QString ItemFactory::parseIncludes(QTextStream &str)
+{
+    QString line = str.readLine();
+    while (!line.isNull() && line.startsWith('\t'))
+    {
+        parseFile(line.trimmed());
+        line = str.readLine();
+    }
+    return line;
+}
+
+QString ItemFactory::mapOrganisation(QTextStream &str)
+{
+    QString line = str.readLine();
+    QStringList entryLine;
+    while (!line.isNull() && line.startsWith('\t'))
+    {
+        entryLine = line.split('#');
+        entryLine.removeFirst();
+        foreach (QString entry, entryLine)
+        {
+            entry = entry.trimmed();
+            if (!entry.isEmpty())
+            {
+                entry = entry.split(';').at(0);
+                _nameMap.insert(entry, _nameMap.count());
+            }
+        }
+
+        line = str.readLine();
+    }
+    return line;
 }
 
 QStringList ItemFactory::parseControl(QString &text)
 {
     QStringList ret;
+    text = text.trimmed();
+    int sep;
+    int prevsep = 0;
     while (text.startsWith('!'))
     {
-        int prevsep = 0;
-        int sep;
+        // look for a whitespace, if its between <> it's part of a name,
+        // otherwise it separates a word, and thus also control elements
         while (true)
         {
             sep = text.indexOf(' ', prevsep);
+            // if no whitespaces are found, the entire item is a control item
             if (sep < 0)
             {
                 sep = text.count();
                 break;
             }
+
+            // if there are no <>, or whitespace is found before one, the
+            // whitespace is a word/element separator
             if (text.indexOf('<', prevsep) < 0 ||
                 sep < text.indexOf('<', prevsep))
                 break;
+
+            // otherwise found whitespace is inside <>, so search starts again
+            // after <> is closed
             prevsep = text.indexOf('>', prevsep)+1;
         }
+        // after a whitespace that separates an element from another of from
+        // the rest of the line is found, the word until it is stored
+        // as control elements and is removed from text
         ret << text.left(sep).split('!', QString::SkipEmptyParts);
+
         text.remove(0,sep);
     }
+
+    text = text.trimmed();
+
     return ret;
 }
 
@@ -129,570 +197,787 @@ QStringList ItemFactory::parseSpecial(QString &text)
     QStringList ret;
     if (text.isEmpty())
         return ret;
-    QRegExp rx("<(.*)>");
+    QRegExp specialReg("<(.*)>");
+    specialReg.setMinimal(true);
     int pos = -1;
-    while ((pos = rx.indexIn(text, pos+1)) > 0)
+
+    while ((pos = specialReg.indexIn(text, pos+1)) > 0)
     {
-        ret << rx.cap(1).trimmed();
+        ret << specialReg.cap(1).trimmed();
     }
-    text.remove(rx);
+
+    text.remove(specialReg);
     return ret;
 }
 
-LimitMIhandler *ItemFactory::parseTree(TempTreeModelItem *branch,
-                                     ModelItem *parent,
-                                     int amount, LimitMIhandler *sharedLimit,
-                                     ModelItem *itm)
+void ItemFactory::compileCategories(TempTreeModelItem *temproot,
+                                    ModelItemBase *root)
 {
-    QChar ctrlchar;
-    bool setUpItem = true;
 
-    foreach (QString ctrl, branch->_control)
+    ModelItemCategory *knot;
+    foreach (TempTreeModelItem *itm, temproot->_unders)
     {
-        ctrlchar = ctrl.at(0);
+        knot = new ModelItemCategory(_settings, root);
+        root->addItem(knot);
+        qDebug() << "Compiling category: " << itm->_text;
+        knot->setText(itm->_text);
 
-        if (ctrlchar == '\\')// || ctrlchar == '&')
-        {
-            createSelection(branch, parent);
-            return sharedLimit;
-        }
-//        if (ctrlchar == '#' || ctrlchar == '%')
-  //          setUpItem = false;
+        foreach (TempTreeModelItem *itm2, itm->_unders)
+            compileUnit(itm2, knot);
     }
 
-    ModelItem *newItem = itm;
-    if (!newItem)
-        newItem = new ModelItem(_settings, parent);
-
-    int minMods = amount;
-
-    if (setUpItem)
-    {
-        QString text = branch->_text;//.split(',');
-        newItem->setText(text);
-
-        int i = countItems(text, newItem, branch->_spec);
-        if (i >= 0)
-        {
-            newItem->setCost(i);
-            PointContainer *pr = findPair(text, branch->_spec); // BAD, FIX
-            if (pr && pr->max)
-            {
-                minMods = pr->min;
-                newItem->setLimits(pr->min, pr->max);
-
-            }
-        }
-    }
-
-    QRegExp limitxp("\\((\\d+)@(\\d+)\\)");
-/*    LimitMIhandler *limt;
-    ModelItem *newitm2;
-
-*/    foreach (QString ctrl, branch->_control)
-    {
-        ctrlchar = ctrl.at(0);
-        ctrl.remove(0,1);
-
-        if (ctrlchar == ':')
-            newItem->setAlwaysChecked(true);
-        else if (ctrlchar == '*')
-            newItem->setModelIntake(amount);
-        else if (ctrlchar == '+')
-        {
-            if (limitxp.indexIn(ctrl) >= 0)
-            {
-                newItem->setLimits(limitxp.cap(1).toInt()
-                                   , limitxp.cap(2).toInt()
-                                   , amount);
-/*                limt = createLimiter(parent, amount);
-                limt->setLimits(limitxp.cap(1).toInt(),
-                                limitxp.cap(2).toInt());
-                limt->setAddSource(newItem);*/
-
-            }
-            else if (ctrl.startsWith('A') || ctrl.startsWith('M'))
-            {
-                newItem->setLimits(0, 1, amount);
-/*                limt = createLimiter(parent, amount);
-                limt->setLimits(1, 1);
-                if (ctrl.startsWith('M'))
-                    limt->setModifiable(true);
-                limt->setAddSource(newItem);*/
-
-            }
-            else
-            {
-                newItem->setLimits(0, ctrl.toInt());
-            }
-        }
-/*
-                if (ctrl.startsWith('A'))
-                {
-                    newItem->setModelIntake(amount);
-//                    newItem->on_multiplierChange(amount-1);
-                }
-                else if (ctrl.startsWith('M'))
-                {
-                    newItem->setModelIntake(true);
-                    newItem->setModifierIntake(true);
-                    newItem->on_multiplierChange(amount-1);
-                }
-                else
-                {
-                    newItem->on_multiplierChange(ctrl.toInt()-1, true);
-                }*/
-
-/*        else if (ctrlchar == '=')
-        {
-            newItem->setClonable(ctrl.toInt());
-
-        }
-        else if (ctrlchar == '#')
-        {
-            parseSelection(branch, newItem, amount);
-        }
-        else if (ctrlchar == '^')
-        {
-            newItem->setModifierGiver(1);
-        }
-        else if (ctrlchar == '%')
-        {
-            newItem->setText("Pick " + QString::number(ctrl.toInt()));
-            newItem->setModifierGiver(-1);
-            limt = new LimitMIhandler(this);
-            limt->setPickSource(newItem);
-            limt->setLimits(ctrl.toInt());
-            foreach (TempTreeModelItem *i, branch->_unders)
-            {
-                newitm2 = new ModelItem(_settings, newItem);
-                parseTree(i, newItem, minMods, nullptr, newitm2);
-                limt->addPickTarget(newitm2);
-            }
-            return sharedLimit;
-        }*/
-    }
-
-    foreach (TempTreeModelItem *i, branch->_unders)
-        sharedLimit = parseTree(i, newItem, minMods, sharedLimit);
-    return nullptr;
 }
 
-void ItemFactory::createSelection(TempTreeModelItem *branch,
-                                  ModelItem *parent)
+void ItemFactory::compileUnit(TempTreeModelItem *tempknot,
+                              ModelItemCategory *trunk)
 {
-    ModelItem *newItem = new ModelItem(_settings, parent);
+    ModelItemUnit *knot = new ModelItemUnit(_settings, trunk);
 
-    QStringList texts = branch->_text.split(")", QString::SkipEmptyParts);
-    QMap<QString,int> ats;
-    Gear g;
-    QString name, text;
+    trunk->addItem(knot);
+
+// !=X cloning limit local & global and other possible control elements
+
+    QString text = tempknot->_text;
+    QStringList splitText = text.split('|');
+    int specCost = 0;
+
+
+    // if Unit stats are in base list (9A)
+    // Name|permodelcost|modelss(|basecost(if different than permodelcost))
+    if (splitText.count()>1)
+    {
+        text = splitText.at(0).trimmed();
+
+        knot->setText(text);
+
+
+        QStringList modelsSplit = splitText.at(2).split('-');
+        int modelmin = modelsSplit.at(0).trimmed().toInt();
+        int modelmax = 0;
+        if (modelsSplit.count() > 1)
+            modelmax = modelsSplit.at(1).trimmed().toInt();
+        knot->setModels(modelmin, modelmax);
+
+
+        int cost = splitText.at(1).trimmed().toInt();
+
+        if (splitText.count()>3)
+            specCost = splitText.at(3).trimmed().toInt()
+                    -cost*modelmin;
+
+        knot->setUnitCost(cost, specCost);
+    }
+    // otherwise the units stats are recorded in tables
+    else
+    {
+        knot->setText(text);
+
+        PointContainer *pr = findTableEntry(text, tempknot->_spec);
+
+        if (pr)
+        {
+            knot->setModels(pr->min, pr->max);
+
+            if (pr->specialPoints)
+                specCost = pr->specialPoints - pr->points*pr->min;
+
+            knot->setUnitCost(pr->points, specCost);
+        }
+    }
+
+    knot->setSpecial(tempknot->_spec);
+
+    checkControls(tempknot, knot);
+
+
+    QMap<QString, int> slotmap;
+    foreach (TempTreeModelItem *itm2, tempknot->_unders)
+        compileItems(itm2, knot, slotmap);
+
+    knot->passSpecialUp(QStringList(),true);
+}
+
+void ItemFactory::compileItems(TempTreeModelItem *tempknot,
+                               ModelItemBase *trunk,
+                               const QMap<QString, int> &slotmap,
+                               ModelSatelliteLimiter *sharedSat)
+{
+    if (tempknot->_text.startsWith('['))
+    {
+        compileList(tempknot, trunk, slotmap, sharedSat);
+        return;
+    }
+
+    QChar ctrlchar;
+
+    int group = -1;
+
+    foreach (QString ctrl, tempknot->_control)
+    {
+        ctrlchar = ctrl.at(0);
+
+        if (ctrlchar == '\\')
+        {
+            compileSelection(tempknot, trunk);
+            return;
+        }
+        else if (ctrlchar == '/')
+        {
+            ctrl.remove(ctrlchar);
+            if (!slotmap.contains(ctrl))
+            {
+                qDebug() << "Faulty slot name in main list: " << ctrl;
+                return;
+            }
+            group = slotmap.value(ctrl);
+        }
+    }
+
+    ModelItemBasic *knot = new ModelItemBasic(_settings, trunk);
+
+    trunk->addItem(knot, group);
+
+    QString text = tempknot->_text;
+
+    QStringList splitText = text.split('|');
+    int cost;
+
+
+    // if item stats are in base list (9A)
+    // Name|cost
+    if (splitText.count()>1)
+    {
+        text = splitText.at(0).trimmed();
+
+        knot->setText(text);
+
+        cost = splitText.at(1).trimmed().toInt();
+        knot->setCost(cost);
+    }
+    // otherwise the units stats are recorded in tables
+    else
+    {
+        knot->setText(text);
+
+        int cost = countItems(text, tempknot->_spec);
+        if (cost >= 0)
+            knot->setCost(cost);
+    }
+
+    knot->setSpecial(tempknot->_spec);
+
+    if (sharedSat)
+        knot->connectToLimitSatellite(sharedSat);
+
+    sharedSat = checkControls(tempknot, knot);
+
+    foreach (TempTreeModelItem *itm2, tempknot->_unders)
+        compileItems(itm2, knot, slotmap, sharedSat);
+}
+
+void ItemFactory::compileList(TempTreeModelItem *tempknot,
+                              ModelItemBase *trunk,
+                              const QMap<QString, int> &slotmap,
+                              ModelSatelliteLimiter *sharedSat)
+{
+    QString text = tempknot->_text;
+
+    if (!_listList.contains(text))
+    {
+        qDebug() << "Unknown listname: " << text;
+        return;
+    }
+
+    QChar ctrlchar;
+    int group = -1;
+
+    foreach (QString ctrl, tempknot->_control)
+    {
+        ctrlchar = ctrl.at(0);
+
+        if (ctrlchar == '/')
+        {
+            ctrl.remove(1,0);
+            if (ctrl.isEmpty())
+                ctrl = "null";
+            if (!slotmap.contains(ctrl))
+            {
+                qDebug() << "Faulty slot name in main list: " << ctrl;
+                return;
+            }
+            group = slotmap.value(ctrl);
+
+        }
+    }
+
+    ModelItemBasic *knot = new ModelItemBasic(_settings, trunk);
+
+    trunk->addItem(knot, group);
+
+    knot->setText(text.remove("[\\[\\]]"));
+
+    QStringList list = _listList.value(text);
+    QStringList specials = tempknot->_spec;
+    QStringList controls;
+    QRegExp specialEntry("!<(.+)>");
+    specialEntry.setMinimal(true);
+    QRegExp controlEntry("^!(.+)\\s");
+    controlEntry.setMinimal(true);;
+    QRegExp limitReg("!(.*)\\?#(\\d+)");
+    int pos;
+    QMap<QString, ModelSatelliteLimiter*> limits;
+    ModelSatelliteLimiter *limiter;
+
+    foreach (QString listEntry, list)
+    {
+        if (listEntry.startsWith('['))
+        {
+            compileList(tempknot, trunk, slotmap, sharedSat);
+            continue;
+        }
+
+        ModelItemBasic *branch = new ModelItemBasic(_settings, knot);
+
+        knot->addItem(branch, group);
+
+        pos = 0;
+        specials.clear();
+        while ((pos = specialEntry.indexIn(listEntry,pos)) >= 0)
+        {
+            specials << specialEntry.cap(1);
+            pos += specialEntry.matchedLength();
+        }
+        listEntry.remove(specialEntry);
+
+        if (controlEntry.indexIn(listEntry) >= 0)
+        {
+            controls = controlEntry.cap(1).split('!');
+            listEntry.remove(controlEntry);
+        }
+
+        QStringList splitText = listEntry.split('|');
+        int cost;
+
+        // if item stats are in base list (9A)
+        // Name|cost
+        if (splitText.count()>1)
+        {
+            listEntry = splitText.at(0).trimmed();
+
+            branch->setText(listEntry);
+
+            cost = splitText.at(1).trimmed().toInt();
+            branch->setCost(cost);
+        }
+        // otherwise the units stats are recorded in tables
+        else
+        {
+            branch->setText(listEntry);
+
+            cost = countItems(listEntry, specials);
+            if (cost >= 0)
+                branch->setCost(cost);
+        }
+
+        branch->setSpecial(specials);
+
+        if (sharedSat)
+            branch->connectToLimitSatellite(sharedSat);
+
+        foreach (QString ctrl, controls)
+        {
+            ctrlchar = ctrl.at(0);
+            ctrl.remove(0,1);
+
+            if (ctrlchar == '=')
+            {
+                if (!_globalLimiters.contains(listEntry))
+                    qDebug() << "Name not in lists: " << listEntry;
+                else
+                    branch->connectToLimitSatellite(_globalLimiters[listEntry]);
+            }
+
+            else if (ctrlchar == '{')
+            {
+                ctrl.prepend(ctrlchar);
+  // Special entry in limits!
+                if (!_globalLimiters.contains(ctrl))
+                {
+                    if (!_listList.contains("[!]"))
+                    {
+                        qDebug() << "Faulty list name in list: " << ctrl;
+                        break;
+                    }
+
+                    foreach (QString group, _listList.value("[!]"))
+                        if (limitReg.indexIn(group) >= 0 &&
+                                limitReg.cap(1) == ctrl)
+                        {
+                            if (limits.contains(ctrl))
+                                branch->connectToLimitSatellite(limits[ctrl]);
+                            else
+                            {
+                                limiter = new ModelSatelliteLimiter(
+                                            limitReg.cap(2).toInt(),
+                                            ModelItemBasic::CountLimit,
+                                            knot);
+
+                                branch->connectToLimitSatellite(limiter, true);
+
+                                limits.insert(ctrl,limiter);
+                            }
+                            break;
+                        }
+
+                }
+                else
+                    branch->connectToLimitSatellite(_globalLimiters[ctrl]);
+
+            }
+        }
+    }
+}
+
+void ItemFactory::compileSelection(TempTreeModelItem *tempknot,
+                                   ModelItemBase *trunk)
+{
+    ModelItemSelection *knot = new ModelItemSelection(_settings, trunk);
+
+    trunk->addItem(knot);
+
+    QStringList texts = tempknot->_text.split(")", QString::SkipEmptyParts);
+    QString text, group;
+    QMap<QString,int> groupMap;
+    QStringList splitText;
+    int cost;
+
+    ModelItemBasic *branch;
 
     for (int i = 0; i < texts.count(); ++i)
     {
         text = texts.at(i);
-        name = text.section("(",0,0);
-        if (name.isEmpty())
-            name = QString::number(i);
-        ats.insert(name,i);
+        group = text.section("(",0,0);
+        if (group.isEmpty())
+            group = "null";
+
+        groupMap.insert(group,i);
         text = text.section("(",1);
 
-        int pr = countItems(text, newItem, branch->_spec);
-        if (pr >= 0)
+        splitText = text.split('|');
+
+        branch = new ModelItemBasic(_settings, knot);
+
+
+        // if item stats are in base list (9A)
+        // Name|cost
+        if (splitText.count()>1)
         {
-            g.name = text;
-            g.cost = pr;
+            text = splitText.at(0).trimmed();
 
-            newItem->setSelection(g,i);
+            branch->setText(text);
 
+            cost = splitText.at(1).trimmed().toInt();
+            branch->passCostUp(cost);
         }
-
-    }
-
-    newItem->setAlwaysChecked(true);
-
-    foreach (TempTreeModelItem *i, branch->_unders)
-        parseSelection(i, newItem, ats);
-
-}
-
-void ItemFactory::parseSelection(TempTreeModelItem *branch,
-                                            ModelItem *item, QMap<QString, int> &ats)
-{
-    QStringList contrl = branch->_control;
-    if (!contrl.count())
-        return;
-//    QChar ctrlchar;
-
-/*    QString splitters = "/&#";
-    foreach (QString ctrl, branch->_control)
-    {
-        ctrlchar = ctrl.at(0);
-        if (splitters.contains(ctrlchar))
-        {
-            contrl = ctrl.split(ctrlchar, QString::SkipEmptyParts);
-            if (ctrlchar == '&' || ctrlchar == '#')
-                NAs = true;
-            break;
-        }
-    }*/
-
-/*    QStringList replaced;
-    int modif = 1;
-    int times = 0, divs = 0;
-    bool limitmod = false;
-    QRegExp xp("^(\\d+)");
-    QRegExp limitxp("\\((\\d+)@(\\d+)\\)");
-
-    bool limitFound = false;
-
-    foreach (QString s, contrl)
-    {
-        if (s.startsWith('<'))
-            replaced << s.mid(1,s.count()-2);
-
+        // otherwise the units stats are recorded in tables
         else
         {
-            if (limitxp.indexIn(s) >= 0)
-            {
-                if (!sharedLimit)
-                    sharedLimit = createLimiter(parent, amount);
-                times = limitxp.cap(1).toInt();
-                divs = limitxp.cap(2).toInt();
-            }
-            else if (NAs)
-            {
-                modif = 1;
-                if (xp.indexIn(s) >= 0)
-                    modif = xp.cap(1).toInt();
-                for (int i = 0; i < modif; ++i)
-                {
-                    parent->setText("( )");
-                    parent->addPoint(0);
-                }
-                replaced << "( )";
-            }
-            else if (xp.indexIn(s) >= 0)
-            {
-                if (!sharedLimit)
-                    sharedLimit = createLimiter(parent, amount);
+            branch->setText(text);
 
-                times = xp.cap(1).toInt(); divs = 0;
-
-            }
-            else if (s.startsWith('A') || s.startsWith('M'))
-            {
-                if (!sharedLimit)
-                    sharedLimit = createLimiter(parent, amount);
-                times = divs = 1;
-                if (s.startsWith('M'))
-                    limitmod = true;
-            }
-            else
-            {
-                amnt = s.toInt();
-                if (amnt > amount)
-                    amnt = amount;
-            }
-            limitFound = true;
-            if(!NAs)
-                parent->setLimitable();
-
-        }
-    }
-
-    if (!limitFound)
-    {
-        if (!sharedLimit)
-        {
-        sharedLimit = createLimiter(parent);
-        times = -1; divs = 0;
-//        parent->setLimitable();
-
-        }
-    }
-
-
-    if (!replaced.count())
-        replaced << QString();
-*/
-
-
-    if (!branch->_text.isEmpty())
-    {
-        QString ctrl = contrl.first().remove(0,1);
-        int at = ats.value(ctrl);
-
-        QList<Gear> list;
-        int pr;
-        QStringList text = branch->_text.split(',');
-        QString u, s;
-        QRegExp xp("!.+[\\s!]");
-        xp.setMinimal(true);
-        for(int i = 0; i < text.count(); ++i)
-        {
-            u = text.at(i);
-
-            if (u.startsWith('['))
-            {
-                foreach (QString t, _listList.value(u))
-                    if (!text.contains(t))
-                        text << t;
-            }
-            else
-            {
-                s = u;
-                u = u.remove(xp).trimmed();
-
-                if (u.isEmpty())
-                {
-                    list << Gear{s, -1};
-                }
-                else
-                {
-                    pr = countItems(u, item, branch->_spec);
-
-                    if (pr >= 0)
-                    {
-                        list << Gear{s, pr};
-                    }
-                }
-            }
-
+            int i = countItems(text, tempknot->_spec);
+            if (i >= 0)
+                branch->passCostUp(i);
         }
 
-        item->addSelection(list, at);
+        knot->addItem(branch, i);
 
-/*        int j;
-        foreach (QString str, replaced)
-        {
-            j = parent->addSelection(str,list);
-            if (sharedLimit)
-                sharedLimit->addSelections(j, texts, times, divs, limitmod);
-        }*/
+        branch->setSpecial(tempknot->_spec);
+
+
     }
 
-}
+    checkControls(tempknot, knot);
 
-/*LimitMIhandler *ItemFactory::createLimiter(ModelItem *par,
-                                              int models)
-{
-    LimitMIhandler *limt = new LimitMIhandler(this);
-    limt->setFollowing(par);
-    limt->on_modelChange(models, nullptr);
-    return limt;
-}*/
-
-QString ItemFactory::parseIncludes(QTextStream &str)
-{
-    QString line = str.readLine();
-    while (!str.atEnd() && line.startsWith('\t'))
-    {
-        parseFile(line.trimmed());
-        line = str.readLine();
-    }
-    return line;
+    foreach (TempTreeModelItem *itm2, tempknot->_unders)
+        compileItems(itm2, knot, groupMap);
 }
 
 void ItemFactory::parseFile(const QString &fileName)
 {
+    qDebug() << "parsingFile: " << fileName;
     QFile file(fileName);
     if (!file.open(QFile::Text | QFile::ReadOnly))
         return;
     QTextStream str(&file);
-    QString line;
-    QStringList splitLine;
-    PointContainer text;
-    QRegExp xp("!<(.+)>"), xd("(\\d\\+?)");
-    xp.setMinimal(true);
-    int pos = 0;
-    bool specialcase = false;
-    while (!str.atEnd())
+    str.setCodec("utf-8");
+
+    QString line = str.readLine();
+
+    while (!line.isNull())
     {
-        specialcase = false;
-        line = str.readLine();
-        while (line.startsWith('['))
+        // [AAA] denotes a category list entry
+        if (line.startsWith('['))
             line = parseList(str, line);
 
-        if (line.startsWith('\t'))
+        // Non-category list line without indent is only a heading.
+        // Table entries are all indented
+        else
         {
-            splitLine = line.split("|");
-            text.special.clear();
-            if (line.startsWith("\t\t"))
-                text.special << text.text;
-            pos = 0;
-            text.text = line = splitLine.at(0).trimmed();
-            text.text = text.text.remove(xp).trimmed();
-            while ((pos = xp.indexIn(line,pos)) >= 0)
-            {
-                foreach (QString s, xp.cap(1).split(','))
-                {
-                    text.special << s.trimmed();
-                    if (line.contains(_pointList.last()->text) &&
-                            xd.indexIn(s) >= 0)
-                    {
-                        text.text.prepend(s.trimmed() + " ");
-                        specialcase = true;
-                        break;
-                    }
-                }
-                pos += xp.cap(0).count();
-            }
+            if (line.startsWith('\t'))
+                line = parseTableEntry(line);
 
-
-            text.points = 0;
-            text.min = 0;
-            text.max = 0;
-            if (splitLine.count() > 2)
-            {
-                if (splitLine.at(1) != "0")
-                {
-                text.points = splitLine.at(2).toInt();
-                splitLine = splitLine.at(1).split('-');
-                text.min = splitLine.at(0).toInt();
-                if (splitLine.count() > 1)
-                    text.max = splitLine.at(1).toInt();
-                }
-                else
-                    text.points = splitLine.at(2).toInt();
-            }
-            else if (splitLine.count() > 1)
-                text.points = splitLine.at(1).toInt();
-
-            if (specialcase)
-                _pointList.last()->specialcase = Gear{text.text, text.points};
-            else
-                _pointList << new PointContainer(text);
+            line = str.readLine();
         }
     }
+}
+
+ModelSatelliteLimiter *ItemFactory::checkControls(TempTreeModelItem *tempknot,
+                                                  ModelItemBasic *knot)
+{
+    QChar ctrlchar;
+    ModelSatelliteLimiter *ret = nullptr;
+
+    foreach (QString ctrl, tempknot->_control)
+    {
+        ctrlchar = ctrl.at(0);
+        ctrl.remove(0,1);
+
+        if (ctrlchar == ';')
+            knot->setCostLimit(ctrl.toInt());
+
+        else if (ctrlchar == ':')
+            knot->setAlwaysChecked();
+
+        else if (ctrlchar == '#')
+        {
+            ret = new ModelSatelliteLimiter(ctrl.toInt(),
+                                            ModelItemBase::CountLimit,
+                                             knot);
+            knot->limitedBy(ModelItemBase::SelectionLimit);
+        }
+
+        else if (ctrlchar == '*')
+            knot->setForAll();
+
+        else if (ctrlchar == '^')
+            knot->setModelLimiter(0,ctrl.toInt());
+
+        else if (ctrlchar == '_')
+            knot->setModelLimiter(ctrl.toInt(),0);
+
+        else if (ctrlchar == '{')
+        {
+            ctrl.prepend(ctrlchar);
+
+            if (!_globalLimiters.contains(ctrl))
+                qDebug() << "Faulty list name in main list: " << ctrl;
+            else
+                knot->connectToLimitSatellite(_globalLimiters[ctrl]);
+        }
+        else if (ctrlchar == '~')
+        {
+            ctrl.remove(QRegExp("[<>]"));
+
+            if (!_nameMap.contains(ctrl))
+                qDebug() << "Faulty role name in main list: " << ctrl;
+            else
+                knot->setCountsAs(_nameMap.value(ctrl));
+
+        }
+        else if (ctrlchar == '=')
+        {
+            if (ctrl == "1")
+                knot->limitedBy(ModelItemBase::NotClonable);
+            else
+                knot->connectToLimitSatellite(
+                            new ModelSatelliteLimiter(ctrl.toInt(),
+                                                     ModelItemBase::NotClonable,
+                                                      knot));
+        }
+    }
+    return ret;
 }
 
 QString ItemFactory::parseList(QTextStream &str, QString line)
 {
-    QString listname = line;
-    QStringList list;
-    line = str.readLine();
-    while (line.startsWith('\t'))
+
+    QRegExp name("(\\[.*\\])");
+    if (name.indexIn(line) < 0)
     {
-        list << line.trimmed();
-        if (str.atEnd())
-            break;
+        qDebug() << "Unviable list name";
+        return QString();
+    }
+    QString listname = name.cap(1);
+
+    // special entries common to all list members may be added after list name
+    QString commonSpecial("");
+    line = line.remove(name).trimmed();
+    if (!line.isEmpty() && line.startsWith('!'))
+        commonSpecial = line;
+
+    QStringList list = _listList.value(listname);
+
+    QRegExp groupLimitReg("!(\\{.*\\})\\?");
+    groupLimitReg.setMinimal(true);
+    QRegExp limitReg("=(\\d+)");
+    QRegExp specialEntry("!<(.+)>");
+    specialEntry.setMinimal(true);
+    QRegExp controlEntry("!.+\\s");
+    controlEntry.setMinimal(true);
+    QString entry;
+
+    line = str.readLine();
+
+    // read every indented line after listname, and put them through table
+    // parser in case they contain price information
+    while (!line.isNull() && line.startsWith('\t'))
+    {
+//        line = parseTableEntry(line).trimmed();
+        line = line.trimmed();
+        line = line.prepend(commonSpecial);
+
+        // if the entry contains a global limit control entry, it must be
+        // created. These will later be given to the top item, which will
+        // take care of destroying them
+        if (limitReg.indexIn(line) >= 0)
+        {
+            entry = "";
+            if (groupLimitReg.indexIn(line) >= 0)
+                entry = groupLimitReg.cap(1);
+            if (entry.isEmpty())
+            {
+                entry = line.split('|').at(0).trimmed();
+                entry.remove(specialEntry).remove(controlEntry);
+            }
+
+            if (_globalLimiters.contains(entry))
+                qDebug() << "Multiple limit entries! " << line;
+            else
+                _globalLimiters.insert(entry,
+                                       new ModelSatelliteLimiter(limitReg.cap(1)
+                                                                 .toInt(),
+                                                  ModelItemBasic::GlobalLimit));
+        }
+
+        list << line;
         line = str.readLine();
     }
+
     _listList.insert(listname, list);
     return line;
 }
 
-int ItemFactory::countItems(const QString &text,
-                            ModelItem *item,
-                                        const QStringList &special)
+QString ItemFactory::parseTableEntry(const QString &line)
+{
+
+    QStringList splitLine = line.split("|");
+    QRegExp specialEntry("!<(.+)>");
+    specialEntry.setMinimal(true);
+
+    QString name = splitLine.at(0);
+    if (name.contains('!'))
+        name = name.remove(specialEntry).trimmed();
+
+    // if the entry doesn't include price information, nothing else needs
+    // to be done
+    if (splitLine.count() >= 1)
+    {
+
+        PointContainer *entry = new PointContainer();
+        entry->text = name;
+        QRegExp multiplier("^(\\d+)");
+        if (multiplier.indexIn(name) > 0)
+        {
+            entry->multiplier = multiplier.cap(1).toInt();
+            entry->text.remove(multiplier);
+        }
+
+
+        // look for special entries
+        int pos = 0;
+        while ((pos = specialEntry.indexIn(splitLine.at(0),pos)) >= 0)
+        {
+            entry->special << specialEntry.cap(1);
+            pos += specialEntry.cap(1).count();
+        }
+
+        // we have confirmed that entry has at least a price
+        entry->points = splitLine.at(1).toInt();
+
+        // if entry is a unit, it will have a second point of information for
+        // models
+        if (splitLine.count() > 2)
+        {
+            if (splitLine.at(2).contains('-'))
+            {
+                QStringList splitEntry = splitLine.at(2).split('-');
+                entry->min = splitEntry.at(0).toInt();
+                entry->max = splitEntry.at(1).toInt();
+            }
+            else
+                entry->min = splitLine.at(2).toInt();
+        }
+
+        // unit entries may also carry special cost aside from per model price
+        if (splitLine.count() > 3)
+            entry->specialPoints = splitLine.at(3).toInt();
+
+        _pointList << entry;
+    }
+    return name;
+}
+
+int ItemFactory::countItems(QString text,
+                             const QStringList &special)
 {
     PointContainer *pr = nullptr;
     int points = 0;
-    QStringList items;
-//    QList<int> modif; modif << 1;
-    int effModif = 1;
-    QRegExp xp("^(\\d+)(.?)"), xd("!.+\\s");
-    xd.setMinimal(true);
-    QString s = text;
+    QStringList items = text.split(QRegExp("[&,]"));
 
+    int costModifier;
+    int foundModifier;
+    int newModifier;
+    QRegExp multiplier("^(\\d+)");
+    QString tempText;
 
-//    if (modif.isEmpty())
-  //      modif << 1;
-
-    effModif = 1;
-
-    s = s.remove('|').trimmed();
-
-    items = s.split(QRegExp("[&,]"));
-
-/*    if (xp.indexIn(s) >= 0)
+    for (int i = 0; i < items.count(); ++i)
     {
-        effModif = modif.last() * xp.cap(1).toInt();
-        s = s.remove(xp.cap(1));
-        s = s.trimmed();
-        if (s.startsWith('{'))
-        {
-            modif << effModif;
-            s = s.remove(0,1);
-            s = s.trimmed();
-        }
-        if (s.endsWith('}'))
-        {
-            modif.removeLast();
-            s.chop(1);
-            s = s.trimmed();
-        }
+        costModifier = 1;
+        text = items.at(i).trimmed();
+        tempText = text;
 
-    }*/
-    points = 0;
-    foreach (QString t, items)
-    {
-        effModif = 1;
-        t.remove(xd);
-        t = t.trimmed();
-        s = "";
-        if (xp.indexIn(t) >= 0)
+        // search for the item in tables
+        if ((pr = findTableEntry(tempText,special)))
         {
-            effModif = xp.cap(1).toInt();
-            s = t;
-            t = t.remove(xp.cap(1));
-            t = t.trimmed();
-        }
-
-        if ((pr = findPair(t,special)))
-        {
-            t = pr->specialcase.name;
-            if (!t.isEmpty())
+            if (multiplier.indexIn(text) > 0)
             {
-                if (s.isEmpty())
-                    item->addSpecialCase(pr->specialcase);
+                newModifier = multiplier.cap(1).toInt();
+
+                // findTableEntry edits text to have the greatest multiplier
+                // less than original found in tables if applicable
+                if (multiplier.indexIn(tempText) >= 0)
+                    foundModifier = multiplier.cap(1).toInt();
                 else
+                    foundModifier = 1;
+
+                costModifier = int(floor(newModifier/foundModifier));
+
+
+                // if found entry does not count for all items, insert the
+                // item with remaining multiples back to list
+                newModifier = newModifier - foundModifier * costModifier;
+                if (newModifier > 0)
                 {
-                    xp.indexIn(t);
-                    if ((xp.cap(2) == "+" && effModif >= xp.cap(1).toInt())
-                            || (xp.cap(2) != "+" && effModif ==
-                                xp.cap(1).toInt()))
-                        points = pr->specialcase.cost;
+                    text.replace(multiplier, QString::number(newModifier));
+                    items << text;
                 }
             }
-//            else
-                points += pr->points*effModif;
+
+            points += pr->points*costModifier;
         }
+        // items may not have costs at all
     }
 
-    if (pr)
-        return points;
-    return -1;
+    return points;
 }
 
-PointContainer *ItemFactory::findPair(const QString &text,
-                                        const QStringList &special)
+PointContainer *ItemFactory::findTableEntry(QString &text,
+                                            const QStringList &special)
 {
+    QRegExp multiplier("^(\\d+)");
     PointContainer *found = nullptr;
+    PointContainer *candidate = nullptr;
+    int foundMultiplier = 0;
+    int originalMultiplier = 1;
+    if (multiplier.indexIn(text) > 0)
+        originalMultiplier = multiplier.cap(1).toInt();
+    text.remove(multiplier);
+    text = text.trimmed();
+
+    bool ok = false;
+    int ind = 0;
+
+    // look through all entries
     foreach (PointContainer *pr, _pointList)
     {
+        // if item names match..
         if (pr->text == text)
         {
+            // check if the entry has special limitations
             if (pr->special.count())
             {
-                foreach (QString s, pr->special)
-                {
+                ok = false;
+                ind = 0;
 
-                    foreach (QString p, special)
+                QStringList l;
+                // go through all limitations, if multiple limitations need
+                // matching, they are divided by a comma
+                // Search stops when list ends, or special limits are met
+                while (ind < pr->special.count() && !ok)
+                {
+                    l = pr->special.at(ind).split(",");
+                    // for each multiple limitations (or just one)
+                    foreach (QString s, l)
                     {
-                        if (p == s)
+                        // compare with given specials
+                        foreach (QString p, special)
                         {
-                            return pr;
+                            // if specials match, we can continue on
+                            if (p == s)
+                            {
+                                ok = true;
+                                break;
+                            }
+                            else
+                                ok = false;
                         }
+                        // if no special matched for one multiple, no need to
+                        // check others
+                        if (!ok)
+                            break;
                     }
+                    ++ind;
                 }
+                // if we found one group of limitations that match with
+                // special entries, we have a candidate
+                if (ok)
+                    candidate = pr;
             }
+            // if no limitations, the entry is a candidate
             else
-                found = pr;
-        }
+                candidate = pr;
+
+            if (candidate)
+            {
+            // check if the candidates multiplier is same (best candidate)
+            // or at least greater than previously founds
+                if (candidate->multiplier == originalMultiplier)
+                    return candidate;
+                else if (candidate->multiplier < originalMultiplier &&
+                         candidate->multiplier > foundMultiplier)
+                {
+                    foundMultiplier = candidate->multiplier;
+                    found = candidate;
+                }
+                candidate = nullptr;
+            }
+        } // items names don't match
+    }
+    if (found)
+    {
+        text.prepend(" ");
+        text.prepend(QString::number(foundMultiplier));
     }
     return found;
+}
+
+void ItemFactory::clear()
+{
+    foreach (PointContainer *p, _pointList)
+        delete p;
+    _listList.clear();
+    _globalLimiters.clear();
+    _nameMap.clear();
 }
 
 TempTreeModelItem::TempTreeModelItem(const QString &text,

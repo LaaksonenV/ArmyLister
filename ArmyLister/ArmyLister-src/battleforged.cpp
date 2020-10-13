@@ -8,6 +8,7 @@
 
 BattleForged::BattleForged(QWidget *parent)
     : Organisation(parent)
+//    , qv_partsList()
     , qv_currentMin()
     , qv_currentMax()
 {
@@ -23,27 +24,24 @@ BattleForged::~BattleForged()
 {}
 
 
-void BattleForged::addPart(const QStringList &args)
+void BattleForged::addPart(const QStringList &args, int)
 {
     Detachment *det = new Detachment(args, this);
 //    int indx = qv_detachmentList.count();
     connect(det, &Detachment::toggled,
             this, &BattleForged::detachmentSelected);
-    connect(det, &Detachment::clone,
-            this, &BattleForged::detachmentCloned);
+//    connect(det, &Detachment::clone,
+  //          this, &BattleForged::addPart);
 //                    {detachmentSelected(indx,b);});
-    det->move(0,det->sizeHint().height()*qv_partsList.count());
-    qv_partsList << det;
+//    connect(this, &Organisation::roleSelected,
+  //          det, &Detachment::roleSelected);
+    connect(this, &BattleForged::selectionChanging,
+            [=](Detachment *det2, QList<int> mins,
+            QList<int> maxs){if (det!=det2)det->selectionChange(mins, maxs);});
 
+    insertPart(det);
 }
 
-void BattleForged::roleSelected(int role, int amount)
-{
-    foreach (Detachment *d, qv_partsList)
-    {
-        d->roleSelected(role, amount);
-    }
-}
 
 void BattleForged::detachmentSelected(Detachment *det, bool check)
 {
@@ -62,18 +60,19 @@ void BattleForged::detachmentSelected(Detachment *det, bool check)
         qv_currentMax[i] += maxs.at(i);
         qv_currentMin[i] += mins.at(i);
     }
-
+/*
 //    for (int i = 0; i < qv_detachmentList.count(); ++i)
     foreach (Detachment *d, qv_partsList)
 //        if (i != index)
         if (d != det)
 //            qv_detachmentList.at(i)->selectionChange(mins, maxs);
-            d->selectionChange(mins, maxs);
+            d->selectionChange(mins, maxs);*/
 }
 
-void BattleForged::detachmentCloned(Detachment *det, QStringList args)
+/*void BattleForged::detachmentCloned(QStringList args)
 {
-    int indx = qv_partsList.indexOf(det);
+
+//    int indx = qv_partsList.indexOf(det);
     Detachment *d = new Detachment(args, this);
     connect(d, &Detachment::toggled,
             this, &BattleForged::detachmentSelected);
@@ -89,4 +88,4 @@ void BattleForged::detachmentCloned(Detachment *det, QStringList args)
         d = qv_partsList.at(i);
         d->move(0,d->sizeHint().height()*i);
     }
-}
+}*/

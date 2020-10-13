@@ -4,12 +4,18 @@
 #
 #-------------------------------------------------
 
+VERSION = 0.1
+
+DEFINES += APP_VERSION=\\\"$$VERSION\\\"
+
 QT       += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-TARGET = ArmyLister
+TARGET = ArmyLister $$VERSION
 TEMPLATE = app
+
+CONFIG += c++17
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which as been marked as deprecated (the exact warnings
@@ -24,50 +30,57 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 
 SOURCES += \
+    basicrole.cpp \
+    listcreatordeforg.cpp \
+    listcreatorwidgets.cpp \
         main.cpp \
         mainwindow.cpp \
     detachment.cpp \
     detachmentrole.cpp \
     battleforged.cpp \
     limithandler.cpp \
-    modelitem.cpp \
-    fileio.cpp \
     listcreator.cpp \
     listcreatordetach.cpp \
+    modelitembase.cpp \
+    modelitembasic.cpp \
+    modelitemcat.cpp \
+    modelitemselection.cpp \
+    modelitemslot.cpp \
+    modelitemunit.cpp \
+    modelsatellitelimiter.cpp \
     organisation.cpp \
-    slotbutton.cpp \
-    sortedstringlist.cpp \
+    organisationrole.cpp \
     armylistwidget.cpp \
     settings.cpp \
-    limitmihandler.cpp \
     textedit.cpp \
     itemfactory.cpp \
-    slotsllabel.cpp \
-    slotselection.cpp \
     armywidget.cpp
 
 HEADERS += \
+    basicrole.h \
+    listcreatordeforg.h \
+    listcreatorwidgets.h \
         mainwindow.h \
     detachment.h \
     detachmentrole.h \
     battleforged.h \
     limithandler.h \
-    modelitem.h \
-    fileio.h \
     listcreator.h \
     listcreatordetach.h \
+    modelitembase.h \
+    modelitembasic.h \
+    modelitemcat.h \
+    modelitemselection.h \
+    modelitemslot.h \
+    modelitemunit.h \
+    modelsatellitelimiter.h \
     organisation.h \
-    slotbutton.h \
-    sortedstringlist.h \
+    organisationrole.h \
     armylistwidget.h \
     settings.h \
-    limitmihandler.h \
     textedit.h \
     itemfactory.h \
-    slotslabel.h \
-    slotselection.h \
-    armywidget.h \
-    structs.h
+    armywidget.h
 
 RESOURCES += \
     resource.qrc

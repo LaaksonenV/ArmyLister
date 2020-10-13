@@ -4,12 +4,11 @@
 #include <QScrollArea>
 
 
-class TopModelItem;
-class ModelItem;
+class ModelItemBase;
 class Settings;
 class QTextStream;
 
-const int printwidth = 80;
+//const int printwidth = 80;
 
 class ArmyListWidget : public QScrollArea
 {
@@ -29,18 +28,16 @@ public slots:
     void on_valueChange(int i, int r);
 
 private:
-    void printRecurseText(QTextStream &str, ModelItem *itm, int d,
-                           QFont &f) const;
-    void printRecurseSave(QTextStream &str, ModelItem *itm, int d) const;
-    QString recurseLoad(QTextStream &str, ModelItem *parnt, int d);
+    void printRecurseSave(QTextStream &str, ModelItemBase *itm, int d) const;
+    QString recurseLoad(QTextStream &str, ModelItemBase *parnt, int d);
 
 signals:
-    void roleSelected(int role, int amount);
+    void roleSelected(int amount, int role);
     void valueChanged(int value, int role);
 
 private:
     Settings *_settings;
-    TopModelItem *_topItem;
+    ModelItemBase *_topItem;
 
     QString _name;
     int _points;

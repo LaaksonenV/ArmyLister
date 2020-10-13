@@ -16,12 +16,156 @@
 #include <QTextEdit>
 #include <QFileDialog>
 #include <QKeyEvent>
+
 #include "textedit.h"
+#include "listcreatorwidgets.h"
+
+void ListCreator::CreateArmy(const QString &file, QWidget *parent)
+{
+    ListCreator creator(file,  QStringList("Name") << "Cost/Model#"
+                        << "Models in unit#-#" << "Initial cost#", parent);
+
+    creator.addIncl();
+    creator.addOrg();
+
+    creator.readFile();
+
+    creator._info->setText("This window is still under development.\n"
+                           "For now, a list is made by simply writing all "
+                           "neccessary info manually on its respective field.\n"
+                           "\n"
+                           "\n"
+                           "Army lists must contain information on how their "
+                           "organisation is defined. Before building the list, "
+                           "define the organisation, as this will reset the "
+                           "list!!\n"
+                           "\n"
+                           "Army list is comprised of categories, with unit "
+                           "entries under them, and items under them. If unit "
+                           "or item entries don't contain price or model "
+                           "information, these will be looked for in table "
+                           "files listed in the included section.\n"
+                           "A list can be included as an item with [] braces. "
+                           "Selections from lists may be limited with tags. "
+                           " Each entry has a list of tags, that by default "
+                           "contain their name and names of the entries above. "
+                           "Units add tags of selected items to their own, "
+                           "and items below may check if their tag limiters "
+                           "match with these. Tags may be added to units by "
+                           "listing them after their name, each tag capsulated "
+                           "by <> braces. Item entries' tags are added "
+                           "similarily, but with <+AA> adding a tag and <-AA> "
+                           "removing it.\n"
+                           "\n"
+                           "Entries may be controlled by adding one or more "
+                           "control elements before its name. Each control "
+                           "element starts with an exclamation point '!', and "
+                           "next whitespace (outside tag control, see later) "
+                           "denotes end of all control elements.\n"
+                           "\n"
+                           "Control elements: \n"
+                           " !: Item is always selected, and cannot be "
+                           "unselected.\n"
+                           " !* Item is for all models.\n"
+                           " !^X Item selectable if unit has models <= X.\n"
+                           " !_X Item selectable if unit has models >= X.\n"
+                           " !=X limits the entry to X selections for entire "
+                           "army.\n"
+                           " !~<AAA> Items points count toward AAA categorys "
+                           "limits (9A specific).\n"
+                           " !{AAA} limits the item by by a group. Group "
+                           "limits are defined separately in a list with name "
+                           "[!] (list must be created manually).\n"
+                           "  Group limit list entries are of form !{AAA}?=X, "
+                           "where AAA is the name of the group, and X the "
+                           "limit the item may be selected in army.\n"
+                           " !\\ Entry contains one or more slots. Each slot "
+                           "is denoted with AA(BBB, CCC), where AA is the "
+                           "slots identifier and BBB, CCC is the default "
+                           "item(s).\n"
+                           " !/AA Entry will replace the item in slot AA.\n"
+                           " (!/AA/BB Entry will replace the item in slots AA "
+                           "and BB TBA)"
+                           "Following control elements limit the choises under "
+                           "the item with the element:"
+                           " !;X Select up to X points worth of items.\n"
+                           " !#X Select up to X items.\n"
+
+    );
+
+    creator.exec();
+}
+
+void ListCreator::CreateList(const QString &file, QWidget *parent)
+{
+    ListCreator creator(file,  QStringList("Name") << "Cost/Model#"
+                        << "Models in unit#-#" << "Initial cost#", parent);
+
+    creator.addIncl();
+
+    creator.readFile();
+
+    creator._info->setText("This window is still under development.\n"
+                           "For now, a list is made by simply writing all "
+                           "neccessary info manually on its respective field.\n"
+                           "\n"
+                           "This window will create a list or table file, that "
+                           "may be included in the main list. Same file can "
+                           "contain both lists and tables. Including "
+                           "other files here will only benefit the "
+                           "autocompletion function.\n"
+                           "\n"
+                           "A list is made of a name as root item, capsulated "
+                           "in [] braces, followed by one or more items under "
+                           "it. Writing the list in the main list will then "
+                           "create an entry for each item in it."
+                           "can be included with [] braces.\n"
+                           "List entries may contain price information.\n"
+                           "\n"
+                           "List entries may be limited by adding one or more "
+                           "control elements before its name. Each control "
+                           "element starts with an exclamation point '!', and "
+                           "next whitespace (outside tag control, see later) "
+                           "denotes end of all control elements, with an "
+                           "exception that any control elements after list "
+                           "names ] will be inserted to each list entry.\n"
+                           "\n"
+                           "Control elements: \n"
+                           " !=X limits the item to X selections for entire "
+                           "army.\n"
+                           " !#X limits the item to X selections for the "
+                           "unit.\n"
+                           " !<AAA> limits the item to entries according to "
+                           "its tags:\n"
+                           "  AAA a unit must have tag AAA to select this.\n"
+                           "  /AAA a unit must not have tag AAA to select "
+                           "this.\n"
+                           "  AAA, BBB a unit must have both tags AAA and BBB "
+                           "to select this. More tags may be chained and "
+                           "preceded with /.\n"
+                           "  * may be used as a wildcard in tags.\n"
+                           " !{AAA} limits the item by by a group. Group "
+                           "limits are defined separately in a list with name "
+                           "[!] (list must be created manually).\n"
+                           "  Group limit list entries are of form !{AAA}?#X, "
+                           "where AAA is the name of the group, and X the "
+                           "limit a unit may select items in this group.\n"
+                           "\n"
+                           "\n"
+                           "Tables needed anymore?"
+
+                           );
+
+    creator.exec();
+}
 
 ListCreator::ListCreator(const QString &file,
                          const QStringList &header,
                          QWidget *parent)
     : QDialog(parent)
+    , lay(new QVBoxLayout(this))
+    , _org(nullptr)
+    , _incl(nullptr)
     , _list(new QTreeWidget(this))
     , _lines(QList<QLineEdit*>())
     , _info(new QTextEdit())
@@ -29,17 +173,15 @@ ListCreator::ListCreator(const QString &file,
     , _clipboard(nullptr)
     , _editor(new MCLineEdit(this))
 {
-    QVBoxLayout *lay = new QVBoxLayout(this);
     int columns = header.size();
     _list->setColumnCount(columns);
 
     _list->setSelectionMode(QAbstractItemView::SingleSelection);
     _list->setSelectionBehavior(QAbstractItemView::SelectRows);
     _list->setHeaderLabels(header);
-    readFile();
     connect(_list, &QTreeWidget::currentItemChanged,
             this, &ListCreator::on_currentChanged);
-    lay->addWidget(_list,2);
+    lay->addWidget(_list,3);
 
     QHBoxLayout *chLay = new QHBoxLayout();
 
@@ -159,8 +301,6 @@ ListCreator::ListCreator(const QString &file,
     connect(button, &QPushButton::clicked,
             this, &ListCreator::on_OK);
     chLay->addWidget(button);
-//    button->setDefault(true);
-//    setTabOrder(edit,button);
 
     button = new QPushButton("&Cancel", this);
     connect(button, &QPushButton::clicked,
@@ -169,7 +309,9 @@ ListCreator::ListCreator(const QString &file,
 
     lay->addLayout(chLay);
 
-    resize(400,600);
+    setLayout(lay);
+
+    resize(400,800);
 }
 
 ListCreator::~ListCreator()
@@ -179,145 +321,91 @@ ListCreator::~ListCreator()
     _clipboard = nullptr;
 }
 
-void ListCreator::initialiseArmy()
+void ListCreator::on_orgChange()
 {
-    _editor->setMultipleCompleter(new QCompleter(include(true),this));
-
-    if (!_list->topLevelItemCount())
+    QStringList org = _org->getOrg().split('#');
+    QString type = org.takeFirst();
+    if (type == "40k")
+        initialise40k();
+    else if (type == "9A")
     {
-
-        createPreMadeItem(HQ_ROLE);
-        createPreMadeItem(TROOP_ROLE);
-        createPreMadeItem(ELITE_ROLE);
-        createPreMadeItem(FAST_ROLE);
-        createPreMadeItem(HEAVY_ROLE);
-        createPreMadeItem(TRANSPOR_ROLE);
-        createPreMadeItem(FLYER_ROLE);
-        createPreMadeItem(FORT_ROLE);
-        createPreMadeItem(LORD_ROLE);
+        for (int i = 0; i < org.count(); ++i)
+            org[i] = org.at(i).section(';',0,1);
+        initialise9A(org);
     }
-
-
-    _info->setText("A list can be included with [] braces.\n"
-                   "Start a name with reserved characters '!' to add control."
-                   "\n"
-                   "Control characters are then added after ! with no"
-                   " whitespaces.\n"
-                   "X denotes a number, usually replacable with:\n"
-                   " A for every model,\n"
-                   //" M for every model except leader, \n"
-                   " (X@Y) X for every Y models.\n"
-                   "Items without ! and control characters are normal"
-                   " selectable items.\n"
-                  // "'=X' limited to X selections. (e.g. named characters\n"
-                   "':' item is not selectable (always selected).\n"
-                   "'\\' equipment slots; each slot is placed in bracets (),"
-                   "  and may be preceded with slot name without whitespaces (if not, they will be named"
-                   "    with increasing number from 1)"
-                   "'/X' item replaces equipment in previous slot X.\n"
-                   " Multiple slots may be replaced by '/X,Y,...'"
-                   " Separate different choices with a comma ,"
-                   " Combine different choises with ampedsand &"
-                 //  " 'X' replace up to X.\n"
-                 //  "'&X' add X items from a list.\n"
-                //   "'+X' item is selectable X times.\n"
-                //   "'%X' select up to X items from below.\n"
-                //   "'*X' item cost multiplied by X.\n\n"
-                   "You can prefix an item with an amount number, and group "
-                   "items with curly braces {}.\n"
-                   "Putting items inside straight lines || means it will not "
-                   "be shown."
-
-                 );
 }
 
-void ListCreator::initialiseWargear()
+void ListCreator::on_includeAdd(const QString &filename)
 {
-    if (!_list->topLevelItemCount())
+    QFile file(filename);
+
+    if (file.open(QFile::Text | QFile::ReadOnly))
     {
-        _editor->setCompleter(new QCompleter(include(),this));
-        createPreMadeItem("Ranged Weapons");
-        createPreMadeItem("Melee Weapons");
-        createPreMadeItem("Other Wargear");
-    }
+        QTextStream str(&file);
+        QString line;
+        QRegExp rx ("!<(.*)>");
+        QStringList caps;
+        QStringList strings;
 
-    _info->setText("Begin a name with following for effect:\n"
-                   "'!<AAA,BBB>' Cost for keyword or name AAA or BBB");
-}
-
-void ListCreator::initialiseList()
-{
-    _editor->setCompleter(new QCompleter(include(),this));
-    _info->setText("Put list names inside [] brackets.\n"
-                   "Begin a name with following for effect:"
-                   "'!+<AAA,BBB>' item only available for keywords.\n"
-                   "'!-<AAA,BBB>' item not available for keywords.\n");
-}
-
-QStringList ListCreator::include(bool print)
-{
-    QStringList files = QFileDialog::getOpenFileNames(
-                this, "include files", QDir::currentPath(),
-                "(*txt)");
-
-    QTreeWidgetItem *itm = _list->topLevelItem(0);
-    int oldindx = 0;
-    if (print)
-    {
-        if (itm)
+        while (!str.atEnd())
         {
-            oldindx = itm->childCount();
-            for (int i = oldindx; i > 0; --i)
-                files.prepend(itm->child(i-1)->text(0));
-        }
-        else
-            itm = createPreMadeItem("INCLUDES");
-    }
-    QFile fl;
-    QTextStream str;
-    QStringList ret;
-    QString line;
-    QRegExp rx ("!<(.*)>");
-    QStringList caps;
-    QDir cur;
-    for (int i = 0; i < files.count(); ++i)
-    {
-        if (print && i >= oldindx)
-            itm->addChild(new QTreeWidgetItem(QStringList(
-                             cur.relativeFilePath(files.at(i)))));
-
-        fl.setFileName(files.at(i));
-        if (fl.open(QFile::Text | QFile::ReadOnly))
-        {
-            str.setDevice(&fl);
-            while (!str.atEnd())
+            line = str.readLine().section('|',0,0);
+            if (rx.indexIn(line) > 0)
             {
-                line = str.readLine().section('|',0,0);
-                if (rx.indexIn(line) > 0)
+                caps = rx.cap(1).split(',');
+                foreach (QString wrd, caps)
                 {
-                    caps = rx.cap(1).split(',');
-                    foreach (QString wrd, caps)
-                    {
-                        wrd = wrd.trimmed();
+                    wrd = wrd.trimmed();
 
-                        if (wrd.count() > 3 && !wrd.toInt() &&
-                                !ret.contains(wrd))
-                            ret << wrd;
-                    }
+                    if (wrd.count() > 3 && !wrd.toInt() &&
+                            !strings.contains(wrd))
+                        strings << wrd;
                 }
-                line.remove(rx);
-                line.remove(QRegExp("!\\w+"));
-                line = line.trimmed();
-
-                if (line.count() > 3 && !line.toInt() &&
-                        !ret.contains(line))
-                    ret << line;
-
             }
-            fl.close();
+            line.remove(rx);
+            line.remove(QRegExp("!\\w+"));
+            line = line.trimmed();
+
+            if (line.count() > 3 && !line.toInt() &&
+                    !strings.contains(line))
+                strings << line;
+
         }
+        file.close();
+        _editor->addToCompleter(strings);
     }
-    return ret;
+}
+
+void ListCreator::initialise40k()
+{
+    // Take previous items and add them to end
+
+    _list->clear();
+
+    createPreMadeItem(HQ_ROLE);
+    createPreMadeItem(TROOP_ROLE);
+    createPreMadeItem(ELITE_ROLE);
+    createPreMadeItem(FAST_ROLE);
+    createPreMadeItem(HEAVY_ROLE);
+    createPreMadeItem(TRANSPOR_ROLE);
+    createPreMadeItem(FLYER_ROLE);
+    createPreMadeItem(FORT_ROLE);
+    createPreMadeItem(LORD_ROLE);
+
+}
+
+void ListCreator::initialise9A(const QStringList &org)
+{
+
+    _list->clear();
+
+    for (int i = 0; i < org.count(); ++i)
+    {
+        createPreMadeItem(org.at(i));
+    }
+
+
+    // INFO?
 }
 
 QTreeWidgetItem *ListCreator::createPreMadeItem(const QString &text)
@@ -335,6 +423,20 @@ void ListCreator::on_OK()
         return;
     f.flush();
     QTextStream str(&f);
+    str.setCodec("utf-8");
+
+    if (_org)
+    {
+        str << "ORGANISATION" << '\n';
+        str << '\t' << _org->getOrg() << '\n';
+
+        if (_incl)
+        {
+            str << "INCLUDES" << '\n';
+            foreach (QString f, _incl->getFiles())
+                str << '\t' << f << '\n';
+        }
+    }
 
     writeFileRecurse(str, _list->invisibleRootItem(), 0);
 
@@ -491,6 +593,18 @@ void ListCreator::on_currentChanged(QTreeWidgetItem *now, QTreeWidgetItem *)
     _editor->setEnabled(true);
 }
 
+void ListCreator::addOrg()
+{
+    _org = new ListCreatorWidgetOrg(this);
+    lay->insertWidget(0, _org);
+}
+
+void ListCreator::addIncl()
+{
+    _incl = new ListCreatorWidgetIncl(this);
+    lay->insertWidget(0, _incl);
+}
+
 void ListCreator::readFile()
 {
     QFile f(_fileName);
@@ -513,6 +627,29 @@ void ListCreator::readFile()
     while (!str.atEnd())
     {
         line = str.readLine();
+        if (line == "ORGANISATION")
+        {
+            if (_org)
+                _org->setOrg(str.readLine().trimmed());
+            line = str.readLine();
+
+        }
+        else if (line == "INCLUDES")
+        {
+            if (_incl)
+            {
+                line = str.readLine();
+                while (line.startsWith('\t'))
+                {
+                    _incl->addFile(line.trimmed());
+                    line = str.readLine();
+                }
+            }
+            else
+                while (line.startsWith('\t'))
+                    line = str.readLine();
+
+        }
         if (line.trimmed().isEmpty())
             continue;
         count = line.count('\t');

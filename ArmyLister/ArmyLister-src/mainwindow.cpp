@@ -5,6 +5,7 @@
 #include <QMenu>
 #include <QAction>
 #include <QFileDialog>
+#include <QInputDialog>
 #include <QFileInfo>
 #include <QScrollArea>
 
@@ -16,9 +17,11 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , _settings(new Settings())
+    , _mainwidget(nullptr)
 
 {
-    _mainwidget = new QWidget(_settings, this);
+    setWindowTitle(QString("ArmyLister ") + QString(APP_VERSION));
+    _mainwidget = new ArmyWidget(_settings, this);
 
     setCentralWidget(_mainwidget);
 
@@ -41,33 +44,33 @@ MainWindow::MainWindow(QWidget *parent)
                 [=](){on_selectArmy(armies.at(i));});
     }
 
-    actMenu = menu->addMenu("Save/Load List");
+//    actMenu = menu->addMenu("Save/Load List");
 
-    act = actMenu->addAction("Save");
-    connect(act, &QAction::triggered,
-            [=](){_mainwidget->saveList(QString())});
+//    act = actMenu->addAction("Save");
+//    connect(act, &QAction::triggered,
+  //          [=](){_mainwidget->saveList(QString());});
 
-    act = actMenu->addAction("Save As");
-    connect(act, &QAction::triggered,
-            this, &MainWindow::on_saveList);
+//    act = actMenu->addAction("Save As");
+//    connect(act, &QAction::triggered,
+  //          this, &MainWindow::on_saveList);
 
-    actMenu->addSeparator();
-    actMenu->addSeparator();
+//    actMenu->addSeparator();
+//    actMenu->addSeparator();
 
-    act = actMenu->addAction("Load");
-    connect(act, &QAction::triggered,
-            this, &MainWindow::on_loadList);
+//    act = actMenu->addAction("Load");
+//    connect(act, &QAction::triggered,
+  //          this, &MainWindow::on_loadList);
 
-    actMenu->addSeparator();
+//    actMenu->addSeparator();
 
-    armies = _settings->multiValue(SETTING_LIST_GROUP);
-    for (int i = 0; i < std::min(5,armies.count()); ++i)
-    {
-        forName.setFile(armies.at(i));
-        act = actMenu->addAction(forName.completeBaseName());
-        connect(act, &QAction::triggered,
-                [=](){on_loadArmy(armies.at(i));});
-    }
+//    armies = _settings->multiValue(SETTING_LIST_GROUP);
+//    for (int i = 0; i < std::min(5,armies.count()); ++i)
+//    {
+//        forName.setFile(armies.at(i));
+//        act = actMenu->addAction(forName.completeBaseName());
+//        connect(act, &QAction::triggered,
+//                [=](){on_loadArmy(armies.at(i));});
+//    }
 
 
     actMenu = menu->addMenu("Create");
@@ -78,15 +81,15 @@ MainWindow::MainWindow(QWidget *parent)
 
     actMenu->addSeparator();
 
-    act = actMenu->addAction("Wargear Points List");
+/*    act = actMenu->addAction("Wargear Points List");
     connect(act, &QAction::triggered,
             this, &MainWindow::on_createWPList);
 
     act = actMenu->addAction("Unit Points List");
     connect(act, &QAction::triggered,
-            this, &MainWindow::on_createUPList);
+            this, &MainWindow::on_createUPList);*/
 
-    act = actMenu->addAction("Wargear Lists");
+    act = actMenu->addAction("Lists and Tables");
     connect(act, &QAction::triggered,
             this, &MainWindow::on_createWGList);
 
@@ -98,8 +101,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     act = actMenu->addAction("Txt file");
     connect(act, &QAction::triggered,
-            _mainwidget, &ArmyListWidget::printList);
+            _mainwidget, &ArmyWidget::printList);
 
+    resize(500,500);
 }
 
 MainWindow::~MainWindow()
@@ -110,10 +114,10 @@ MainWindow::~MainWindow()
 void MainWindow::on_selectList()
 {
     QString file = QFileDialog::getOpenFileName
-            (this, "Select Army to create", QString(), "text (*txt)");
+            (this, tr("Select Army to create"), QString(), "text (*txt)");
 
     if (!file.isEmpty() && _mainwidget->createArmy(file))
-        _settings->addMultiValue(file, SETTING_ARMY_GROUP);
+            _settings->addMultiValue(file, SETTING_ARMY_GROUP);
 }
 
 void MainWindow::on_selectArmy(const QString &fileName)
@@ -156,13 +160,11 @@ void MainWindow::on_createOrg()
     if (!file.isEmpty())
     {
     ListCreatorDetach dial(this,file);
-    if (dial.exec() == QDialog::Accepted)
-    {
-//        _army->setLists(dial.getDetachmentList());
+    dial.open();
     }
 }
 
-void MainWindow::on_createWPList()
+/*void MainWindow::on_createWPList()
 {
     QString file = QFileDialog::getSaveFileName
             (this, "Choose Wargear Points lists' name", QString(),
@@ -188,7 +190,7 @@ void MainWindow::on_createUPList()
                     this);
     crt.exec();
     }
-}
+}*/
 
 void MainWindow::on_createWGList()
 {
@@ -196,11 +198,7 @@ void MainWindow::on_createWGList()
             (this, "Choose Wargear Lists lists' name", QString(),
              "(*.txt)", nullptr, QFileDialog::DontConfirmOverwrite);
     if (!file.isEmpty())
-    {
-        ListCreator crt(file, QStringList("Name"), this);
-        crt.initialiseList();
-        crt.exec();
-    }
+        ListCreator::CreateList(file, this);
 }
 
 void MainWindow::on_createArmyList()
@@ -209,9 +207,6 @@ void MainWindow::on_createArmyList()
             (this, "Choose Army Lists' name", QString(),
              "(*.txt)", nullptr, QFileDialog::DontConfirmOverwrite);
     if (!file.isEmpty())
-    {
-        ListCreator crt(file, QStringList("Name"), this);
-        crt.initialiseArmy();
-        crt.exec();
-    }
+        ListCreator::CreateArmy(file, this);
+
 }

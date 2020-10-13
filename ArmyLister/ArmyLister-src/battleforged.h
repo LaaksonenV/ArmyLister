@@ -1,12 +1,13 @@
 #ifndef BATTLEFORGED_H
 #define BATTLEFORGED_H
 
-//#include "organisation.h"
+#include "organisation.h"
 
-class Organisation;
 class QStringList;
 class Detachment;
-class QWidget;
+
+#include <QList>
+#include <QWidget>
 
 class BattleForged : public Organisation
 {
@@ -18,18 +19,22 @@ public:
 //    virtual void setLists(const QString &detachments);
 
 signals:
+    void selectionChanging(Detachment *,const QList<int>&,
+                           const QList<int>&);
 
 public slots:
-    virtual void roleSelected(int role, int amount);
+//    virtual void roleSelected(int role, int amount);
 
     virtual void detachmentSelected(Detachment *det, bool check);
-    virtual void detachmentCloned(Detachment *det, QStringList args);
+//    virtual void detachmentCloned(QStringList args);
     
 protected:
 
-    virtual void addPart(const QStringList &args);
+    virtual void addPart(const QStringList &args, int);
 
 private:
+
+//    QList<Detachment*> qv_partsList;
 
     QList<int> qv_currentMin;
     QList<int> qv_currentMax;

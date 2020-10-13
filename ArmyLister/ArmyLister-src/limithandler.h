@@ -3,19 +3,19 @@
 
 #include <QObject>
 
-class RoleSlot;
+class DetachmentRoleType;
 
 class LimitHandler : public QObject
 {
 public:
-    LimitHandler(RoleSlot *handleThis, QObject *parent = nullptr);
+    LimitHandler(DetachmentRoleType *handleThis, QObject *parent = nullptr);
     virtual ~LimitHandler(){}
 
 public slots:
     virtual void selection(int count) = 0;
 
 protected:
-    RoleSlot *_handled;
+    DetachmentRoleType *_handled;
 
     int _limited;
     int _limiter;
@@ -24,7 +24,7 @@ protected:
 class MinHandler : public LimitHandler
 {
 public:
-    MinHandler(RoleSlot *handleThis, QObject *parent = nullptr);
+    MinHandler(DetachmentRoleType *handleThis, QObject *parent = nullptr);
     virtual ~MinHandler(){}
 
 public slots:
@@ -35,7 +35,7 @@ public slots:
 class MaxHandler : public LimitHandler
 {
 public:
-    MaxHandler(RoleSlot *handleThis, QObject *parent = nullptr);
+    MaxHandler(DetachmentRoleType *handleThis, QObject *parent = nullptr);
     virtual ~MaxHandler(){}
 
 public slots:
