@@ -1,32 +1,27 @@
-ArmyLister is WIP, built for my own use first, and public use second. The code is quite totally void of any comments.
+ArmyLister is WIP, building going along my own needs for now. The code is mostly void of any comments. Currently 40k is in a bit of a hiatus, waiting for more 9.ed. codexes to come out, hopefully making the game atleast somewhat balanced again. For now, developement is directed at 9th Age armies.
 
 As now, building armydata files is done with a text input, with limited and possibly dated information.
 Many functions may not work, if I haven't needed them yet.
-The goal of my project is to create a listing tool able to stand up with the oter tools currently available, though I don't expect to ever meet this goal.
+The goal of my project is to create a listing tool able to stand up with the other tools currently available, though I don't expect to ever actually meet this goal. Just having a nice proper working program of my own making is a goal good enough.
 
-The code is written with Qt 5.9 C++, and requires no additional libraries.
+The code is written with Qt 5.14 C++, and requires no additional libraries.
 
-To use the program, it's first neccessary to create the armydata files. Each is made with a different editor under the "Create" menu.
-Editors should contain information for items with special limitations and such. All editors create a treelist.
-	Wargear and Unit point list refer to the tables at the end of codexes
-	Wargear list refer to the possible lists of wargear immediately after the armywide abilities (eg. Sergeant weapons)
-	Army list refers to the main listing of the codex, including all the options. Creating this will take time, and be tgenerally a pain in the ass,
-		as you have to some understanding of how the selection model work.
-		Make the previous lists first, as you will be asked to include those for the army list, and are the able to use autocompleter function when writing the list.
-	Detachment means all the possible detachments an battleforged army may have (in the Rulebook). Basic detachments could be ok to be shared publicly,
-		So I may do so at some point. Then this allows to create additional detachments (in the beginning of 8.ed I thought armies might have their own additional detachments,
-		so this editor would be needed)
+To use the program, it's first neccessary to create the armydata files. Each is made with a different editor under the "Create" menu. With the opensource nature of 9th Age, its armylists should be fine to be shared openly, I shall see how to approach this. 40k lists will likely remain unshared, as GW is quite infamously protective of its assets. 
 
-After all data files are ready, you will be able to start building your army, hopefully with the rules and limitations that you made to the army list.
-You can save and load your selections to a file, and print it as a text file.
+Using the main program is easy enough. Select an armylist, define max points and start selecting on the list on right. Click on plusses to expand items, click on items to select them, double-click on units to create another copy of them. Each selection will show points counting to category limits in the respective slot on left.
 
 
 TODO:
--Make the program work properly
--look at editors
--...
+- Test program with more than one file
+- Tags in group limits
+- Editor outlook
+- Add selectable common tags to editor
+- Saving selections to file
+- Loading selections from file
+- ...
+- 40k lists
 
 POSSIBILITIES:
--Rich text/PDF printing, with more graphical elements
--Basic statlines for units, included with prints
--...
+- Rich text/PDF printing, with more graphical elements
+- Basic statlines for units, maybe even included with prints
+- ...
