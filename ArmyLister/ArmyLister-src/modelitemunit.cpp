@@ -86,6 +86,22 @@ void ModelItemUnit::passSpecialUp(const QStringList &list, bool check)
     dealWithSpecials(list, check);
 }
 
+bool ModelItemUnit::branchChecked(bool check, int i, int role)
+{
+    if (ModelItemBasic::branchChecked(check,i,role))
+    {
+        if (role)
+        {
+            if (check)
+                _trunk->passCostUp(_cost, false, role);
+            else
+                _trunk->passCostUp(-_cost, false, role);
+        }
+        return true;
+    }
+    return false;
+}
+
 void ModelItemUnit::setModels(int min, int max)
 {
     _models = min;
@@ -112,6 +128,8 @@ void ModelItemUnit::passCostUp(int c, bool perModel, int role)
     else if (role < 0)
         _otherCost += change;
     ModelItemBasic::passCostUp(change, false, role);
+    if (_unitCountsAs)
+        ModelItemBasic::passCostUp(change, false, _unitCountsAs);
 }
 
 void ModelItemUnit::printToStream(QTextStream &str)

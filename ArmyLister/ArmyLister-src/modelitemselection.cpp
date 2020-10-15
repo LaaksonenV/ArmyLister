@@ -104,7 +104,7 @@ void ModelItemSelection::nextSlot()
     _branches.at(_currentSlot)->toggleExpand();
 }
 
-bool ModelItemSelection::branchChecked(bool check, int)
+bool ModelItemSelection::branchChecked(bool check, int, int role)
 {
     if (check)
     {
@@ -118,6 +118,8 @@ bool ModelItemSelection::branchChecked(bool check, int)
         setText(newtext.join(", "));
 //        _cost = total;
     }
+    if (role)
+        ModelItemBasic::branchChecked(check, 0, role);
     return true;
 }
 

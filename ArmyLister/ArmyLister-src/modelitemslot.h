@@ -30,7 +30,7 @@ public:
 
     virtual void expand(bool expanse);
 
-    virtual bool branchChecked(bool check, int ind);
+    virtual bool branchChecked(bool check, int ind, int role);
 
 public slots:
 

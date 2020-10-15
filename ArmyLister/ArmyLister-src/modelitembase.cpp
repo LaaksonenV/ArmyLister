@@ -154,7 +154,7 @@ void ModelItemBase::passCostDown(int left)
     }
 }
 
-bool ModelItemBase::branchChecked(bool, int)
+bool ModelItemBase::branchChecked(bool, int, int)
 {
     return true;
 }

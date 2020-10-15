@@ -25,7 +25,7 @@ public:
 //    virtual void setText(const QString &text);
 
 
-    virtual bool branchChecked(bool check, int);
+    virtual bool branchChecked(bool check, int, int role);
 
     virtual void printToStream(QTextStream &str);
 

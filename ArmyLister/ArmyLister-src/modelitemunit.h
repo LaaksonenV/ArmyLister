@@ -25,6 +25,8 @@ public:
 
     virtual void passSpecialUp(const QStringList &list, bool check);
 
+    virtual bool branchChecked(bool check, int i, int role);
+
     void setModels(int min, int max = 0);
 
     virtual int getModelCount() const;

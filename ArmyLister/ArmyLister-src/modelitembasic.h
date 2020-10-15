@@ -115,10 +115,19 @@ public:
      * \param role counts also as
      *
      * If \a role is set >= 0, when the item is checked its cost will be
-     * passed up, without changing actual items's costs, eventually
+     * passed up twice, without changing actual items's costs, eventually
      * changing given roles points towards limit
      */
     void setCountsAs(int role);
+
+    /*!
+     * \brief setUnitCountsAs simple setter
+     * \param role counts also as
+     *
+     * If \a role is set != 0, when the item is checked its unit will
+     * push its cost towards the role
+     */
+    void setUnitCountsAs(int role);
 
 
     /*!
@@ -146,7 +155,7 @@ public:
 
     virtual void branchExpanded(int item, int steps);
 
-    virtual bool branchChecked(bool check, int);
+    virtual bool branchChecked(bool check, int, int role);
 
     bool checkLimit(int limit);
 
@@ -205,6 +214,7 @@ protected:
 
     ModelItemBase *_trunk;
     bool _checked;
+    int _unitCountsAs;
 
 private:
 
@@ -220,6 +230,7 @@ private:
     int _modelLimitMin;
     int _modelLimitMax;
     int _countsAs;
+
 
     QPushButton *_expandButton;
     bool _expanded;

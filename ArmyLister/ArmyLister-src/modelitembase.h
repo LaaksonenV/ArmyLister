@@ -171,7 +171,7 @@ public:
      * As item without root, Base item return true. Implement on an item
      * with root
      */
-    virtual bool branchChecked(bool,int);
+    virtual bool branchChecked(bool,int,int);
 
     /*!
      * \brief resizeEvent reimplemented

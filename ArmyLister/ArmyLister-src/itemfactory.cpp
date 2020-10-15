@@ -382,7 +382,21 @@ void ItemFactory::compileList(TempTreeModelItem *tempknot,
 {
     QString text = tempknot->_text;
 
-    if (!_listList.contains(text))
+    QString name = text;
+    QString xgroup = QString();
+    QRegExp listname("(\\[.*\\])");
+    QRegExp extragroup("(\\{.*\\})");
+
+    if (listname.indexIn(text) >= 0)
+    {
+        name = listname.cap(1);
+        if (extragroup.indexIn(text) >= 0)
+        {
+            xgroup = extragroup.cap(1);
+        }
+    }
+
+    if (!_listList.contains(name))
     {
         qDebug() << "Unknown listname: " << text;
         return;
@@ -414,9 +428,9 @@ void ItemFactory::compileList(TempTreeModelItem *tempknot,
 
     trunk->addItem(knot, group);
 
-    knot->setText(text.remove("[\\[\\]]"));
+    knot->setText(name.remove("[\\[\\]]"));
 
-    QStringList list = _listList.value(text);
+    QStringList list = _listList.value(name);
     QStringList specials = tempknot->_spec;
     QStringList controls;
     QRegExp specialEntry("!<(.+)>");
@@ -427,6 +441,7 @@ void ItemFactory::compileList(TempTreeModelItem *tempknot,
     int pos;
     QMap<QString, ModelSatelliteLimiter*> limits;
     ModelSatelliteLimiter *limiter;
+    int tries = 1;
 
     foreach (QString listEntry, list)
     {
@@ -497,42 +512,61 @@ void ItemFactory::compileList(TempTreeModelItem *tempknot,
                     branch->connectToLimitSatellite(_globalLimiters[listEntry]);
             }
 
-            else if (ctrlchar == '{')
+            else if (ctrlchar == '{' || !xgroup.isNull())
             {
                 ctrl.prepend(ctrlchar);
-  // Special entry in limits!
-                if (!_globalLimiters.contains(ctrl))
+                tries = 1;
+                if (!xgroup.isNull())
                 {
-                    if (!_listList.contains("[!]"))
+                    ctrl.append(xgroup);
+                    tries = 2;
+                }
+                while (tries)
+                {
+                    if (!_globalLimiters.contains(ctrl))
                     {
-                        qDebug() << "Faulty list name in list: " << ctrl;
-                        break;
-                    }
-
-                    foreach (QString group, _listList.value("[!]"))
-                        if (limitReg.indexIn(group) >= 0 &&
-                                limitReg.cap(1) == ctrl)
+                        if (!_listList.contains("[!]"))
                         {
-                            if (limits.contains(ctrl))
-                                branch->connectToLimitSatellite(limits[ctrl]);
-                            else
-                            {
-                                limiter = new ModelSatelliteLimiter(
-                                            limitReg.cap(2).toInt(),
-                                            ModelItemBasic::CountLimit,
-                                            knot);
-
-                                branch->connectToLimitSatellite(limiter, true);
-
-                                limits.insert(ctrl,limiter);
-                            }
+                            qDebug() << "Faulty list name in list: " << ctrl;
                             break;
                         }
 
-                }
-                else
-                    branch->connectToLimitSatellite(_globalLimiters[ctrl]);
+                        foreach (QString group, _listList.value("[!]"))
+                        {
+                            if (limitReg.indexIn(group) >= 0 &&
+                                    limitReg.cap(1) == ctrl)
+                            {
+                                if (limits.contains(ctrl))
+                               branch->connectToLimitSatellite(limits[ctrl]);
+                                else
+                                {
+                                    limiter = new ModelSatelliteLimiter(
+                                                limitReg.cap(2).toInt(),
+                                                ModelItemBasic::CountLimit,
+                                                knot);
 
+                               branch->connectToLimitSatellite(limiter, true);
+
+                                    limits.insert(ctrl,limiter);
+                                }
+                                tries = 0;
+                                break;
+                            }
+                        }
+
+                    }
+                    else
+                    {
+                        branch->connectToLimitSatellite(_globalLimiters[ctrl]);
+                        tries = 0;
+                    }
+
+                    if (tries)
+                    {
+                        ctrl.remove(xgroup);
+                        --tries;
+                    }
+                }
             }
         }
     }
@@ -684,6 +718,16 @@ ModelSatelliteLimiter *ItemFactory::checkControls(TempTreeModelItem *tempknot,
                 knot->setCountsAs(_nameMap.value(ctrl));
 
         }
+        else if (ctrlchar == '¨')
+        {
+            ctrl.remove(QRegExp("[<>]"));
+
+            if (!_nameMap.contains(ctrl))
+                qDebug() << "Faulty role name in main list: " << ctrl;
+            else
+                knot->setUnitCountsAs(_nameMap.value(ctrl));
+
+        }
         else if (ctrlchar == '=')
         {
             if (ctrl == "1")
@@ -718,7 +762,7 @@ QString ItemFactory::parseList(QTextStream &str, QString line)
     QStringList list = _listList.value(listname);
 
     QRegExp groupLimitReg("!(\\{.*\\})\\?");
-    groupLimitReg.setMinimal(true);
+//    groupLimitReg.setMinimal(true);
     QRegExp limitReg("=(\\d+)");
     QRegExp specialEntry("!<(.+)>");
     specialEntry.setMinimal(true);

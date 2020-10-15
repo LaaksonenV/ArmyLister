@@ -28,13 +28,23 @@ void ModelItemCategory::passCostUp(int c, bool, int role)
     }
 }
 
-bool ModelItemCategory::branchChecked(bool check, int)
+bool ModelItemCategory::branchChecked(bool check, int, int role)
 {
-    ModelItemBasic::branchChecked(check,0);
+//    ModelItemBasic::branchChecked(check,0,0);
     if (check)
-        emit itemSelected(1, _index);
+    {
+        if (role)
+            emit itemSelected(1, role);
+        else
+            emit itemSelected(1, _index);
+    }
     else
-        emit itemSelected(-1, _index);
+    {
+        if (role)
+            emit itemSelected(-1, role);
+        else
+            emit itemSelected(-1, _index);
+    }
 
     return true;
 }

@@ -26,6 +26,7 @@ ModelItemBasic::ModelItemBasic(Settings *set, ModelItemBase *parent)
     : ModelItemBase(set, parent)
     , _trunk(parent)
     , _checked(false)
+    , _unitCountsAs(0)
     , _title(new QLabel(this))
     , _special(QStringList())
     , _specialLimiter(QStringList())
@@ -48,6 +49,7 @@ ModelItemBasic::ModelItemBasic(ModelItemBasic *source, ModelItemBase *parent)
     : ModelItemBase(source, parent)
     , _trunk(parent)
     , _checked(false)
+    , _unitCountsAs(0)
     , _title(new QLabel(this))
     , _special(QStringList())
     , _specialLimiter(QStringList())
@@ -200,6 +202,11 @@ void ModelItemBasic::setCountsAs(int role)
     _countsAs = role;
 }
 
+void ModelItemBasic::setUnitCountsAs(int role)
+{
+    _unitCountsAs = role;
+}
+
 int ModelItemBasic::getModelCount() const
 {
     return _trunk->getModelCount();
@@ -324,9 +331,16 @@ void ModelItemBasic::branchExpanded(int item, int steps)
     update();
 }
 
-bool ModelItemBasic::branchChecked(bool check, int)
+bool ModelItemBasic::branchChecked(bool check, int, int role)
 {
-    if(!_trunk->branchChecked(check, _index))
+    if (role)
+    {
+        if (check)
+            _unitCountsAs = role;
+        else
+            _unitCountsAs = 0;
+    }
+    if(!_trunk->branchChecked(check, _index, role))
         return false;
 
     if ((check && !_checked) || checkLimit(SelectionLimit))
@@ -580,7 +594,7 @@ void ModelItemBasic::toggleCheck()
     if (!_checked && _limit > Checkable)
         return;
 
-    if (!_trunk->branchChecked(!_checked, _index))
+    if (!_trunk->branchChecked(!_checked, _index, _unitCountsAs))
         return;
 
     _checked = !_checked;
