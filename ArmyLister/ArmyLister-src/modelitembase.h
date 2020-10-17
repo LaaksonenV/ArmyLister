@@ -4,7 +4,7 @@
 #include <QWidget>
 
 class Settings;
-class ModelSatelliteLimiter;
+class ItemSatellite;
 
 #include <QList>
 #include <QTextStream>
@@ -193,16 +193,17 @@ public:
     enum Limited : short
     {
         NotClonable = 1,
-        SelectionLimit = 2,
+        SelectionLimit = NotClonable*2,
 
-        GlobalLimit = 4,
-        SpecialLimit = 8,
-        CostLimit = 16,
-        CountLimit = 32,
-        ModelsLimit = 64,
+        GlobalLimit = SelectionLimit*2,
+        SpecialLimit = GlobalLimit*2,
+        CostLimit = SpecialLimit*2,
+        CountLimit = CostLimit*2,
+        ModelsLimit = CountLimit*2,
 
 
-        Checkable = SelectionLimit
+        Checkable = SelectionLimit,
+        LastBaseLimit = ModelsLimit
     };
 
     virtual void printToStream(QTextStream &str);
@@ -260,6 +261,7 @@ public slots:
 signals:
 
     void itemChecked(bool);
+    void modelsChanged(int);
     void itemSelected(int amount,int role);
     void valueChanged(int amount,int role);
     void countsChanged(int amount, int role);

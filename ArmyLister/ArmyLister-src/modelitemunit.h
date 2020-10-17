@@ -43,11 +43,11 @@ protected:
 
     virtual void createSpinner(int min, int max);
 
+    virtual void connectToSatellite(ItemSatellite *sat);
+
 public slots:
 
     virtual void on_spinnerChanged(int now);
-
-    virtual void connectToLimitSatellite(ModelSatelliteLimiter * sat);
 
 signals:
 

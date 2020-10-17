@@ -6,7 +6,7 @@
 #include <QApplication>
 
 #include "settings.h"
-#include "modelsatellitelimiter.h"
+#include "itemsatellite.h"
 
 ModelItemUnit::ModelItemUnit(Settings *set, ModelItemBase *parent)
     : ModelItemBasic(set, parent)
@@ -107,8 +107,8 @@ void ModelItemUnit::setModels(int min, int max)
     _models = min;
     if (max > 0)
         createSpinner(min,max);
-    ModelItemBasic::passCostUp(min*_modelCost);
-    ModelItemBase::passModelsDown(_models);
+//    ModelItemBasic::passCostUp(min*_modelCost);
+  //  ModelItemBasic::passModelsDown(_models);
 }
 
 int ModelItemUnit::getModelCount() const
@@ -122,13 +122,13 @@ void ModelItemUnit::passCostUp(int c, bool perModel, int role)
     if (perModel)
     {
         change = c*_models;
-        if (role < 0)
+        if (!role)
             _modelCost += c;
     }
-    else if (role < 0)
+    else if (!role)
         _otherCost += change;
     ModelItemBasic::passCostUp(change, false, role);
-    if (_unitCountsAs)
+    if (_unitCountsAs && -role != _unitCountsAs)
         ModelItemBasic::passCostUp(change, false, _unitCountsAs);
 }
 
@@ -194,12 +194,12 @@ void ModelItemUnit::on_spinnerChanged(int now)
     int change = now-_models;
     _models = now;
     ModelItemBasic::passCostUp(change*_modelCost);
-    ModelItemBase::passModelsDown(_models);
+    ModelItemBasic::passModelsDown(change);
 
 }
 
-void ModelItemUnit::connectToLimitSatellite(ModelSatelliteLimiter *sat)
+void ModelItemUnit::connectToSatellite(ItemSatellite *sat)
 {
     connect(this, &ModelItemUnit::itemCloned,
-            sat, &ModelSatelliteLimiter::on_itemChecked);
+            sat, &ItemSatellite::on_itemChecked);
 }

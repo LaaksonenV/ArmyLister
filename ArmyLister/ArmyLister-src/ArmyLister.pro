@@ -39,6 +39,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     basicrole.cpp \
+    itemsatellite.cpp \
     listcreatordeforg.cpp \
     listcreatorwidgets.cpp \
         main.cpp \
@@ -55,7 +56,6 @@ SOURCES += \
     modelitemselection.cpp \
     modelitemslot.cpp \
     modelitemunit.cpp \
-    modelsatellitelimiter.cpp \
     organisation.cpp \
     organisationrole.cpp \
     armylistwidget.cpp \
@@ -66,6 +66,7 @@ SOURCES += \
 
 HEADERS += \
     basicrole.h \
+    itemsatellite.h \
     listcreatordeforg.h \
     listcreatorwidgets.h \
         mainwindow.h \
@@ -81,7 +82,6 @@ HEADERS += \
     modelitemselection.h \
     modelitemslot.h \
     modelitemunit.h \
-    modelsatellitelimiter.h \
     organisation.h \
     organisationrole.h \
     armylistwidget.h \

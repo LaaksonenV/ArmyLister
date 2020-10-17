@@ -7,7 +7,7 @@
 
 class ModelItemBase;
 class ModelItemBasic;
-class ModelSatelliteLimiter;
+class ItemSatellite;
 class ModelItemCategory;
 class Settings;
 class QTextStream;
@@ -107,14 +107,14 @@ private:
     void compileItems(TempTreeModelItem *tempknot,
                       ModelItemBase *trunk,
                       const QMap<QString, int> &slotmap,
-                      ModelSatelliteLimiter *sharedSat = nullptr);
+                      ItemSatellite *sharedSat = nullptr);
     void compileList(TempTreeModelItem *tempknot,
                      ModelItemBase *trunk,
                      const QMap<QString, int> &slotmap,
-                     ModelSatelliteLimiter *sharedSat = nullptr);
+                     ItemSatellite *sharedSat = nullptr);
     void compileSelection(TempTreeModelItem *tempknot,
                           ModelItemBase *trunk);
-    ModelSatelliteLimiter *checkControls(TempTreeModelItem *tempknot,
+    ItemSatellite *checkControls(TempTreeModelItem *tempknot,
                                          ModelItemBasic *knot);
 
     /*!
@@ -183,7 +183,7 @@ private:
 
     QList<PointContainer*> _pointList;
     QMap<QString, QStringList> _listList;
-    QMap<QString, ModelSatelliteLimiter*> _globalLimiters;
+    QMap<QString, ItemSatellite*> _globalLimiters;
     QMap<QString, int> _nameMap;
 };
 

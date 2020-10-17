@@ -163,6 +163,10 @@ public:
 
     virtual void printToStream(QTextStream &str);
 
+    virtual void toggleCheck();
+
+    virtual void limitedBy(short flag);
+
 protected:
 
     void print(QTextStream &str, int pre,
@@ -183,6 +187,7 @@ protected:
 
     void fitButton(QPushButton *but);
 
+
 private:
 
     virtual void expand(bool expanse);
@@ -193,7 +198,7 @@ signals:
 
     void pingSatellite(bool status);
 
-    void passConnection(ModelSatelliteLimiter * sat, bool res);
+    void passConnection(ItemSatellite * sat, bool res);
 
     void cloneSatellite();
 
@@ -201,14 +206,15 @@ signals:
 
 public slots:
 
-    virtual void toggleCheck();
+    virtual void forceCheck(bool check);
 
-    virtual void connectToLimitSatellite(ModelSatelliteLimiter * sat,
+    virtual void currentLimitChanged(int current);
+
+    virtual void connectToSatellite(ItemSatellite * sat,
                                          bool responsible = false);
 
     virtual void setHardLimit(short limit);
 
-    virtual void limitedBy(short flag);
 
 protected:
 
@@ -228,7 +234,10 @@ private:
     int _forAll;
     int _costLimit;
     int _modelLimitMin;
+    bool _hasModelLimitMin;
     int _modelLimitMax;
+    bool _hasModelLimitMax;
+    bool _skipChange;
     int _countsAs;
 
 

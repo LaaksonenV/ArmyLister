@@ -1,6 +1,7 @@
 #include "listcreator.h"
 
 #include <QHBoxLayout>
+#include <QGridLayout>
 #include <QVBoxLayout>
 #include <QPushButton>
 #include <QTreeWidget>
@@ -66,15 +67,20 @@ void ListCreator::CreateArmy(const QString &file, QWidget *parent)
                            "Control elements: \n"
                            " !: Item is always selected, and cannot be "
                            "unselected.\n"
+                           " !€ Every instance of item is selected at same time"
                            " !* Item is for all models.\n"
                            " !^X Item selectable if unit has models <= X.\n"
                            " !_X Item selectable if unit has models >= X.\n"
                            " !=X limits the entry to X selections for entire "
                            "army.\n"
-                           " !~<AAA> Items points count toward AAA categorys "
+                           " !§X limits the entry to X models for entire "
+                           "army.\n"
+                           " !~<AAA> Items points count toward AAA category "
                            "limits (9A specific).\n"
-                           " !¨<AAA> Unit points count toward AAA categorys "
+                           " !¨<AAA> Unit points count toward AAA category "
                            "limits (9A specific).\n"
+                           " !~/<AAA> Items points do not count toward AAA "
+                           "category limits if otherwise would (9A specific).\n"
                            " !{AAA} limits the item by by a group. Group "
                            "limits are defined separately in a list with name "
                            "[!] (list must be created manually).\n"
@@ -168,7 +174,7 @@ ListCreator::ListCreator(const QString &file,
                          const QStringList &header,
                          QWidget *parent)
     : QDialog(parent)
-    , lay(new QVBoxLayout(this))
+    , lay(new QGridLayout(this))
     , _org(nullptr)
     , _incl(nullptr)
     , _list(new QTreeWidget(this))
@@ -179,6 +185,7 @@ ListCreator::ListCreator(const QString &file,
     , _editor(new MCLineEdit(this))
 {
     int columns = header.size();
+    QVBoxLayout *lay2 = new QVBoxLayout();
     _list->setColumnCount(columns);
 
     _list->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -186,7 +193,7 @@ ListCreator::ListCreator(const QString &file,
     _list->setHeaderLabels(header);
     connect(_list, &QTreeWidget::currentItemChanged,
             this, &ListCreator::on_currentChanged);
-    lay->addWidget(_list,3);
+    lay2->addWidget(_list,2);
 
     QHBoxLayout *chLay = new QHBoxLayout();
 
@@ -206,7 +213,7 @@ ListCreator::ListCreator(const QString &file,
     chLay->addWidget(button);
 
     chLay->addStretch(2);
-    lay->addLayout(chLay);
+    lay2->addLayout(chLay);
 
     chLay = new QHBoxLayout();
 
@@ -221,7 +228,7 @@ ListCreator::ListCreator(const QString &file,
     chLay->addWidget(button);
 
     chLay->addStretch(2);
-    lay->addLayout(chLay);
+    lay2->addLayout(chLay);
 
     chLay = new QHBoxLayout();
 
@@ -241,9 +248,9 @@ ListCreator::ListCreator(const QString &file,
     chLay->addWidget(button);
 
     chLay->addStretch(2);
-    lay->addLayout(chLay);
+    lay2->addLayout(chLay);
 
-    lay->addSpacing(10);
+    lay2->addSpacing(10);
     chLay = new QHBoxLayout();
 
     QLabel *label;
@@ -292,12 +299,15 @@ ListCreator::ListCreator(const QString &file,
     _editor->setEnabled(false);
     _list->setColumnWidth(0,200);
 
-    lay->addLayout(chLay);
+    lay2->addLayout(chLay);
+
+    lay->addLayout(lay2,0,1,3,2);
+    lay->setColumnStretch(1,2);
+    lay->setRowStretch(2,2);
 
     _info->setReadOnly(true);
-    lay->addWidget(_info);
+    lay->addWidget(_info,2,0,2,1);
 
-    lay->addSpacing(10);
     chLay = new QHBoxLayout();
 
     chLay->addStretch(2);
@@ -312,11 +322,11 @@ ListCreator::ListCreator(const QString &file,
             this, &QDialog::reject);
     chLay->addWidget(button);
 
-    lay->addLayout(chLay);
+    lay->addLayout(chLay,3,1);
 
     setLayout(lay);
 
-    resize(400,800);
+    resize(800,800);
 }
 
 ListCreator::~ListCreator()
@@ -601,13 +611,13 @@ void ListCreator::on_currentChanged(QTreeWidgetItem *now, QTreeWidgetItem *)
 void ListCreator::addOrg()
 {
     _org = new ListCreatorWidgetOrg(this);
-    lay->insertWidget(0, _org);
+    lay->addWidget(_org,0,0);
 }
 
 void ListCreator::addIncl()
 {
     _incl = new ListCreatorWidgetIncl(this);
-    lay->insertWidget(0, _incl);
+    lay->addWidget(_incl,1,0);
 }
 
 void ListCreator::readFile()

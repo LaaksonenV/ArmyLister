@@ -10,6 +10,7 @@ class QTextStream;
 class QTextEdit;
 class QLabel;
 class QVBoxLayout;
+class QGridLayout;
 
 class ListCreatorWidgetOrg;
 class ListCreatorWidgetIncl;
@@ -89,7 +90,7 @@ private:
     void keyPressEvent(QKeyEvent *e);
 
 private:
-    QVBoxLayout *lay;
+    QGridLayout *lay;
 
     ListCreatorWidgetOrg *_org;
     ListCreatorWidgetIncl *_incl;

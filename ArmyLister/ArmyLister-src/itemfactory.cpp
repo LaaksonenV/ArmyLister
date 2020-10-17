@@ -1,7 +1,7 @@
 #include "itemfactory.h"
 
 #include "modelitemcat.h"
-#include "modelsatellitelimiter.h"
+#include "itemsatellite.h"
 #include "modelitemslot.h"
 #include "modelitemselection.h"
 #include "modelitemunit.h"
@@ -17,7 +17,7 @@ ItemFactory::ItemFactory(Settings *set)
     : _settings(set)
     , _pointList(QList<PointContainer*>())
     , _listList(QMap<QString, QStringList>())
-    , _globalLimiters(QMap<QString, ModelSatelliteLimiter*>())
+    , _globalLimiters(QMap<QString, ItemSatellite*>())
     , _nameMap(QMap<QString, int>())
 {
 
@@ -64,7 +64,7 @@ bool ItemFactory::addArmyFile(ModelItemBase* top, const QString &fileName)
 
     compileCategories(tempitem, top);
 
-    foreach (ModelSatelliteLimiter *lim, _globalLimiters.values())
+    foreach (ItemSatellite *lim, _globalLimiters.values())
         lim->setParent(top);
 
     return true;
@@ -300,7 +300,7 @@ void ItemFactory::compileUnit(TempTreeModelItem *tempknot,
 void ItemFactory::compileItems(TempTreeModelItem *tempknot,
                                ModelItemBase *trunk,
                                const QMap<QString, int> &slotmap,
-                               ModelSatelliteLimiter *sharedSat)
+                               ItemSatellite *sharedSat)
 {
     if (tempknot->_text.startsWith('['))
     {
@@ -367,7 +367,7 @@ void ItemFactory::compileItems(TempTreeModelItem *tempknot,
     knot->setSpecial(tempknot->_spec);
 
     if (sharedSat)
-        knot->connectToLimitSatellite(sharedSat);
+        knot->connectToSatellite(sharedSat);
 
     sharedSat = checkControls(tempknot, knot);
 
@@ -378,7 +378,7 @@ void ItemFactory::compileItems(TempTreeModelItem *tempknot,
 void ItemFactory::compileList(TempTreeModelItem *tempknot,
                               ModelItemBase *trunk,
                               const QMap<QString, int> &slotmap,
-                              ModelSatelliteLimiter *sharedSat)
+                              ItemSatellite *sharedSat)
 {
     QString text = tempknot->_text;
 
@@ -439,8 +439,8 @@ void ItemFactory::compileList(TempTreeModelItem *tempknot,
     controlEntry.setMinimal(true);;
     QRegExp limitReg("!(.*)\\?#(\\d+)");
     int pos;
-    QMap<QString, ModelSatelliteLimiter*> limits;
-    ModelSatelliteLimiter *limiter;
+    QMap<QString, ItemSatellite*> limits;
+    ItemSatellite *limiter;
     int tries = 1;
 
     foreach (QString listEntry, list)
@@ -497,7 +497,7 @@ void ItemFactory::compileList(TempTreeModelItem *tempknot,
         branch->setSpecial(specials);
 
         if (sharedSat)
-            branch->connectToLimitSatellite(sharedSat);
+            branch->connectToSatellite(sharedSat);
 
         foreach (QString ctrl, controls)
         {
@@ -509,7 +509,7 @@ void ItemFactory::compileList(TempTreeModelItem *tempknot,
                 if (!_globalLimiters.contains(listEntry))
                     qDebug() << "Name not in lists: " << listEntry;
                 else
-                    branch->connectToLimitSatellite(_globalLimiters[listEntry]);
+                    branch->connectToSatellite(_globalLimiters[listEntry]);
             }
 
             else if (ctrlchar == '{' || !xgroup.isNull())
@@ -537,15 +537,15 @@ void ItemFactory::compileList(TempTreeModelItem *tempknot,
                                     limitReg.cap(1) == ctrl)
                             {
                                 if (limits.contains(ctrl))
-                               branch->connectToLimitSatellite(limits[ctrl]);
+                               branch->connectToSatellite(limits[ctrl]);
                                 else
                                 {
-                                    limiter = new ModelSatelliteLimiter(
+                                    limiter = new ItemSatelliteSelectionLimiter(
                                                 limitReg.cap(2).toInt(),
                                                 ModelItemBasic::CountLimit,
                                                 knot);
 
-                               branch->connectToLimitSatellite(limiter, true);
+                               branch->connectToSatellite(limiter, true);
 
                                     limits.insert(ctrl,limiter);
                                 }
@@ -557,7 +557,7 @@ void ItemFactory::compileList(TempTreeModelItem *tempknot,
                     }
                     else
                     {
-                        branch->connectToLimitSatellite(_globalLimiters[ctrl]);
+                        branch->connectToSatellite(_globalLimiters[ctrl]);
                         tries = 0;
                     }
 
@@ -665,14 +665,16 @@ void ItemFactory::parseFile(const QString &fileName)
     }
 }
 
-ModelSatelliteLimiter *ItemFactory::checkControls(TempTreeModelItem *tempknot,
+ItemSatellite *ItemFactory::checkControls(TempTreeModelItem *tempknot,
                                                   ModelItemBasic *knot)
 {
     QChar ctrlchar;
-    ModelSatelliteLimiter *ret = nullptr;
+    ItemSatellite *ret = nullptr;
+    short sign;
 
     foreach (QString ctrl, tempknot->_control)
     {
+        sign = 1;
         ctrlchar = ctrl.at(0);
         ctrl.remove(0,1);
 
@@ -684,11 +686,15 @@ ModelSatelliteLimiter *ItemFactory::checkControls(TempTreeModelItem *tempknot,
 
         else if (ctrlchar == '#')
         {
-            ret = new ModelSatelliteLimiter(ctrl.toInt(),
+            ret = new ItemSatelliteSelectionLimiter(ctrl.toInt(),
                                             ModelItemBase::CountLimit,
                                              knot);
             knot->limitedBy(ModelItemBase::SelectionLimit);
         }
+
+        else if (ctrlchar == '€')
+            knot->connectToSatellite(
+                        new ItemSatelliteSelectionMirror(knot), true);
 
         else if (ctrlchar == '*')
             knot->setForAll();
@@ -699,6 +705,13 @@ ModelSatelliteLimiter *ItemFactory::checkControls(TempTreeModelItem *tempknot,
         else if (ctrlchar == '_')
             knot->setModelLimiter(ctrl.toInt(),0);
 
+        else if (ctrlchar == '§')
+        {
+            knot->connectToSatellite(
+                        new ItemSatelliteModelMirror(knot), true);
+            knot->setModelLimiter(0,ctrl.toInt());
+        }
+
         else if (ctrlchar == '{')
         {
             ctrl.prepend(ctrlchar);
@@ -706,16 +719,23 @@ ModelSatelliteLimiter *ItemFactory::checkControls(TempTreeModelItem *tempknot,
             if (!_globalLimiters.contains(ctrl))
                 qDebug() << "Faulty list name in main list: " << ctrl;
             else
-                knot->connectToLimitSatellite(_globalLimiters[ctrl]);
+                knot->connectToSatellite(_globalLimiters[ctrl]);
         }
         else if (ctrlchar == '~')
         {
+
+            if (ctrl.startsWith('/'))
+            {
+                sign = -1;
+                ctrl.remove(0,1);
+            }
+
             ctrl.remove(QRegExp("[<>]"));
 
             if (!_nameMap.contains(ctrl))
                 qDebug() << "Faulty role name in main list: " << ctrl;
             else
-                knot->setCountsAs(_nameMap.value(ctrl));
+                knot->setCountsAs(sign* _nameMap.value(ctrl));
 
         }
         else if (ctrlchar == '¨')
@@ -733,8 +753,8 @@ ModelSatelliteLimiter *ItemFactory::checkControls(TempTreeModelItem *tempknot,
             if (ctrl == "1")
                 knot->limitedBy(ModelItemBase::NotClonable);
             else
-                knot->connectToLimitSatellite(
-                            new ModelSatelliteLimiter(ctrl.toInt(),
+                knot->connectToSatellite(
+                            new ItemSatelliteSelectionLimiter(ctrl.toInt(),
                                                      ModelItemBase::NotClonable,
                                                       knot));
         }
@@ -798,7 +818,7 @@ QString ItemFactory::parseList(QTextStream &str, QString line)
                 qDebug() << "Multiple limit entries! " << line;
             else
                 _globalLimiters.insert(entry,
-                                       new ModelSatelliteLimiter(limitReg.cap(1)
+                                       new ItemSatelliteSelectionLimiter(limitReg.cap(1)
                                                                  .toInt(),
                                                   ModelItemBasic::GlobalLimit));
         }

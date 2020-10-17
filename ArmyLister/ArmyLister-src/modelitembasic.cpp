@@ -7,7 +7,7 @@
 #include <QTextStream>
 
 #include "settings.h"
-#include "modelsatellitelimiter.h"
+#include "itemsatellite.h"
 
 void ModelItemBasic::init()
 {
@@ -33,9 +33,12 @@ ModelItemBasic::ModelItemBasic(Settings *set, ModelItemBase *parent)
     , _initSpecial(QStringList())
     , _forAll(-1)
     , _costLimit(-1)
-    , _modelLimitMin(-1)
-    , _modelLimitMax(-1)
-    , _countsAs(-1)
+    , _modelLimitMin(0)
+    , _hasModelLimitMin(false)
+    , _modelLimitMax(0)
+    , _hasModelLimitMax(false)
+    , _skipChange(false)
+    , _countsAs(0)
     , _expandButton(nullptr)
     , _expanded(false)
     , _alwaysChecked(false)
@@ -56,9 +59,12 @@ ModelItemBasic::ModelItemBasic(ModelItemBasic *source, ModelItemBase *parent)
     , _initSpecial(QStringList())
     , _forAll(-1)
     , _costLimit(-1)
-    , _modelLimitMin(-1)
-    , _modelLimitMax(-1)
-    , _countsAs(-1)
+    , _modelLimitMin(0)
+    , _hasModelLimitMin(false)
+    , _modelLimitMax(0)
+    , _hasModelLimitMax(false)
+    , _skipChange(false)
+    , _countsAs(0)
     , _expandButton(nullptr)
     , _expanded(false)
     , _alwaysChecked(false)
@@ -74,7 +80,8 @@ ModelItemBasic::ModelItemBasic(ModelItemBasic *source, ModelItemBase *parent)
     if (source->_forAll >= 0)
         setForAll();
     setCostLimit(source->_costLimit);
-    setCountsAs(source->_countsAs);
+    setCountsAs(source->_countsAs-1);
+    setUnitCountsAs(source->_unitCountsAs-1);
 }
 
 ModelItemBasic::~ModelItemBasic()
@@ -91,13 +98,13 @@ void ModelItemBasic::clone(ModelItemBase *toRoot, int i)
 void ModelItemBasic::cloning(ModelItemBasic *clone, int i)
 {
     connect(this, &ModelItemBasic::passConnection,
-            clone, &ModelItemBasic::connectToLimitSatellite);
+            clone, &ModelItemBasic::connectToSatellite);
     emit cloneSatellite();
     emit pingSatellite(false);
     ModelItemBase::clone(clone, i);
     emit pingSatellite(true);
     disconnect(this, &ModelItemBasic::passConnection,
-            clone, &ModelItemBasic::connectToLimitSatellite);
+            clone, &ModelItemBasic::connectToSatellite);
 
 }
 
@@ -158,9 +165,18 @@ void ModelItemBasic::setSpecial(const QStringList &list)
 
 void ModelItemBasic::setModelLimiter(int min, int max)
 {
-    _modelLimitMin = min;
-    _modelLimitMax = max;
-    if (min >= 0 || max >= 0)
+    if (min > 0)
+    {
+        _modelLimitMin = min;
+        _hasModelLimitMin = true;
+    }
+    if (max > 0)
+    {
+        _modelLimitMax = max;
+        _hasModelLimitMax = true;
+    }
+
+    if (_hasModelLimitMin || _hasModelLimitMax)
         passModelsDown(getModelCount());
 }
 
@@ -199,12 +215,12 @@ void ModelItemBasic::setCostLimit(int limit)
 
 void ModelItemBasic::setCountsAs(int role)
 {
-    _countsAs = role;
+    _countsAs = role+1;
 }
 
 void ModelItemBasic::setUnitCountsAs(int role)
 {
-    _unitCountsAs = role;
+    _unitCountsAs = role+1;
 }
 
 int ModelItemBasic::getModelCount() const
@@ -244,24 +260,39 @@ void ModelItemBasic::passCostUp(int c, bool b, int role)
     ModelItemBase::passCostUp(change,false, role);
     if (_checked)
         _trunk->passCostUp(c, fa || b, role);
-    if (_countsAs >= 0 && _countsAs != role)
+    if (_countsAs && _countsAs != role)
         _trunk->passCostUp(c, fa || b, _countsAs);
-    if (_costLimit > 0 && role < 0)
+    if (_costLimit > 0 && !role)
         ModelItemBase::passCostDown(_costLimit-_cost);
 }
 
 void ModelItemBasic::passModelsDown(int models)
 {
-    if (  (_modelLimitMin > 0 && models < _modelLimitMin)
-       || (_modelLimitMax > 0 && models > _modelLimitMax) )
+    if (_hasModelLimitMin)
+        _modelLimitMin -= models;
+    if (_hasModelLimitMax)
+        _modelLimitMax -= models;
+
+    if (_checked)
+    {
+        if (_hasModelLimitMax)
+            _skipChange = true;
+        emit modelsChanged(models);
+    }
+
+    if ((_modelLimitMin > 0 || _modelLimitMax < 0) && !checkLimit(ModelsLimit))
         setHardLimit(ModelsLimit);
-    else
+    else if (checkLimit(ModelsLimit))
         setHardLimit(-ModelsLimit);
+
+
     if (_forAll >= 0)
     {
         models *= _forAll;
         setCost(models);
     }
+    else
+        ModelItemBase::passModelsDown(models);
 }
 
 void ModelItemBasic::passSpecialDown(const QStringList &list)
@@ -599,6 +630,15 @@ void ModelItemBasic::toggleCheck()
 
     _checked = !_checked;
 
+    if (_hasModelLimitMax)
+    {
+        _skipChange = true;
+        if (_checked)
+            emit modelsChanged(getModelCount());
+        else
+            emit modelsChanged(-getModelCount());
+
+    }
 
     int c = _cost;
     bool fa = false;
@@ -621,29 +661,58 @@ void ModelItemBasic::toggleCheck()
     emit itemChecked(_checked);
 }
 
+void ModelItemBasic::forceCheck(bool check)
+{
+    if ((check && !_checked) || (!check && _checked))
+        toggleCheck();
+}
 
-void ModelItemBasic::connectToLimitSatellite(ModelSatelliteLimiter *sat,
+void ModelItemBasic::currentLimitChanged(int current)
+{
+    if (_skipChange)
+        _skipChange = false;
+    else
+    {
+        if (_hasModelLimitMax)
+            _modelLimitMax -= current;
+        if (_modelLimitMax < 0 && !checkLimit(ModelsLimit))
+            limitedBy(ModelsLimit);
+        else if (checkLimit(ModelsLimit))
+            limitedBy(-ModelsLimit);
+    }
+}
+
+void ModelItemBasic::connectToSatellite(ItemSatellite *sat,
                                              bool responsible)
 {
     connect(this, &ModelItemBasic::itemChecked,
-            sat, &ModelSatelliteLimiter::on_itemChecked);
+            sat, &ItemSatellite::on_itemChecked);
 
-    connect(sat, &ModelSatelliteLimiter::limitReach,
+    connect(this, &ModelItemBasic::modelsChanged,
+            sat, &ItemSatellite::on_modelsChanged);
+
+    connect(sat, &ItemSatellite::currentLimit,
+            this, &ModelItemBasic::currentLimitChanged);
+
+    connect(sat, &ItemSatellite::check,
+            this, &ModelItemBasic::forceCheck);
+
+    connect(sat, &ItemSatellite::limitReach,
             this, &ModelItemBasic::limitedBy);
 
     connect(this, &ModelItemBasic::pingSatellite,
-            sat, &ModelSatelliteLimiter::ping);
+            sat, &ItemSatellite::ping);
 
-    connect(sat, &ModelSatelliteLimiter::sendConnection,
+    connect(sat, &ItemSatellite::sendConnection,
             this, &ModelItemBasic::passConnection);
 
     if (responsible)
     {
         connect(this, &ModelItemBasic::cloneSatellite,
-                sat, &ModelSatelliteLimiter::createClone);
+                sat, &ItemSatellite::createClone);
 
         connect(this, &ModelItemBase::releaseCloneSatellite,
-                sat, &ModelSatelliteLimiter::releaseClone);
+                sat, &ItemSatellite::releaseClone);
     }
 }
 

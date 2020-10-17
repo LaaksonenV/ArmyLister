@@ -32,8 +32,6 @@ public:
 
     virtual bool branchChecked(bool check, int ind, int role);
 
-public slots:
-
     virtual void toggleExpand();
 
 private:

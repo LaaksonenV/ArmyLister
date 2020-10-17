@@ -34,14 +34,14 @@ bool ModelItemCategory::branchChecked(bool check, int, int role)
     if (check)
     {
         if (role)
-            emit itemSelected(1, role);
+            emit itemSelected(1, role-1);
         else
             emit itemSelected(1, _index);
     }
     else
     {
         if (role)
-            emit itemSelected(-1, role);
+            emit itemSelected(-1, role-1);
         else
             emit itemSelected(-1, _index);
     }

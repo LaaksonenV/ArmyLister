@@ -13,7 +13,6 @@ Using the main program is easy enough. Select an armylist, define max points and
 
 TODO:
 - Test program with more than one file
-- Tags in group limits
 - Editor outlook
 - Add selectable common tags to editor
 - Saving selections to file
