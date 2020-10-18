@@ -12,6 +12,8 @@ MCLineEdit::MCLineEdit(QWidget *parent)
     , _compmod(nullptr)
     , c(nullptr)
 {
+    connect(this, &MCLineEdit::editingFinished,
+            [this](){addToCompleter(QStringList(text()));});
 }
 void MCLineEdit::keyPressEvent(QKeyEvent *e)
 {

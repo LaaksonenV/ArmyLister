@@ -49,9 +49,9 @@ QString ModelItemSlot::getText() const
         return QString();
     return _branches.at(_currentIndex)->getText();
 }
-int ModelItemSlot::getModelCount() const
+int ModelItemSlot::getCurrentCount() const
 {
-    return _trunk->getModelCount();
+    return _trunk->getCurrentCount();
 }
 
 void ModelItemSlot::passSpecialUp(const QStringList &list, bool check)

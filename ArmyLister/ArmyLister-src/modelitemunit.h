@@ -1,11 +1,9 @@
 #ifndef MODELITEMUNIT_H
 #define MODELITEMUNIT_H
 
-#include "modelitembasic.h"
+#include "modelitemspinner.h"
 
-class QSpinBox;
-
-class ModelItemUnit : public ModelItemBasic
+class ModelItemUnit : public ModelItemSpinner
 {
     Q_OBJECT
 public:
@@ -17,19 +15,13 @@ public:
 
     virtual void clone(ModelItemBase * = nullptr, int = -1);
 
-//    virtual void setText(const QString &text);
+    virtual void setSpecial(const QStringList &list);
 
-    void setSpecial(const QStringList &list);
-
-    void setUnitCost(int base, int special);
+//    virtual QString getPrintText() const;
 
     virtual void passSpecialUp(const QStringList &list, bool check);
 
     virtual bool branchChecked(bool check, int i, int role);
-
-    void setModels(int min, int max = 0);
-
-    virtual int getModelCount() const;
 
     virtual void passCostUp(int c, bool perModel = false, int role = -1);
 
@@ -41,13 +33,7 @@ protected:
 
     virtual void mouseDoubleClickEvent(QMouseEvent *e);
 
-    virtual void createSpinner(int min, int max);
-
     virtual void connectToSatellite(ItemSatellite *sat);
-
-public slots:
-
-    virtual void on_spinnerChanged(int now);
 
 signals:
 
@@ -56,17 +42,6 @@ signals:
     void modelsChanged(int);
 
 private:
-
-    int _modelCost;
-    int _otherCost;
-
-    int _initModelCost;
-    int _initOtherCost;
-
-    int _models;
-
-    QSpinBox *_spinner;
-
     QTimer *_clickClock;
 };
 

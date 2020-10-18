@@ -114,7 +114,7 @@ public:
      * Base item doesn't include models; this function must be
      * implemented in a derived class that does. ModelItemBase returns -1
      */
-    virtual int getModelCount() const;
+    virtual int getCurrentCount() const;
 
     /*!
      * \brief passSpecial pass function for special elements

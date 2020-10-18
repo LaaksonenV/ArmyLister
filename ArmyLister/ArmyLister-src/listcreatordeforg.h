@@ -43,7 +43,7 @@ private:
     QList<QComboBox*> _types;
     QList<QSpinBox*> _values;
 
-    const QStringList _items{"min","max","-"};
+    const QStringList _items{"max","min","-"};
 };
 
 #endif // LISTCREATORDEFORG_H

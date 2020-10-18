@@ -75,7 +75,14 @@ ModelItemBasic::ModelItemBasic(ModelItemBasic *source, ModelItemBase *parent)
 
     setText(source->getText());
     setSpecial(source->_initSpecial);
-    setModelLimiter(source->_modelLimitMin, source->_modelLimitMax);
+    int min = 0;
+    int max = 0;
+    if (_hasModelLimitMin)
+        min = source->_modelLimitMin+source->getCurrentCount();
+    if (_hasModelLimitMax)
+        min = source->_modelLimitMax+source->getCurrentCount();
+    if (min || max)
+        setModelLimiter(min, max);
     setAlwaysChecked(source->_alwaysChecked);
     if (source->_forAll >= 0)
         setForAll();
@@ -177,7 +184,7 @@ void ModelItemBasic::setModelLimiter(int min, int max)
     }
 
     if (_hasModelLimitMin || _hasModelLimitMax)
-        passModelsDown(getModelCount());
+        passModelsDown(getCurrentCount());
 }
 
 void ModelItemBasic::setAlwaysChecked(bool b)
@@ -204,7 +211,7 @@ void ModelItemBasic::setForAll(bool b)
     if (b && _forAll < 0)
     {
         _forAll = _cost;
-        setCost(_forAll*getModelCount());
+        setCost(_forAll*getCurrentCount());
     }
 }
 
@@ -223,12 +230,17 @@ void ModelItemBasic::setUnitCountsAs(int role)
     _unitCountsAs = role+1;
 }
 
-int ModelItemBasic::getModelCount() const
+int ModelItemBasic::getCurrentCount() const
 {
-    return _trunk->getModelCount();
+    return _trunk->getCurrentCount();
 }
 
 QString ModelItemBasic::getText() const
+{
+    return _title->text();
+}
+
+QString ModelItemBasic::getPrintText() const
 {
     return _title->text();
 }
@@ -254,7 +266,7 @@ void ModelItemBasic::passCostUp(int c, bool b, int role)
     if (_forAll >= 0)
     {
         fa = true;
-        change *= getModelCount();
+        change *= getCurrentCount();
         _forAll += c;
     }
     ModelItemBase::passCostUp(change,false, role);
@@ -634,9 +646,9 @@ void ModelItemBasic::toggleCheck()
     {
         _skipChange = true;
         if (_checked)
-            emit modelsChanged(getModelCount());
+            emit modelsChanged(getCurrentCount());
         else
-            emit modelsChanged(-getModelCount());
+            emit modelsChanged(-getCurrentCount());
 
     }
 

@@ -91,10 +91,12 @@ void ItemSatelliteModelMirror::createClone()
 
 ItemSatelliteSelectionMirror::ItemSatelliteSelectionMirror(QObject *parent)
     : ItemSatellite(parent)
+    , _selected(false)
 {}
 
 void ItemSatelliteSelectionMirror::on_itemChecked(bool b)
 {
+    _selected = b;
     emit check(b);
 }
 
@@ -102,4 +104,11 @@ void ItemSatelliteSelectionMirror::createClone()
 {
     _clone = new ItemSatelliteSelectionMirror(this);
     _firstCall = true;
+}
+
+void ItemSatelliteSelectionMirror::releaseClone()
+{
+    if (_selected)
+        _clone->on_itemChecked(true);
+    ItemSatellite::releaseClone();
 }

@@ -112,7 +112,7 @@ int ModelItemBase::getCost() const
     return _cost;
 }
 
-int ModelItemBase::getModelCount() const
+int ModelItemBase::getCurrentCount() const
 {
     return -1;
 }

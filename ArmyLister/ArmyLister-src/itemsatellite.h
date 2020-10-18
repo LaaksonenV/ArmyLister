@@ -21,7 +21,7 @@ public slots:
 
     virtual void createClone() = 0;
 
-    void releaseClone();
+    virtual void releaseClone();
 
 signals:
 
@@ -91,6 +91,11 @@ public:
     virtual void on_itemChecked(bool b);
 
     virtual void createClone();
+
+    virtual void releaseClone();
+
+private:
+    bool _selected;
 };
 
 #endif // ITEMSATELLITE_H

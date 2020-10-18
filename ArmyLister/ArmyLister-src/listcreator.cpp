@@ -67,7 +67,8 @@ void ListCreator::CreateArmy(const QString &file, QWidget *parent)
                            "Control elements: \n"
                            " !: Item is always selected, and cannot be "
                            "unselected.\n"
-                           " !€ Every instance of item is selected at same time"
+                           " !€ Every instance of item is selected at same "
+                           "time\n"
                            " !* Item is for all models.\n"
                            " !^X Item selectable if unit has models <= X.\n"
                            " !_X Item selectable if unit has models >= X.\n"
@@ -89,11 +90,12 @@ void ListCreator::CreateArmy(const QString &file, QWidget *parent)
                            "limit the item may be selected in army.\n"
                            " !\\ Entry contains one or more slots. Each slot "
                            "is denoted with AA(BBB, CCC), where AA is the "
-                           "slots identifier and BBB, CCC is the default "
-                           "item(s).\n"
+                           "slots identifier and BBB, CCC is/are the default "
+                           "item(s). If entry contains only one slot, AA may"
+                           "be omitted.\n"
                            " !/AA Entry will replace the item in slot AA.\n"
                            " (!/AA/BB Entry will replace the item in slots AA "
-                           "and BB TBA)"
+                           "and BB TBA)\n"
                            "Following control elements limit the choises under "
                            "the item with the element:"
                            " !;X Select up to X points worth of items.\n"
@@ -106,8 +108,7 @@ void ListCreator::CreateArmy(const QString &file, QWidget *parent)
 
 void ListCreator::CreateList(const QString &file, QWidget *parent)
 {
-    ListCreator creator(file,  QStringList("Name") << "Cost/Model#"
-                        << "Models in unit#-#" << "Initial cost#", parent);
+    ListCreator creator(file,  QStringList("Name") << "Cost", parent);
 
     creator.addIncl();
 
@@ -257,17 +258,17 @@ ListCreator::ListCreator(const QString &file,
     QLineEdit *edit = nullptr, *edittemp = nullptr;
     for (int i = 0; i < columns; ++i)
     {
-        label = new QLabel(header.value(i) + ':', this);
-        chLay->addWidget(label);
 
         if (i == 0)
         {
             edit = _editor;
-            chLay->addWidget(edit);
+            lay2->addWidget(edit);
 //            setTabOrder(button, edit);
         }
         else
         {
+            label = new QLabel(header.value(i) + ':', this);
+            chLay->addWidget(label);
             edittemp = edit;
             edit = new QLineEdit(this);
             chLay->addWidget(edit);
@@ -306,7 +307,7 @@ ListCreator::ListCreator(const QString &file,
     lay->setRowStretch(2,2);
 
     _info->setReadOnly(true);
-    lay->addWidget(_info,2,0,2,1);
+    lay->addWidget(_info,2,0,3,1);
 
     chLay = new QHBoxLayout();
 
@@ -322,7 +323,7 @@ ListCreator::ListCreator(const QString &file,
             this, &QDialog::reject);
     chLay->addWidget(button);
 
-    lay->addLayout(chLay,3,1);
+    lay->addLayout(chLay,4,1);
 
     setLayout(lay);
 
@@ -345,7 +346,7 @@ void ListCreator::on_orgChange()
     else if (type == "9A")
     {
         for (int i = 0; i < org.count(); ++i)
-            org[i] = org.at(i).section(';',0,1);
+            org[i] = org.at(i).section(';',0,0);
         initialise9A(org);
     }
 }
@@ -358,7 +359,10 @@ void ListCreator::on_includeAdd(const QString &filename)
     {
         QTextStream str(&file);
         QString line;
-        QRegExp rx ("!<(.*)>");
+        QRegExp rx ("!?<(.*)>");
+        rx.setMinimal(true);
+        QRegExp ctrl ("!.+ ");
+        ctrl.setMinimal(true);
         QStringList caps;
         QStringList strings;
 
@@ -367,17 +371,21 @@ void ListCreator::on_includeAdd(const QString &filename)
             line = str.readLine().section('|',0,0);
             if (rx.indexIn(line) > 0)
             {
-                caps = rx.cap(1).split(',');
-                foreach (QString wrd, caps)
+                for (int i = 1; i < rx.captureCount(); ++i)
                 {
-                    wrd = wrd.trimmed();
+                    caps = rx.cap(i).split(',');
+                    foreach (QString wrd, caps)
+                    {
+                        wrd = wrd.trimmed();
 
-                    if (wrd.count() > 3 && !wrd.toInt() &&
-                            !strings.contains(wrd))
-                        strings << wrd;
+                        if (wrd.count() > 3 && !wrd.toInt() &&
+                                !strings.contains(wrd))
+                            strings << wrd;
+                    }
                 }
             }
             line.remove(rx);
+            line.remove(ctrl);
             line.remove(QRegExp("!\\w+"));
             line = line.trimmed();
 
@@ -611,12 +619,16 @@ void ListCreator::on_currentChanged(QTreeWidgetItem *now, QTreeWidgetItem *)
 void ListCreator::addOrg()
 {
     _org = new ListCreatorWidgetOrg(this);
+    connect(_org, &ListCreatorWidgetOrg::finished,
+            this, &ListCreator::on_orgChange);
     lay->addWidget(_org,0,0);
 }
 
 void ListCreator::addIncl()
 {
     _incl = new ListCreatorWidgetIncl(this);
+    connect(_incl, &ListCreatorWidgetIncl::fileAdded,
+            this, &ListCreator::on_includeAdd);
     lay->addWidget(_incl,1,0);
 }
 
@@ -639,32 +651,36 @@ void ListCreator::readFile()
     int count = 0;
     QTreeWidgetItem *newItem;
 
-    while (!str.atEnd())
+    line = str.readLine();
+    if (!line.isNull() && line == "ORGANISATION")
     {
+        if (_org)
+            _org->setOrg(str.readLine().trimmed());
         line = str.readLine();
-        if (line == "ORGANISATION")
+
+    }
+
+    if (!line.isNull() && line == "INCLUDES")
+    {
+        if (_incl)
         {
-            if (_org)
-                _org->setOrg(str.readLine().trimmed());
             line = str.readLine();
-
-        }
-        else if (line == "INCLUDES")
-        {
-            if (_incl)
+            while (!line.isNull() && line.startsWith('\t'))
             {
+                _incl->addFile(line.trimmed());
                 line = str.readLine();
-                while (line.startsWith('\t'))
-                {
-                    _incl->addFile(line.trimmed());
-                    line = str.readLine();
-                }
             }
-            else
-                while (line.startsWith('\t'))
-                    line = str.readLine();
-
         }
+        else
+            while (!line.isNull() && line.startsWith('\t'))
+                line = str.readLine();
+
+    }
+
+    while (!line.isNull())
+    {
+
+
         if (line.trimmed().isEmpty())
             continue;
         count = line.count('\t');
@@ -688,6 +704,7 @@ void ListCreator::readFile()
 
         depth = count;
         currentItem = newItem;
+        line = str.readLine();
     }
 
     f.close();
@@ -696,13 +713,21 @@ void ListCreator::readFile()
 QString ListCreator::textForFile(const QStringList &str)
 {
     QStringList ret;
+    int empt = 0;
     foreach (QString temp, str)
     {
         temp = temp.trimmed();
+        if (temp.isEmpty())
+            ++empt;
+        else
+        {
+            for (int i = 0; i < empt; ++i)
+                ret << "";
+            empt = 0;
             temp.replace('|',"||");
             temp.replace('\t', "  ");
             ret << temp;
-
+        }
     }
     return ret.join(" | ");
 }

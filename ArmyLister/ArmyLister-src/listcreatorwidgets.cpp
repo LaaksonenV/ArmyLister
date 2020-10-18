@@ -33,8 +33,9 @@ void ListCreatorWidgetOrg::setOrg(const QString &line)
 {
     if (!line.isEmpty())
     {
-        _text->setText(line.section('#',0,1));
+        _text->setText(line.section('#',0,0));
         _org = line.section('#',1);
+//        emit finished();
     }
 }
 
@@ -129,14 +130,12 @@ void ListCreatorWidgetIncl::addFile(const QString &file)
             ok = false;
             break;
         }
+
     if (ok)
     {
         _files->addItem(file);
         emit fileAdded(file);
-
     }
-    else
-        ok = true;
 }
 
 void ListCreatorWidgetIncl::on_add()
@@ -145,8 +144,11 @@ void ListCreatorWidgetIncl::on_add()
                 this, "include files", QDir::currentPath(),
                 "(*txt)");
 
+    QDir dir(QDir::currentPath());
     for (int i = 0; i < files.count(); ++i)
-        addFile(files.at(i));
+    {
+        addFile(dir.relativeFilePath(files.at(i)));
+    }
 }
 
 void ListCreatorWidgetIncl::on_remove()

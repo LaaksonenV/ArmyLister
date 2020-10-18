@@ -55,6 +55,7 @@ SOURCES += \
     modelitemcat.cpp \
     modelitemselection.cpp \
     modelitemslot.cpp \
+    modelitemspinner.cpp \
     modelitemunit.cpp \
     organisation.cpp \
     organisationrole.cpp \
@@ -81,6 +82,7 @@ HEADERS += \
     modelitemcat.h \
     modelitemselection.h \
     modelitemslot.h \
+    modelitemspinner.h \
     modelitemunit.h \
     organisation.h \
     organisationrole.h \

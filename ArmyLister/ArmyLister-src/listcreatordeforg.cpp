@@ -23,6 +23,8 @@ ListCreatorDefOrg::ListCreatorDefOrg(QWidget *parent)
     QRadioButton *typebut = new QRadioButton("40k", this);
     _orgtype->addButton(typebut);
     //typebut->setChecked(true);
+
+  // FOR NOW
     typebut->setDisabled(true);
 
     mainlay->addWidget(typebut,1,0);
@@ -39,22 +41,32 @@ ListCreatorDefOrg::ListCreatorDefOrg(QWidget *parent)
 
     mainlay->addLayout(lay,1,1,1,2);
 
-    //TBC
+
+    QFrame *line = new QFrame(this);
+    line->setLineWidth(2);
+    line->setMidLineWidth(1);
+    line->setFrameShape(QFrame::HLine);
+    line->setFrameShadow(QFrame::Raised);
+//    linea1->setPalette(QPalette(QColor(255, 0, 0)));
+    mainlay->addWidget(line,2,0,1,3);
+
+
     typebut = new QRadioButton("9A", this);
     _orgtype->addButton(typebut);
+    typebut->setChecked(true);
 
-    mainlay->addWidget(typebut,2,0);
+    mainlay->addWidget(typebut,3,0);
 
 
     _9AOrg = new QGridLayout(this);
 
     QLabel *lab = new QLabel("Characters", this);
-    _9AOrg->addWidget(lab,0,0);
+    _9AOrg->addWidget(lab,0,0,Qt::AlignRight);
 
     QComboBox *drop = new QComboBox(this);
     _types << drop;
     drop->addItems(_items);
-    drop->setCurrentIndex(1);
+    drop->setCurrentIndex(0);
     _9AOrg->addWidget(drop,0,1);
 
     QSpinBox *value = new QSpinBox(this);
@@ -67,25 +79,25 @@ ListCreatorDefOrg::ListCreatorDefOrg(QWidget *parent)
 
 
     lab = new QLabel("Core", this);
-    _9AOrg->addWidget(lab,1,0);
+    _9AOrg->addWidget(lab,1,0,Qt::AlignRight);
 
     drop = new QComboBox(this);
     _types << drop;
     drop->addItems(_items);
-    drop->setCurrentIndex(0);
+    drop->setCurrentIndex(1);
     _9AOrg->addWidget(drop,1,1);
 
     value = new QSpinBox(this);
     _values << value;
     value->setRange(0,100);
     value->setSuffix("%");
-    value->setValue(40);
+    value->setValue(20);
     value->setSingleStep(5);
     _9AOrg->addWidget(value,1,2);
 
 
     lab = new QLabel("Special", this);
-    _9AOrg->addWidget(lab,2,0);
+    _9AOrg->addWidget(lab,2,0,Qt::AlignRight);
 
     drop = new QComboBox(this);
     _types << drop;
@@ -127,18 +139,20 @@ ListCreatorDefOrg::ListCreatorDefOrg(QWidget *parent)
     _9AOrg->addWidget(_add9AOrg,4,0);
 
 
-    mainlay->addLayout(_9AOrg,2,1,1,2);
+    mainlay->addLayout(_9AOrg,3,1,1,2);
+
+    mainlay->addItem(new QSpacerItem(5,5),4,0);
 
 
     but = new QPushButton("Cancel", this);
     connect(but, &QPushButton::clicked,
             this, &QDialog::reject);
-    mainlay->addWidget(but,3,1);
+    mainlay->addWidget(but,5,1);
 
     but = new QPushButton("Ok", this);
     connect(but, &QPushButton::clicked,
             this, &QDialog::accept);
-    mainlay->addWidget(but,3,2);
+    mainlay->addWidget(but,5,2);
 }
 
 QString ListCreatorDefOrg::getType() const

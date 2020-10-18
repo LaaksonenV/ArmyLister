@@ -134,7 +134,7 @@ public:
      * \brief getModelCount simple getter
      * \return current model count
      */
-    virtual int getModelCount() const;
+    virtual int getCurrentCount() const;
 
     /*!
      * \brief getText simple getter
@@ -142,6 +142,7 @@ public:
      */
     virtual QString getText() const;
 
+    virtual QString getPrintText() const;
 
     virtual void passSpecialUp(const QStringList &list, bool check);
 

@@ -20,7 +20,7 @@ public:
 
     virtual QString getText() const;
 
-    virtual int getModelCount() const;
+    virtual int getCurrentCount() const;
 
     virtual void passSpecialUp(const QStringList & list, bool check);
 

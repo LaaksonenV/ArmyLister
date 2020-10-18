@@ -12,6 +12,7 @@
 #include <QRegExp>
 #include <QDebug>
 #include <QStringList>
+#include <QMessageBox>
 
 ItemFactory::ItemFactory(Settings *set)
     : _settings(set)
@@ -256,7 +257,7 @@ void ItemFactory::compileUnit(TempTreeModelItem *tempknot,
         int modelmax = 0;
         if (modelsSplit.count() > 1)
             modelmax = modelsSplit.at(1).trimmed().toInt();
-        knot->setModels(modelmin, modelmax);
+        knot->setRange(modelmin, modelmax);
 
 
         int cost = splitText.at(1).trimmed().toInt();
@@ -265,7 +266,7 @@ void ItemFactory::compileUnit(TempTreeModelItem *tempknot,
             specCost = splitText.at(3).trimmed().toInt()
                     -cost*modelmin;
 
-        knot->setUnitCost(cost, specCost);
+        knot->setMultiCost(cost, specCost);
     }
     // otherwise the units stats are recorded in tables
     else
@@ -276,12 +277,12 @@ void ItemFactory::compileUnit(TempTreeModelItem *tempknot,
 
         if (pr)
         {
-            knot->setModels(pr->min, pr->max);
+            knot->setRange(pr->min, pr->max);
 
             if (pr->specialPoints)
                 specCost = pr->specialPoints - pr->points*pr->min;
 
-            knot->setUnitCost(pr->points, specCost);
+            knot->setMultiCost(pr->points, specCost);
         }
     }
 
@@ -324,6 +325,8 @@ void ItemFactory::compileItems(TempTreeModelItem *tempknot,
         else if (ctrlchar == '/')
         {
             ctrl.remove(ctrlchar);
+            if (ctrl.isEmpty())
+                ctrl = "null";
             if (!slotmap.contains(ctrl))
             {
                 qDebug() << "Faulty slot name in main list: " << ctrl;
@@ -592,7 +595,18 @@ void ItemFactory::compileSelection(TempTreeModelItem *tempknot,
         text = texts.at(i);
         group = text.section("(",0,0);
         if (group.isEmpty())
-            group = "null";
+        {
+            if (text.count() == 1)
+                group = "null";
+            else
+            {
+                QMessageBox::warning(nullptr, "Erroneous selection",
+                                     "Omiting a slot name with multiple slots "
+                                     "is not currently allowed. Skipping " +
+                                     tempknot->_text);
+                return;
+            }
+        }
 
         groupMap.insert(group,i);
         text = text.section("(",1);
