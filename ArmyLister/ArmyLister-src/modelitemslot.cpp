@@ -86,23 +86,23 @@ void ModelItemSlot::expand(bool expanse)
      _trunk->branchExpanded(_index, toMove);
 }
 
-bool ModelItemSlot::branchChecked(bool check, int ind, int role)
+bool ModelItemSlot::branchSelected(int check, int ind, int role)
 {
 
-    if (check) // A branch is toggled to selected
+    if (check > 0) // A branch is toggled to selected
     {
         // This case is only reached, if current index is changed
         // programmatically, meaning other than default was selected, causing
         // default (index 0) to be toggled
         if (_currentIndex == ind)
-            return _trunk->branchChecked(check, _slot, role);
+            return _trunk->branchSelected(check, _slot, role);
 
         // change current index to new one
         int oldIndex = _currentIndex;
         _currentIndex = ind;
 
         // if trunk disallows change, reset changes and return
-        if (!_trunk->branchChecked(check, _slot, role))
+        if (!_trunk->branchSelected(check, _slot, role))
         {
             _currentIndex = oldIndex;
             return false;
@@ -125,7 +125,7 @@ bool ModelItemSlot::branchChecked(bool check, int ind, int role)
                 return false;
 
             // if trunk for some reasons disallows deselection, return
-            if (!_trunk->branchChecked(check, _slot, role))
+            if (!_trunk->branchSelected(check, _slot, role))
                 return false;
 
             // other deselections will cause the default to be selected
@@ -135,7 +135,7 @@ bool ModelItemSlot::branchChecked(bool check, int ind, int role)
         // otherwise deselection was the effect of selecting other branch,
         // so nothing else should be done, just pass the effect on
         else
-            return _trunk->branchChecked(check, _slot, role);
+            return _trunk->branchSelected(check, _slot, role);
     }
     return true;
 

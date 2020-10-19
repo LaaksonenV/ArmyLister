@@ -67,6 +67,8 @@ void ListCreator::CreateArmy(const QString &file, QWidget *parent)
                            "Control elements: \n"
                            " !: Item is always selected, and cannot be "
                            "unselected.\n"
+                           " !$X Item is selectable X times.\n"
+                           " !$X@Y Item is selectable X times for Y models.\n"
                            " !€ Every instance of item is selected at same "
                            "time\n"
                            " !* Item is for all models.\n"
@@ -100,6 +102,7 @@ void ListCreator::CreateArmy(const QString &file, QWidget *parent)
                            "the item with the element:"
                            " !;X Select up to X points worth of items.\n"
                            " !#X Select up to X items.\n"
+                           " !#X@Y Select up to X items for Y models.\n"
 
     );
 

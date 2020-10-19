@@ -241,7 +241,7 @@ void ItemFactory::compileUnit(TempTreeModelItem *tempknot,
     QString text = tempknot->_text;
     QStringList splitText = text.split('|');
     int specCost = 0;
-
+    int modelmin = 0;
 
     // if Unit stats are in base list (9A)
     // Name|permodelcost|modelss(|basecost(if different than permodelcost))
@@ -253,8 +253,8 @@ void ItemFactory::compileUnit(TempTreeModelItem *tempknot,
 
 
         QStringList modelsSplit = splitText.at(2).split('-');
-        int modelmin = modelsSplit.at(0).trimmed().toInt();
-        int modelmax = 0;
+        modelmin = modelsSplit.at(0).trimmed().toInt();
+        int modelmax = -1;
         if (modelsSplit.count() > 1)
             modelmax = modelsSplit.at(1).trimmed().toInt();
         knot->setRange(modelmin, modelmax);
@@ -277,6 +277,7 @@ void ItemFactory::compileUnit(TempTreeModelItem *tempknot,
 
         if (pr)
         {
+            modelmin = pr->min;
             knot->setRange(pr->min, pr->max);
 
             if (pr->specialPoints)
@@ -296,6 +297,7 @@ void ItemFactory::compileUnit(TempTreeModelItem *tempknot,
         compileItems(itm2, knot, slotmap);
 
     knot->passSpecialUp(QStringList(),true);
+    knot->passModelsDown(modelmin, true);
 }
 
 void ItemFactory::compileItems(TempTreeModelItem *tempknot,
@@ -310,7 +312,7 @@ void ItemFactory::compileItems(TempTreeModelItem *tempknot,
     }
 
     QChar ctrlchar;
-
+    bool spin = false;
     int group = -1;
 
     foreach (QString ctrl, tempknot->_control)
@@ -334,9 +336,16 @@ void ItemFactory::compileItems(TempTreeModelItem *tempknot,
             }
             group = slotmap.value(ctrl);
         }
+        else if (ctrlchar == '$')
+            spin = true;
     }
 
-    ModelItemBasic *knot = new ModelItemBasic(_settings, trunk);
+    ModelItemBasic *knot;
+
+    if (spin)
+        knot = new ModelItemSpinner(_settings, trunk);
+    else
+        knot = new ModelItemBasic(_settings, trunk);
 
     trunk->addItem(knot, group);
 
@@ -685,6 +694,7 @@ ItemSatellite *ItemFactory::checkControls(TempTreeModelItem *tempknot,
     QChar ctrlchar;
     ItemSatellite *ret = nullptr;
     short sign;
+    QRegExp permodel("(\\d+)@(\\d+)");
 
     foreach (QString ctrl, tempknot->_control)
     {
@@ -700,7 +710,13 @@ ItemSatellite *ItemFactory::checkControls(TempTreeModelItem *tempknot,
 
         else if (ctrlchar == '#')
         {
-            ret = new ItemSatelliteSelectionLimiter(ctrl.toInt(),
+            if (permodel.indexIn(ctrl) >= 0)
+                ret = new ItemSatelliteSelectionLimiterModels(
+                            permodel.cap(1).toInt(), permodel.cap(2).toInt(),
+                            ModelItemBase::ModelsLimit,
+                            ModelItemBase::CriticalLimit, knot);
+            else
+                ret = new ItemSatelliteSelectionLimiter(ctrl.toInt(),
                                             ModelItemBase::CountLimit,
                                              knot);
             knot->limitedBy(ModelItemBase::SelectionLimit);
@@ -709,6 +725,22 @@ ItemSatellite *ItemFactory::checkControls(TempTreeModelItem *tempknot,
         else if (ctrlchar == '€')
             knot->connectToSatellite(
                         new ItemSatelliteSelectionMirror(knot), true);
+
+        else if (ctrlchar == '$')
+        {
+            if (permodel.indexIn(ctrl) >= 0)
+            {
+                knot->setRange(0,0);
+                knot->connectToSatellite(
+                            new ItemSatelliteSelectionLimiterModels(
+                                permodel.cap(1).toInt(),
+                                permodel.cap(2).toInt(),
+                                ModelItemBase::ModelsLimit,
+                                ModelItemBase::CriticalLimit, knot), true);
+            }
+            else
+                knot->setRange(0,ctrl.toInt());
+        }
 
         else if (ctrlchar == '*')
             knot->setForAll();

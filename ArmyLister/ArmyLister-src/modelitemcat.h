@@ -14,9 +14,9 @@ public:
 
     virtual ~ModelItemCategory();
 
-    virtual void passCostUp(int c, bool = false, int role = -1);
+    virtual void passCostUp(int c, bool = false, int role = 0);
 
-    virtual bool branchChecked(bool check, int, int role);
+    virtual bool branchSelected(int check, int, int role);
 
     virtual void printToStream(QTextStream &str);
 

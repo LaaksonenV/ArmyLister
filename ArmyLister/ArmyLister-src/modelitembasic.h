@@ -129,6 +129,8 @@ public:
      */
     void setUnitCountsAs(int role);
 
+    virtual void setRange(int, int = 0){}
+
 
     /*!
      * \brief getModelCount simple getter
@@ -146,9 +148,9 @@ public:
 
     virtual void passSpecialUp(const QStringList &list, bool check);
 
-    virtual void passCostUp(int c, bool b = false, int role = -1);
+    virtual void passCostUp(int c, bool b = false, int role = 0);
 
-    virtual void passModelsDown(int models);
+    virtual void passModelsDown(int models, bool push = false);
 
     virtual void passSpecialDown(const QStringList &list);
 
@@ -156,7 +158,7 @@ public:
 
     virtual void branchExpanded(int item, int steps);
 
-    virtual bool branchChecked(bool check, int, int role);
+    virtual bool branchSelected(int check, int, int role);
 
     bool checkLimit(int limit);
 
@@ -209,7 +211,7 @@ public slots:
 
     virtual void forceCheck(bool check);
 
-    virtual void currentLimitChanged(int current);
+    virtual void currentLimitChanged(int current, bool);
 
     virtual void connectToSatellite(ItemSatellite * sat,
                                          bool responsible = false);
@@ -222,6 +224,7 @@ protected:
     ModelItemBase *_trunk;
     bool _checked;
     int _unitCountsAs;
+    int _current;
 
 private:
 
@@ -238,9 +241,7 @@ private:
     bool _hasModelLimitMin;
     int _modelLimitMax;
     bool _hasModelLimitMax;
-    bool _skipChange;
     int _countsAs;
-
 
     QPushButton *_expandButton;
     bool _expanded;

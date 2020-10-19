@@ -13,19 +13,23 @@ public:
 
     ModelItemSpinner(ModelItemSpinner *source, ModelItemBase *parent);
 
-    virtual ~ModelItemUnit();
+    virtual ~ModelItemSpinner();
 
     virtual void clone(ModelItemBase * toRoot = nullptr, int i = -1);
 
+    virtual void setCost(int i);
+
     void setMultiCost(int base, int special);
 
-    void setRange(int min, int max = 0);
+    virtual void setRange(int min, int max = -1);
 
     virtual int getCurrentCount() const;
 
     virtual QString getPrintText() const;
 
-    virtual void passCostUp(int c, bool perModel = false, int role = -1);
+    virtual void passCostUp(int c, bool perModel = false, int role = 0);
+
+    virtual void currentLimitChanged(int current, bool whole);
 
 private:
 
@@ -34,16 +38,6 @@ private:
 public slots:
 
     virtual void on_spinnerChanged(int now);
-
-signals:
-
-    void itemCloned(bool = true);
-
-    void modelsChanged(int);
-
-protected:
-
-    int _current;
 
 private:
 

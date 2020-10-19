@@ -122,7 +122,7 @@ void ModelItemBase::passSpecialUp(const QStringList &, bool)
 
 void ModelItemBase::passCostUp(int c, bool, int role)
 {
-    if (role < 0)
+    if (role <= 0)
     {
         _cost += c;
         update();
@@ -130,11 +130,11 @@ void ModelItemBase::passCostUp(int c, bool, int role)
     }
 }
 
-void ModelItemBase::passModelsDown(int models)
+void ModelItemBase::passModelsDown(int models, bool push)
 {
     foreach (ModelItemBase *i, _branches)
     {
-        i->passModelsDown(models);
+        i->passModelsDown(models, push);
     }
 }
 
@@ -154,7 +154,7 @@ void ModelItemBase::passCostDown(int left)
     }
 }
 
-bool ModelItemBase::branchChecked(bool, int, int)
+bool ModelItemBase::branchSelected(int, int, int)
 {
     return true;
 }

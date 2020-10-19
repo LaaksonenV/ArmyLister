@@ -21,9 +21,9 @@ public:
 
     virtual void passSpecialUp(const QStringList &list, bool check);
 
-    virtual bool branchChecked(bool check, int i, int role);
+    virtual bool branchSelected(bool check, int i, int role);
 
-    virtual void passCostUp(int c, bool perModel = false, int role = -1);
+    virtual void passCostUp(int c, bool perModel = false, int role = 0);
 
     virtual void printToStream(QTextStream &str);
 
@@ -37,9 +37,7 @@ protected:
 
 signals:
 
-    void itemCloned(bool = true);
-
-    void modelsChanged(int);
+    void itemCloned(bool = true, int = 0);
 
 private:
     QTimer *_clickClock;

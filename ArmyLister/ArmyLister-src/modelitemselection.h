@@ -16,7 +16,7 @@ public:
 
     virtual ~ModelItemSelection();
 
-    virtual void clone(ModelItemBase *toRoot, int = -1);
+    virtual void clone(ModelItemBase *toRoot, int = 0);
 
     virtual void addItem(ModelItemBase* item, int slot);
 
@@ -25,7 +25,7 @@ public:
 //    virtual void setText(const QString &text);
 
 
-    virtual bool branchChecked(bool check, int, int role);
+    virtual bool branchSelected(int check, int, int role);
 
     virtual void printToStream(QTextStream &str);
 

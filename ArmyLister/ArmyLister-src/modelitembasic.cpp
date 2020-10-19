@@ -27,6 +27,7 @@ ModelItemBasic::ModelItemBasic(Settings *set, ModelItemBase *parent)
     , _trunk(parent)
     , _checked(false)
     , _unitCountsAs(0)
+    , _current(1)
     , _title(new QLabel(this))
     , _special(QStringList())
     , _specialLimiter(QStringList())
@@ -37,7 +38,6 @@ ModelItemBasic::ModelItemBasic(Settings *set, ModelItemBase *parent)
     , _hasModelLimitMin(false)
     , _modelLimitMax(0)
     , _hasModelLimitMax(false)
-    , _skipChange(false)
     , _countsAs(0)
     , _expandButton(nullptr)
     , _expanded(false)
@@ -53,6 +53,7 @@ ModelItemBasic::ModelItemBasic(ModelItemBasic *source, ModelItemBase *parent)
     , _trunk(parent)
     , _checked(false)
     , _unitCountsAs(0)
+    , _current(1)
     , _title(new QLabel(this))
     , _special(QStringList())
     , _specialLimiter(QStringList())
@@ -63,7 +64,6 @@ ModelItemBasic::ModelItemBasic(ModelItemBasic *source, ModelItemBase *parent)
     , _hasModelLimitMin(false)
     , _modelLimitMax(0)
     , _hasModelLimitMax(false)
-    , _skipChange(false)
     , _countsAs(0)
     , _expandButton(nullptr)
     , _expanded(false)
@@ -183,8 +183,8 @@ void ModelItemBasic::setModelLimiter(int min, int max)
         _hasModelLimitMax = true;
     }
 
-    if (_hasModelLimitMin || _hasModelLimitMax)
-        passModelsDown(getCurrentCount());
+//    if (_hasModelLimitMin || _hasModelLimitMax)
+  //      passModelsDown(getCurrentCount());
 }
 
 void ModelItemBasic::setAlwaysChecked(bool b)
@@ -211,7 +211,7 @@ void ModelItemBasic::setForAll(bool b)
     if (b && _forAll < 0)
     {
         _forAll = _cost;
-        setCost(_forAll*getCurrentCount());
+//        setCost(_forAll*getCurrentCount());
     }
 }
 
@@ -278,33 +278,28 @@ void ModelItemBasic::passCostUp(int c, bool b, int role)
         ModelItemBase::passCostDown(_costLimit-_cost);
 }
 
-void ModelItemBasic::passModelsDown(int models)
+void ModelItemBasic::passModelsDown(int models, bool push)
 {
     if (_hasModelLimitMin)
         _modelLimitMin -= models;
     if (_hasModelLimitMax)
         _modelLimitMax -= models;
 
-    if (_checked)
-    {
-        if (_hasModelLimitMax)
-            _skipChange = true;
-        emit modelsChanged(models);
-    }
+    emit modelsChanged(models, _checked, false);
+
 
     if ((_modelLimitMin > 0 || _modelLimitMax < 0) && !checkLimit(ModelsLimit))
         setHardLimit(ModelsLimit);
     else if (checkLimit(ModelsLimit))
         setHardLimit(-ModelsLimit);
 
-
     if (_forAll >= 0)
     {
         models *= _forAll;
-        setCost(models);
+        setCost(models+_cost);
     }
     else
-        ModelItemBase::passModelsDown(models);
+        ModelItemBase::passModelsDown(models, push);
 }
 
 void ModelItemBasic::passSpecialDown(const QStringList &list)
@@ -374,19 +369,19 @@ void ModelItemBasic::branchExpanded(int item, int steps)
     update();
 }
 
-bool ModelItemBasic::branchChecked(bool check, int, int role)
+bool ModelItemBasic::branchSelected(int check, int, int role)
 {
     if (role)
     {
-        if (check)
+        if (check > 0)
             _unitCountsAs = role;
         else
             _unitCountsAs = 0;
     }
-    if(!_trunk->branchChecked(check, _index, role))
+    if(!_trunk->branchSelected(check, _index, role))
         return false;
 
-    if ((check && !_checked) || checkLimit(SelectionLimit))
+    if ((check > 0 && !_checked) || checkLimit(SelectionLimit))
         toggleCheck();
 
     return true;
@@ -463,11 +458,14 @@ void ModelItemBasic::paintEvent(QPaintEvent *)
         QPainter p(this);
         QLinearGradient g(0,0, width(), _settings->itemHeight);
         if (_checked)
-            g.setColorAt(0, QColor(200,255,200));
-        else if (checkLimit(GlobalLimit))
-            g.setColorAt(0, QColor(255,200,200));
+        {
+            if (_limit == CriticalLimit)
+                g.setColorAt(0, Settings::Color(Settings::ColorNot));
+            else
+                g.setColorAt(0, Settings::Color(Settings::ColorOk));
+        }
         else if (_limit > Checkable)
-            g.setColorAt(0, QColor(150,150,150));
+            g.setColorAt(0, Settings::Color(Settings::ColorNeutral));
         else
             g.setColorAt(0, Qt::white);
 
@@ -637,20 +635,19 @@ void ModelItemBasic::toggleCheck()
     if (!_checked && _limit > Checkable)
         return;
 
-    if (!_trunk->branchChecked(!_checked, _index, _unitCountsAs))
+    int change = _current;
+    if (_checked)
+        change = -change;
+
+    if (!_trunk->branchSelected(change, _index, _unitCountsAs))
         return;
 
     _checked = !_checked;
 
-    if (_hasModelLimitMax)
-    {
-        _skipChange = true;
-        if (_checked)
-            emit modelsChanged(getCurrentCount());
-        else
-            emit modelsChanged(-getCurrentCount());
-
-    }
+    if (_checked)
+        emit modelsChanged(getCurrentCount(), _checked, true);
+    else
+        emit modelsChanged(-getCurrentCount(), _checked, true);
 
     int c = _cost;
     bool fa = false;
@@ -664,13 +661,16 @@ void ModelItemBasic::toggleCheck()
         c = -c;
 
     _trunk->passCostUp(c, fa);
-    if (_countsAs >= 0)
+    if (_countsAs > 0)
         _trunk->passCostUp(c, fa, _countsAs);
     if (_special.count())
         _trunk->passSpecialUp(_special, _checked);
     update();
 
-    emit itemChecked(_checked);
+    if (_checked)
+        emit itemSelected(_current,0);
+    else
+        emit itemSelected(-_current,0);
 }
 
 void ModelItemBasic::forceCheck(bool check)
@@ -679,28 +679,23 @@ void ModelItemBasic::forceCheck(bool check)
         toggleCheck();
 }
 
-void ModelItemBasic::currentLimitChanged(int current)
+void ModelItemBasic::currentLimitChanged(int current, bool)
 {
-    if (_skipChange)
-        _skipChange = false;
-    else
-    {
-        if (_hasModelLimitMax)
-            _modelLimitMax -= current;
-        if (_modelLimitMax < 0 && !checkLimit(ModelsLimit))
-            limitedBy(ModelsLimit);
-        else if (checkLimit(ModelsLimit))
-            limitedBy(-ModelsLimit);
-    }
+    if (_hasModelLimitMax)
+        _modelLimitMax -= current;
+    if (_modelLimitMax < 0 && !checkLimit(ModelsLimit))
+        limitedBy(ModelsLimit);
+    else if (checkLimit(ModelsLimit))
+        limitedBy(-ModelsLimit);
 }
 
 void ModelItemBasic::connectToSatellite(ItemSatellite *sat,
                                              bool responsible)
 {
-    connect(this, &ModelItemBasic::itemChecked,
-            sat, &ItemSatellite::on_itemChecked);
+    connect(this, &ModelItemBasic::itemSelected,
+            sat, &ItemSatellite::on_itemSelected);
 
-    connect(this, &ModelItemBasic::modelsChanged,
+    connect(_trunk, &ModelItemBasic::modelsChanged,
             sat, &ItemSatellite::on_modelsChanged);
 
     connect(sat, &ItemSatellite::currentLimit,
@@ -742,4 +737,7 @@ void ModelItemBasic::limitedBy(short flag)
         _limit = _limit | flag;
     else
         _limit = _limit & ~flag;
+
+    if (abs(flag) == CriticalLimit)
+        _trunk->limitedBy(flag);
 }

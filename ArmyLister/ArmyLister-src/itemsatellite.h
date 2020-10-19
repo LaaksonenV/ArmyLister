@@ -13,9 +13,9 @@ public:
 
 public slots:
 
-    virtual void on_itemChecked(bool){}
+    virtual void on_itemSelected(int,int){}
 
-    virtual void on_modelsChanged(int){}
+    virtual void on_modelsChanged(int, bool, bool){}
 
     virtual void ping(bool);
 
@@ -27,7 +27,7 @@ signals:
 
     void limitReach(int);
 
-    void currentLimit(int);
+    void currentLimit(int, bool);
 
     void check(bool);
 
@@ -48,17 +48,13 @@ public:
     ItemSatelliteSelectionLimiter(int max, int type, QObject *parent = nullptr);
     virtual ~ItemSatelliteSelectionLimiter(){}
 
-public:
-
-    virtual void on_itemChecked(bool b);
+    virtual void on_itemSelected(int b,int);
 
     virtual void ping(bool status);
 
     virtual void createClone();
 
 protected:
-
-    void editCurrent(int i);
 
     int _limit;
     int _current;
@@ -72,9 +68,7 @@ public:
     ItemSatelliteModelMirror(QObject *parent = nullptr);
     virtual ~ItemSatelliteModelMirror(){}
 
-public:
-
-    virtual void on_modelsChanged(int i);
+    virtual void on_modelsChanged(int i, bool check, bool toggle);
 
     virtual void createClone();
 };
@@ -88,7 +82,7 @@ public:
 
 public:
 
-    virtual void on_itemChecked(bool b);
+    virtual void on_itemSelected(int b, int);
 
     virtual void createClone();
 
@@ -96,6 +90,28 @@ public:
 
 private:
     bool _selected;
+};
+
+class ItemSatelliteSelectionLimiterModels : public ItemSatelliteSelectionLimiter
+{
+    Q_OBJECT
+public:
+    ItemSatelliteSelectionLimiterModels(int one, int per, int type, int crit,
+                                        QObject *parent = nullptr);
+    virtual ~ItemSatelliteSelectionLimiterModels(){}
+
+    virtual void on_itemSelected(int i, int);
+
+    virtual void on_modelsChanged(int i, bool, bool toggle);
+
+    virtual void createClone();
+
+private:
+
+    int _currentModels;
+    int _criticalType;
+    int _limitFor;
+    int _perModel;
 };
 
 #endif // ITEMSATELLITE_H

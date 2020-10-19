@@ -104,9 +104,9 @@ void ModelItemSelection::nextSlot()
     _branches.at(_currentSlot)->toggleExpand();
 }
 
-bool ModelItemSelection::branchChecked(bool check, int, int role)
+bool ModelItemSelection::branchSelected(int check, int, int role)
 {
-    if (check)
+    if (check > 0)
     {
         QStringList newtext;
         //int total = 0;
@@ -119,7 +119,7 @@ bool ModelItemSelection::branchChecked(bool check, int, int role)
 //        _cost = total;
     }
     if (role)
-        ModelItemBasic::branchChecked(check, 0, role);
+        ModelItemBasic::branchSelected(check, 0, role);
     return true;
 }
 

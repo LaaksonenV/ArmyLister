@@ -91,7 +91,7 @@ public:
      * \brief setCost simple setter
      * \param i new cost
      */
-    void setCost(int i);
+    virtual void setCost(int i);
 
     /*!
      * \brief getText simple getter
@@ -137,7 +137,7 @@ public:
      * to an item that handles it, and in any case to pass the function
      * to the root
      */
-    virtual void passCostUp(int c, bool = false, int role = -1);
+    virtual void passCostUp(int c, bool = false, int role = 0);
 
     /*!
      * \brief passModelsDown pass function for model count change
@@ -145,7 +145,7 @@ public:
      *
      * Items limited by model count need to know if it changes
      */
-    virtual void passModelsDown(int models);
+    virtual void passModelsDown(int models, bool push = false);
 
     /*!
      * \brief PassSpecialDown pass function for edited special elements
@@ -171,7 +171,7 @@ public:
      * As item without root, Base item return true. Implement on an item
      * with root
      */
-    virtual bool branchChecked(bool,int,int);
+    virtual bool branchSelected(int,int,int);
 
     /*!
      * \brief resizeEvent reimplemented
@@ -201,9 +201,11 @@ public:
         CountLimit = CostLimit*2,
         ModelsLimit = CountLimit*2,
 
+        CriticalLimit = ModelsLimit*2,
+
 
         Checkable = SelectionLimit,
-        LastBaseLimit = ModelsLimit
+        LastBaseLimit = CriticalLimit
     };
 
     virtual void printToStream(QTextStream &str);
@@ -260,8 +262,7 @@ public slots:
 
 signals:
 
-    void itemChecked(bool);
-    void modelsChanged(int);
+    void modelsChanged(int, bool, bool);
     void itemSelected(int amount,int role);
     void valueChanged(int amount,int role);
     void countsChanged(int amount, int role);

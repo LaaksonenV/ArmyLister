@@ -220,7 +220,7 @@ struct PointContainer
         , special(QStringList())
         , points(0)
         , min(0)
-        , max(0)
+        , max(-1)
         , specialPoints(0)
         , multiplier(1)
     {

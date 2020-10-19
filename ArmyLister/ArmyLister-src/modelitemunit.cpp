@@ -64,9 +64,9 @@ void ModelItemUnit::passSpecialUp(const QStringList &list, bool check)
     dealWithSpecials(list, check);
 }
 
-bool ModelItemUnit::branchChecked(bool check, int i, int role)
+bool ModelItemUnit::branchSelected(bool check, int i, int role)
 {
-    if (ModelItemBasic::branchChecked(check,i,role))
+    if (ModelItemBasic::branchSelected(check,i,role))
     {
         if (role)
         {
@@ -132,5 +132,5 @@ void ModelItemUnit::mouseDoubleClickEvent(QMouseEvent *e)
 void ModelItemUnit::connectToSatellite(ItemSatellite *sat)
 {
     connect(this, &ModelItemUnit::itemCloned,
-            sat, &ItemSatellite::on_itemChecked);
+            sat, &ItemSatellite::on_itemSelected);
 }

@@ -24,13 +24,13 @@ public:
 
     virtual void passSpecialUp(const QStringList & list, bool check);
 
-    virtual void passCostUp(int c, bool forall = false, int role = -1);
+    virtual void passCostUp(int c, bool forall = false, int role = 0);
 
     virtual int getCost() const;
 
     virtual void expand(bool expanse);
 
-    virtual bool branchChecked(bool check, int ind, int role);
+    virtual bool branchSelected(int check, int ind, int role);
 
     virtual void toggleExpand();
 
