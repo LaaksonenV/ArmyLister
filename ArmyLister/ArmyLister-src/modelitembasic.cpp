@@ -145,7 +145,12 @@ void ModelItemBasic::setTrunk(ModelItemBase *item)
 void ModelItemBasic::setText(const QString &text)
 {
     QString name = text;
-    name.remove(QRegExp("\\{.*\\}")).trimmed();
+    QRegExp ttip("\\{(.*)\\}");
+    int pos = 0;
+    while ((pos = ttip.indexIn(name,pos)) >= 0)
+        setToolTip(ttip.cap(1));
+
+    name.remove(ttip).trimmed();
 
     _title->setText(name);
     _title->adjustSize();
