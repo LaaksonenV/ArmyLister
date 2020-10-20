@@ -3,14 +3,12 @@
 
 #include "modelitembasic.h"
 
-class Settings;
-
 class ModelItemSelection : public ModelItemBasic
 {
     Q_OBJECT
 
 public:
-    ModelItemSelection(Settings *set, ModelItemBase *parent);
+    ModelItemSelection(ModelItemBase *parent);
 
     ModelItemSelection(ModelItemSelection *source, ModelItemBase *parent);
 

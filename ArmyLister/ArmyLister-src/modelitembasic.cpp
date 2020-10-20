@@ -13,17 +13,14 @@ void ModelItemBasic::init()
 {
     show();
 
-    QFont f(_settings->font);
-    f.setPointSize(_settings->textFontSize);
-    f.setBold(true);
-    _title->setFont(f);
-    _title->setFixedHeight(_settings->itemHeight);
-    _title->move(_settings->itemHeight,0);
-    setFixedHeight(_settings->itemHeight);
+    _title->setFont(Settings::Font(Settings::ItemFont));
+    _title->setFixedHeight(Settings::ItemMeta(Settings::ItemHeight));
+    _title->move(Settings::ItemMeta(Settings::ItemHeight),0);
+    setFixedHeight(Settings::ItemMeta(Settings::ItemHeight));
 }
 
-ModelItemBasic::ModelItemBasic(Settings *set, ModelItemBase *parent)
-    : ModelItemBase(set, parent)
+ModelItemBasic::ModelItemBasic(ModelItemBase *parent)
+    : ModelItemBase(parent)
     , _trunk(parent)
     , _checked(false)
     , _unitCountsAs(0)
@@ -399,7 +396,7 @@ void ModelItemBasic::resizeEvent(QResizeEvent *e)
     if (e->size().height() != e->oldSize().height())
         return;
     QSize sz = e->size();
-    sz.setWidth(sz.width()-_settings->itemHPos);
+    sz.setWidth(sz.width()-Settings::ItemMeta(Settings::ItemHPos));
     foreach (ModelItemBase *i, _branches)
         i->resize(sz);
 }
@@ -423,7 +420,8 @@ void ModelItemBasic::print(QTextStream &str, int pre,
     {
         str << QString("  ").repeated(pre);
         str.setFieldAlignment(QTextStream::AlignLeft);
-        str.setFieldWidth(Settings::Number(Settings::PlainTextWidth)-pre*10);
+        str.setFieldWidth(Settings::ItemMeta(Settings::PlainTextWidth)
+                          -pre*10);
         str << override.at(0);
         str.setFieldWidth(0);
         str.setFieldAlignment(QTextStream::AlignRight);
@@ -438,7 +436,8 @@ void ModelItemBasic::print(QTextStream &str, int pre,
     {
         str << QString("  ").repeated(pre);
         str.setFieldAlignment(QTextStream::AlignLeft);
-        str.setFieldWidth(Settings::Number(Settings::PlainTextWidth)-pre*10);
+        str.setFieldWidth(Settings::ItemMeta(Settings::PlainTextWidth)
+                          -pre*10);
         str << _title->text();
         str.setFieldWidth(0);
         str.setFieldAlignment(QTextStream::AlignRight);
@@ -456,7 +455,8 @@ void ModelItemBasic::paintEvent(QPaintEvent *)
     if (isVisible())
     {
         QPainter p(this);
-        QLinearGradient g(0,0, width(), _settings->itemHeight);
+        QLinearGradient g(0,0, width(),
+                          Settings::ItemMeta(Settings::ItemHeight));
         if (_checked)
         {
             if (_limit == CriticalLimit)
@@ -478,20 +478,18 @@ void ModelItemBasic::paintEvent(QPaintEvent *)
         p.setBrush(b);
         p.drawRect(rect());
 
-        QFont f(_settings->font);
-        f.setPointSize(_settings->textFontSize);
-        f.setBold(true);
+        p.setFont(Settings::Font(Settings::ItemFont));
 
-        p.setFont(f);
-
-        p.drawLine(width()-_settings->costFieldWidth,0,
-                   width()-_settings->costFieldWidth,height());
+        p.drawLine(width()-Settings::ItemMeta(Settings::CostFieldWidth),0,
+                   width()-Settings::ItemMeta(Settings::CostFieldWidth),
+                     height());
 
         if (checkLimit(CostLimit))
            p.setPen(Qt::red);
 
-        p.drawText(width()-_settings->costFieldWidth + 10,
-                   (_settings->itemHeight/2)+(_settings->textFontSize/2),
+        p.drawText(width()-Settings::ItemMeta(Settings::CostFieldWidth) + 10,
+                   (Settings::ItemMeta(Settings::ItemHeight)/2)
+                   +(Settings::ItemMeta(Settings::ItemFontSize)/2),
                    QString::number(_cost));
     }
 }
@@ -522,14 +520,14 @@ void ModelItemBasic::mousePressEvent(QMouseEvent *e)
 QPushButton *ModelItemBasic::createPlus()
 {
     QPushButton *plus = new QPushButton("+", this);
-    plus->setFixedSize(_settings->expandButtonSize,
-                                _settings->expandButtonSize);
+    plus->setFixedSize(Settings::ItemMeta(Settings::ExpandButtonSize),
+                                Settings::ItemMeta(Settings::ExpandButtonSize));
 //    plus->setCheckable(true);
     plus->setFlat(true);
-    plus->move((_settings->itemHeight/2)
-                            -(_settings->expandButtonSize/2),
-                        (_settings->itemHeight/2)
-                            -(_settings->expandButtonSize/2));
+    plus->move((Settings::ItemMeta(Settings::ItemHeight)/2)
+                          -(Settings::ItemMeta(Settings::ExpandButtonSize)/2),
+                        (Settings::ItemMeta(Settings::ItemHeight)/2)
+                          -(Settings::ItemMeta(Settings::ExpandButtonSize)/2));
 
     connect(plus, &QPushButton::pressed,
             this, &ModelItemBasic::toggleExpand);
@@ -575,16 +573,17 @@ int ModelItemBasic::endOfText() const
 
 void ModelItemBasic::fitButton(QPushButton *but)
 {
-    but->setFixedSize(_settings->expandButtonSize,
-                                _settings->expandButtonSize);
+    but->setFixedSize(Settings::ItemMeta(Settings::ExpandButtonSize),
+                                Settings::ItemMeta(Settings::ExpandButtonSize));
 
     but->setFlat(true);
-    but->move((_settings->itemHeight*3/2)
-                            -(_settings->expandButtonSize/2),
-                        (_settings->itemHeight/2)
-                            -(_settings->expandButtonSize/2));
+    but->move((Settings::ItemMeta(Settings::ItemHeight)*3/2)
+                          -(Settings::ItemMeta(Settings::ExpandButtonSize)/2),
+                        (Settings::ItemMeta(Settings::ItemHeight)/2)
+                          -(Settings::ItemMeta(Settings::ExpandButtonSize)/2));
 
-    _title->move(_title->pos().x()+_settings->expandButtonSize,
+    _title->move(_title->pos().x()+
+                 Settings::ItemMeta(Settings::ExpandButtonSize),
                  _title->pos().y());
 }
 
@@ -595,11 +594,11 @@ void ModelItemBasic::expand(bool expanse)
 
     if (!expanse)
     {
-        setFixedHeight(_settings->itemHeight);
+        setFixedHeight(Settings::ItemMeta(Settings::ItemHeight));
         toMove = -toMove;
     }
     else
-        setFixedHeight(_settings->itemHeight* (toMove+1));
+        setFixedHeight(Settings::ItemMeta(Settings::ItemHeight)* (toMove+1));
 
     _trunk->branchExpanded(_index, toMove);
 }

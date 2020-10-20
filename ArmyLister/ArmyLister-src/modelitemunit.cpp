@@ -8,8 +8,8 @@
 #include "settings.h"
 #include "itemsatellite.h"
 
-ModelItemUnit::ModelItemUnit(Settings *set, ModelItemBase *parent)
-    : ModelItemSpinner(set, parent)
+ModelItemUnit::ModelItemUnit(ModelItemBase *parent)
+    : ModelItemSpinner(parent)
     , _clickClock(new QTimer(this))
 {
     _clickClock->setSingleShot(true);

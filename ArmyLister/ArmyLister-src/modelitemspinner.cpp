@@ -8,8 +8,8 @@
 #include "settings.h"
 #include "itemsatellite.h"
 
-ModelItemSpinner::ModelItemSpinner(Settings *set, ModelItemBase *parent)
-    : ModelItemBasic(set, parent)
+ModelItemSpinner::ModelItemSpinner(ModelItemBase *parent)
+    : ModelItemBasic(parent)
     , _singleCost(0)
     , _initSingleCost(0)
     , _otherCost(0)
@@ -55,6 +55,7 @@ void ModelItemSpinner::setMultiCost(int base, int special)
     _otherCost = special;
     _initOtherCost = special;
     ModelItemBase::passCostUp((base*_current)+special);
+    updateSpinner();
 }
 
 void ModelItemSpinner::setRange(int min, int max)
@@ -87,7 +88,10 @@ void ModelItemSpinner::passCostUp(int c, bool perModel, int role)
     {
         change = c*_current;
         if (!role)
+        {
             _singleCost += c;
+            updateSpinner();
+        }
     }
     else if (!role)
         _otherCost += change;
@@ -99,14 +103,28 @@ void ModelItemSpinner::createSpinner(int min, int max)
     _spinner = new QSpinBox(this);
     connect(_spinner, QOverload<int>::of(&QSpinBox::valueChanged),
             this, &ModelItemSpinner::on_spinnerChanged);
+    _spinner->setFont(Settings::Font(Settings::SpinnerFont));
     _spinner->setRange(min, max);
-    _spinner->setSuffix(QString("/")+QString::number(max));
+    updateSpinner();
 
     _spinner->move(endOfText() + 20, 1);
-    _spinner->setMinimumHeight(_settings->itemHeight-2);
+    _spinner->setMinimumHeight(Settings::ItemMeta(Settings::ItemHeight)-2);
 
     _spinner->show();
 
+}
+
+void ModelItemSpinner::updateSpinner()
+{
+    if (_spinner)
+    {
+        QString suffix("/");
+        suffix += QString::number(_spinner->maximum());
+        suffix += " @ ";
+        suffix += QString::number(_singleCost);
+
+        _spinner->setSuffix(suffix);
+    }
 }
 
 void ModelItemSpinner::on_spinnerChanged(int now)
@@ -127,7 +145,7 @@ void ModelItemSpinner::currentLimitChanged(int current, bool whole)
         if (!whole)
             change += _spinner->value();
         _spinner->setMaximum(change);
-        _spinner->setSuffix(QString("/")+QString::number(change));
+        updateSpinner();
     }
     else
         ModelItemBasic::currentLimitChanged(current, true);

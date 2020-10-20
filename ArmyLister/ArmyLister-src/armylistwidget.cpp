@@ -10,10 +10,9 @@
 #include "itemfactory.h"
 #include "modelitembase.h"
 
-ArmyListWidget::ArmyListWidget(Settings *set, QWidget *parent)
+ArmyListWidget::ArmyListWidget(QWidget *parent)
     : QScrollArea(parent)
-    , _settings(set)
-    , _topItem(new ModelItemBase(set, this))
+    , _topItem(new ModelItemBase(this))
     , _name(QString())
     , _points(0)
 {
@@ -39,7 +38,7 @@ ArmyListWidget::~ArmyListWidget()
 bool ArmyListWidget::addArmyFile(const QString &fileName)
 {
       // Reusable class, move to members
-    ItemFactory fctr(_settings);
+    ItemFactory fctr;
     if (!fctr.addArmyFile(_topItem, fileName))
         return false;
     QFileInfo forName;
@@ -60,13 +59,12 @@ void ArmyListWidget::printList() const
     QFile file(filename);
     if (!file.open(QFile::WriteOnly | QFile::Text))
         return;
+
     QTextStream str(&file);
 
-    QFont f("Consolas",11);
-
-
     int count = _name.size()+5;
-    str.setFieldWidth((Settings::Number(Settings::PlainTextWidth)-count)/2);
+    str.setFieldWidth(int(Settings::ItemMeta(Settings::PlainTextWidth)-count)
+                      /2);
     str << _name;
     str.setFieldWidth(0);
     str << " " << _points;
@@ -120,7 +118,7 @@ void ArmyListWidget::loadList(const QString &filename)
     if (str.atEnd())
         return;
 
-    ItemFactory fctr(_settings);
+    ItemFactory fctr();
     if (!fctr.addArmyFile(_topItem, line + ".txt"))
         return;
 

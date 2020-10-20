@@ -130,14 +130,11 @@ void BasicRole::paintEvent(QPaintEvent *)
         p.drawLine(d,r.top(),d,r.bottom());
     }
 
-    QFont f(Settings::font);
-    f.setPointSize(c_fontsize);
-    f.setBold(true);
     pen.setColor(Qt::black);
     pen.setWidth(1);
     p.setPen(pen);
 
-    p.setFont(f);
+    p.setFont(Settings::Font(Settings::OrgFont));
     p.drawText(r, _printText);
 
 }

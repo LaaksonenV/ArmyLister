@@ -9,7 +9,6 @@ class ModelItemBase;
 class ModelItemBasic;
 class ItemSatellite;
 class ModelItemCategory;
-class Settings;
 class QTextStream;
 struct TempTreeModelItem;
 struct PointContainer;
@@ -19,7 +18,7 @@ class ItemFactory
 {
 
 public:
-    ItemFactory(Settings *set);
+    ItemFactory();
     ~ItemFactory();
 
     /*!
@@ -179,8 +178,6 @@ private:
 
     void clear();
 private:
-    Settings *_settings;
-
     QList<PointContainer*> _pointList;
     QMap<QString, QStringList> _listList;
     QMap<QString, ItemSatellite*> _globalLimiters;

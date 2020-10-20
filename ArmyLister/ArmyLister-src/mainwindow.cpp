@@ -21,7 +21,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 {
     setWindowTitle(QString("ArmyLister ") + QString(APP_VERSION));
-    _mainwidget = new ArmyWidget(_settings, this);
+    _mainwidget = new ArmyWidget(this);
 
     setCentralWidget(_mainwidget);
 

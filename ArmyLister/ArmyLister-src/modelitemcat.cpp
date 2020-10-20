@@ -2,8 +2,8 @@
 
 #include "settings.h"
 
-ModelItemCategory::ModelItemCategory(Settings *set, ModelItemBase *parent)
-    : ModelItemBasic(set, parent)
+ModelItemCategory::ModelItemCategory(ModelItemBase *parent)
+    : ModelItemBasic(parent)
 {
     setAlwaysChecked();
     connect(this, &ModelItemCategory::valueChanged,

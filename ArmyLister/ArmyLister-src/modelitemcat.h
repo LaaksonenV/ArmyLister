@@ -3,14 +3,12 @@
 
 #include "modelitembasic.h"
 
-class Settings;
-
 class ModelItemCategory : public ModelItemBasic
 {
     Q_OBJECT
 
 public:
-    ModelItemCategory(Settings *set ,ModelItemBase *parent);
+    ModelItemCategory(ModelItemBase *parent);
 
     virtual ~ModelItemCategory();
 

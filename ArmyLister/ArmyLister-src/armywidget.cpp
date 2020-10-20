@@ -13,12 +13,11 @@
 #include "listcreatordetach.h"
 
 
-ArmyWidget::ArmyWidget(Settings *set, QWidget *parent)
+ArmyWidget::ArmyWidget(QWidget *parent)
     : QWidget(parent)
-    , _settings(set)
     , _points(0)
     , _army(nullptr)
-    , _list(new ArmyListWidget(_settings, this))
+    , _list(new ArmyListWidget(this))
 
 {
     connect(_list, &ArmyListWidget::valueChanged,
@@ -44,7 +43,7 @@ bool ArmyWidget::createArmy(const QString &filename)
     if (orgtype == "9A")
     {
         limit = QInputDialog::getInt(this, tr("Army size"), tr("Points"),
-                                 Settings::Number(Settings::DefaultArmySize9A),
+                                 Settings::DefaultSize(Settings::DefaultArmySize9A),
                                      0, 10000, 100, &ok);
         army = create9A(org,limit);
     }

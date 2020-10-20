@@ -1,14 +1,25 @@
 #include "settings.h"
 
-const QColor& Settings::Color(Colours c)
+const QColor& Settings::Color(enum Colours c)
 {
     return _colours.at(c);
 }
 
-const unsigned short Settings::Number(Numbers i)
+const unsigned short Settings::DefaultSize(enum Numbers i)
 {
-    return _numbers.at(i);
+    return _sizes.at(i);
 }
+
+const unsigned short Settings::ItemMeta(enum ItemMetas i)
+{
+    return _itemmeta.at(i);
+}
+
+const QFont& Settings::Font(enum Fonts i)
+{
+    return _fonts.at(i);
+}
+
 
 Settings::Settings()
     : QSettings("settings.ini", QSettings::IniFormat)

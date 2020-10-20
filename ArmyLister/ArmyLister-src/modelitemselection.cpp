@@ -5,8 +5,8 @@
 #include "modelitemslot.h"
 #include "settings.h"
 
-ModelItemSelection::ModelItemSelection(Settings *set, ModelItemBase *parent)
-    : ModelItemBasic(set, parent)
+ModelItemSelection::ModelItemSelection(ModelItemBase *parent)
+    : ModelItemBasic(parent)
     , _nextButton(nullptr)
     , _currentSlot(-1)
 {
@@ -41,7 +41,7 @@ void ModelItemSelection::addItem(ModelItemBase *item, int slot)
     ModelItemBase *slotItem;
     while (_branches.count() <= slot)
     {
-        slotItem = new ModelItemSlot(_settings, this, slot);
+        slotItem = new ModelItemSlot(this, slot);
         ModelItemBasic::addItem(slotItem);
 
         slotItem->move(0,0);

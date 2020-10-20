@@ -5,7 +5,6 @@
 
 class Organisation;
 class ArmyListWidget;
-class Settings;
 
 class QLabel;
 
@@ -13,7 +12,7 @@ class ArmyWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit ArmyWidget(Settings *set, QWidget *parent = nullptr);
+    explicit ArmyWidget(QWidget *parent = nullptr);
     virtual ~ArmyWidget();
 
     bool createArmy(const QString &filename);
@@ -33,8 +32,6 @@ private:
 
     Organisation *create40k();
     Organisation *create9A(const QString &text, int limit);
-
-    Settings *_settings;
 
     int _points;
 //    QLabel *_points;

@@ -14,9 +14,8 @@
 #include <QStringList>
 #include <QMessageBox>
 
-ItemFactory::ItemFactory(Settings *set)
-    : _settings(set)
-    , _pointList(QList<PointContainer*>())
+ItemFactory::ItemFactory()
+    : _pointList(QList<PointContainer*>())
     , _listList(QMap<QString, QStringList>())
     , _globalLimiters(QMap<QString, ItemSatellite*>())
     , _nameMap(QMap<QString, int>())
@@ -218,7 +217,7 @@ void ItemFactory::compileCategories(TempTreeModelItem *temproot,
     ModelItemCategory *knot;
     foreach (TempTreeModelItem *itm, temproot->_unders)
     {
-        knot = new ModelItemCategory(_settings, root);
+        knot = new ModelItemCategory(root);
         root->addItem(knot);
         qDebug() << "Compiling category: " << itm->_text;
         knot->setText(itm->_text);
@@ -232,7 +231,7 @@ void ItemFactory::compileCategories(TempTreeModelItem *temproot,
 void ItemFactory::compileUnit(TempTreeModelItem *tempknot,
                               ModelItemCategory *trunk)
 {
-    ModelItemUnit *knot = new ModelItemUnit(_settings, trunk);
+    ModelItemUnit *knot = new ModelItemUnit(trunk);
 
     trunk->addItem(knot);
 
@@ -343,9 +342,9 @@ void ItemFactory::compileItems(TempTreeModelItem *tempknot,
     ModelItemBasic *knot;
 
     if (spin)
-        knot = new ModelItemSpinner(_settings, trunk);
+        knot = new ModelItemSpinner(trunk);
     else
-        knot = new ModelItemBasic(_settings, trunk);
+        knot = new ModelItemBasic(trunk);
 
     trunk->addItem(knot, group);
 
@@ -436,7 +435,7 @@ void ItemFactory::compileList(TempTreeModelItem *tempknot,
         }
     }
 
-    ModelItemBasic *knot = new ModelItemBasic(_settings, trunk);
+    ModelItemBasic *knot = new ModelItemBasic(trunk);
 
     trunk->addItem(knot, group);
 
@@ -463,7 +462,7 @@ void ItemFactory::compileList(TempTreeModelItem *tempknot,
             continue;
         }
 
-        ModelItemBasic *branch = new ModelItemBasic(_settings, knot);
+        ModelItemBasic *branch = new ModelItemBasic(knot);
 
         knot->addItem(branch, group);
 
@@ -587,7 +586,7 @@ void ItemFactory::compileList(TempTreeModelItem *tempknot,
 void ItemFactory::compileSelection(TempTreeModelItem *tempknot,
                                    ModelItemBase *trunk)
 {
-    ModelItemSelection *knot = new ModelItemSelection(_settings, trunk);
+    ModelItemSelection *knot = new ModelItemSelection(trunk);
 
     trunk->addItem(knot);
 
@@ -622,7 +621,7 @@ void ItemFactory::compileSelection(TempTreeModelItem *tempknot,
 
         splitText = text.split('|');
 
-        branch = new ModelItemBasic(_settings, knot);
+        branch = new ModelItemBasic(knot);
 
 
         // if item stats are in base list (9A)

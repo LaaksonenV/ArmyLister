@@ -7,7 +7,7 @@ class ModelItemUnit : public ModelItemSpinner
 {
     Q_OBJECT
 public:
-    ModelItemUnit(Settings *set, ModelItemBase *parent);
+    ModelItemUnit(ModelItemBase *parent);
 
     ModelItemUnit(ModelItemUnit *source, ModelItemBase *parent);
 

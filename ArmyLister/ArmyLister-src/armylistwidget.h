@@ -5,7 +5,6 @@
 
 
 class ModelItemBase;
-class Settings;
 class QTextStream;
 
 //const int printwidth = 80;
@@ -14,7 +13,7 @@ class ArmyListWidget : public QScrollArea
 {
     Q_OBJECT
 public:
-    ArmyListWidget(Settings *set, QWidget *parent);
+    ArmyListWidget(QWidget *parent);
     ~ArmyListWidget();
 
     bool addArmyFile(const QString &fileName);
@@ -36,7 +35,6 @@ signals:
     void valueChanged(int value, int role);
 
 private:
-    Settings *_settings;
     ModelItemBase *_topItem;
 
     QString _name;

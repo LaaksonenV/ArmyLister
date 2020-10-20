@@ -9,7 +9,7 @@ class ModelItemSpinner : public ModelItemBasic
 {
     Q_OBJECT
 public:
-    ModelItemSpinner(Settings *set, ModelItemBase *parent);
+    ModelItemSpinner(ModelItemBase *parent);
 
     ModelItemSpinner(ModelItemSpinner *source, ModelItemBase *parent);
 
@@ -33,7 +33,9 @@ public:
 
 private:
 
-    virtual void createSpinner(int min, int max);
+    void createSpinner(int min, int max);
+
+    void updateSpinner();
 
 public slots:
 

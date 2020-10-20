@@ -7,7 +7,7 @@ class ModelItemSlot : public ModelItemBase
 {
     Q_OBJECT
 public:
-    ModelItemSlot(Settings *set, ModelItemBase *parent, int slot);
+    ModelItemSlot(ModelItemBase *parent, int slot);
     virtual ~ModelItemSlot();
 
     virtual QSize sizeHint();

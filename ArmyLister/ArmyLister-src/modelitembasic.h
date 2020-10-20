@@ -25,7 +25,7 @@ public:
      *
      * This constructor will automatically call addItem on \a parent
      */
-    ModelItemBasic(Settings *set, ModelItemBase *parent);
+    ModelItemBasic(ModelItemBase *parent);
 
 
     ModelItemBasic(ModelItemBasic *source, ModelItemBase *parent);

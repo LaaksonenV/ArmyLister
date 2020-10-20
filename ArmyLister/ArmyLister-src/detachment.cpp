@@ -10,6 +10,7 @@
 
 #include "detachmentrole.h"
 #include "limithandler.h"
+#include "settings.h"
 
 Detachment::Detachment(const QStringList &args, QWidget *parent)
     : OrganisationRole(args, parent)
@@ -210,9 +211,7 @@ void Detachment::paintEvent(QPaintEvent *)
     r.setTopLeft(QPoint(c_frameWidth,c_frameWidth));
     r.setBottomRight(QPoint(width()-c_frameWidth-c_iconSideLength,
                             c_labelHeight+c_frameWidth));
-    QFont f = p.font();
-    f.setPixelSize(c_fontsize);
-    p.setFont(f);
+    p.setFont(Settings::Font(Settings::OrgFont));
     p.drawText(r,Qt::AlignVCenter, vq_name);
 
     r.setRight(width()-c_frameWidth);

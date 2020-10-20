@@ -27,7 +27,6 @@ protected:
 
     QString vq_name;
 
-    static const int c_fontsize = 20;
     static const int c_frameWidth = 6;
     static const int c_iconSideLength = 40;
     static const int c_labelHeight = 15;

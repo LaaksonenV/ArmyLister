@@ -2,9 +2,8 @@
 
 #include "settings.h"
 
-ModelItemSlot::ModelItemSlot(Settings *set, ModelItemBase *parent,
-                                         int slot)
-    : ModelItemBase(set, parent)
+ModelItemSlot::ModelItemSlot(ModelItemBase *parent, int slot)
+    : ModelItemBase(parent)
     , _slot(slot)
     , _currentIndex(-1)
 //    , _currentText(QString())
@@ -25,7 +24,8 @@ void ModelItemSlot::clone(ModelItemBase *toRoot, int)
 QSize ModelItemSlot::sizeHint()
 {
     if (_expanded)
-        return QSize(300, (visibleItems())*_settings->itemHeight);
+        return QSize(300,
+                     (visibleItems())*Settings::ItemMeta(Settings::ItemHeight));
     return QSize(300, 0);
 }
 
@@ -81,7 +81,7 @@ void ModelItemSlot::expand(bool expanse)
         toMove = -toMove;
     }
     else
-        setFixedHeight(_settings->itemHeight* (toMove));
+        setFixedHeight(Settings::ItemMeta(Settings::ItemHeight) * (toMove));
 
      _trunk->branchExpanded(_index, toMove);
 }

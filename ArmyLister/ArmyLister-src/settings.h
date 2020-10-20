@@ -6,29 +6,12 @@
 #define SETTING_ARMY_GROUP "Armies"
 #define SETTING_LIST_GROUP "Lists"
 
-#include "QColor"
+#include <QColor>
+#include <QFont>
 
 class Settings : protected QSettings
 {
 public:
-    enum Colours
-    {
-        ColorOk,
-        ColorNot,
-        ColorNeutral
-    };
-
-    static const QColor& Color(Colours c);
-
-    enum Numbers
-    {
-        DefaultArmySize9A,
-        DefaultArmySize40k,
-        PlainTextWidth
-    };
-
-    static const unsigned short Number(Numbers i);
-
     Settings();
 
     void addMultiValue(const QString &newValue,
@@ -37,12 +20,47 @@ public:
 
     bool isUSAllowed()const{return _allowUnderStrength;}
 
-    static inline unsigned short itemHeight = 24;
-    static inline unsigned short itemHPos = 18;
-    static inline unsigned short textFontSize = 15;
-    static inline unsigned short expandButtonSize = 20;
-    static inline unsigned short costFieldWidth = 50;
-    static inline QString font = "Gabriola";
+    enum Colours
+    {
+        ColorOk,
+        ColorNot,
+        ColorNeutral
+    };
+
+    static const QColor& Color(enum Colours c);
+
+    enum Numbers
+    {
+        DefaultArmySize9A,
+        DefaultArmySize40k
+    };
+
+    static const unsigned short DefaultSize(enum Numbers i);
+
+    enum ItemMetas
+    {
+        PlainTextWidth,
+        ItemHeight,
+        ItemHPos,
+        OrgFontSize,
+        ItemFontSize,
+        PrintFontSize,
+        SpinnerFontSize,
+        ExpandButtonSize,
+        CostFieldWidth
+    };
+
+    static const unsigned short ItemMeta(enum ItemMetas i);
+
+    enum Fonts
+    {
+        ItemFont,
+        OrgFont,
+        SpinnerFont,
+        PrintFont
+    };
+
+    static const QFont& Font(enum Fonts i);
 
 private:
     static inline QList<QColor> _colours
@@ -52,11 +70,31 @@ private:
                 QColor("#dddddd")
     };
 
-    static inline QList<unsigned short> _numbers
+    static inline QList<unsigned short> _sizes
     {
         4500,
-        2000,
-        80
+        2000
+    };
+
+    static inline QList<unsigned short> _itemmeta
+    {
+        80, //PlainTextWidth
+        24, //ItemHeight
+        18, //ItemHPos
+        20, //OrgFontSize
+        15, //ItemFontSize
+        11, //PrintFontSize
+        12, //SpinnerFontSize
+        20, //ExpandButtonSize
+        50 //CostFieldWidth
+    };
+
+    static inline QList<QFont> _fonts
+    {
+        QFont("Gabriola",ItemMeta(ItemFontSize),QFont::Bold),
+        QFont("Gabriola",ItemMeta(OrgFontSize),QFont::Bold),
+        QFont("Calibri",ItemMeta(SpinnerFontSize),QFont::Medium),
+        QFont("Consolas",ItemMeta(PrintFontSize))
     };
 
 private:

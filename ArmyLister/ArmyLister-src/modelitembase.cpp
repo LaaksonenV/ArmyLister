@@ -4,9 +4,8 @@
 
 #include "settings.h"
 
-ModelItemBase::ModelItemBase(Settings *set, QWidget *parent)
+ModelItemBase::ModelItemBase(QWidget *parent)
     : QWidget(parent)
-    , _settings(set)
     , _cost(0)
     , _index(-1)
     , _branches(QList<ModelItemBase *>())
@@ -18,9 +17,8 @@ ModelItemBase::ModelItemBase(Settings *set, QWidget *parent)
 }
 
 ModelItemBase::ModelItemBase(ModelItemBase *source, ModelItemBase *parent)
-    : ModelItemBase(source->_settings, parent)
-/*    , _settings(source->_settings)
-    , _cost(source->_initCost)
+    : ModelItemBase(parent)
+/*    , _cost(source->_initCost)
     , _initCost(source->_initCost)
     , _index(-1)
     , _branches(QList<ModelItemBase *>())*/
@@ -44,7 +42,7 @@ void ModelItemBase::clone(ModelItemBase *toRoot, int i)
 
 QSize ModelItemBase::sizeHint() const
 {
-    return QSize(300, visibleItems()*_settings->itemHeight);
+    return QSize(300, visibleItems()*Settings::ItemMeta(Settings::ItemHeight));
 }
 
 void ModelItemBase::addItem(ModelItemBase *item,int)
@@ -74,10 +72,10 @@ void ModelItemBase::insertItem(ModelItemBase *item, int to)
     }
 }
 
-void ModelItemBase::moveSteps(int stepY, int stepX)
+void ModelItemBase::moveSteps(short stepY, short stepX)
 {
-    QWidget::move(pos().x()+_settings->itemHPos*stepX,
-                  pos().y()+_settings->itemHeight*stepY);
+    QWidget::move(pos().x()+Settings::ItemMeta(Settings::ItemHPos)*stepX,
+                  pos().y()+Settings::ItemMeta(Settings::ItemHeight)*stepY);
 }
 
 int ModelItemBase::visibleItems(bool) const
@@ -188,7 +186,7 @@ void ModelItemBase::expand(bool)
 
 void ModelItemBase::branchExpanded(int item, int steps)
 {
-    setFixedHeight(height()+ steps*_settings->itemHeight);
+    setFixedHeight(height()+ steps*Settings::ItemMeta(Settings::ItemHeight));
     if (item >= 0)
         for (int i = item+1; i < _branches.count(); ++i)
             _branches.at(i)->moveSteps(steps);

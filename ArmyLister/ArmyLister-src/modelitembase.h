@@ -3,7 +3,6 @@
 
 #include <QWidget>
 
-class Settings;
 class ItemSatellite;
 
 #include <QList>
@@ -24,7 +23,7 @@ public:
      * \param set Settings file
      * \param parent
      */
-    ModelItemBase(Settings *set, QWidget *parent = nullptr);
+    ModelItemBase(QWidget *parent = nullptr);
 
     /*!
      * \brief ModelItemBase clone constructor
@@ -63,7 +62,7 @@ public:
      *
      * Move will be incremental by defined itemHeight and itemHPos
      */
-    virtual void moveSteps(int stepY, int stepX = 0);
+    virtual void moveSteps(short stepY, short stepX = 0);
 
     /*!
      * \brief visibleItems counts how many items under it are visible
@@ -270,8 +269,6 @@ signals:
     void releaseCloneSatellite();
 
 protected:
-
-    Settings *_settings;
 
     int _cost;
     int _index;
