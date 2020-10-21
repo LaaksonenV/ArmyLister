@@ -131,6 +131,10 @@ public:
 
     virtual void setRange(int, int = 0){}
 
+    virtual void loadSelection(QString &str);
+
+    virtual void saveSelection(QTextStream &str);
+
 
     /*!
      * \brief getModelCount simple getter

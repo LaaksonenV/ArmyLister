@@ -26,10 +26,6 @@ public slots:
 
     void on_valueChange(int i, int r);
 
-private:
-    void printRecurseSave(QTextStream &str, ModelItemBase *itm, int d) const;
-    QString recurseLoad(QTextStream &str, ModelItemBase *parnt, int d);
-
 signals:
     void roleSelected(int amount, int role);
     void valueChanged(int value, int role);

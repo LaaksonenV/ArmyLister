@@ -92,6 +92,10 @@ public:
      */
     virtual void setCost(int i);
 
+    virtual void loadSelection(QString &str);
+
+    virtual void saveSelection(QTextStream &str);
+
     /*!
      * \brief getText simple getter
      * \return text shown to user

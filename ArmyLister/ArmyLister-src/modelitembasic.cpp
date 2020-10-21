@@ -232,6 +232,32 @@ void ModelItemBasic::setUnitCountsAs(int role)
     _unitCountsAs = role+1;
 }
 
+void ModelItemBasic::loadSelection(QString &str)
+{
+    if (str.startsWith("!"))
+    {
+        forceCheck(true);
+        str.remove(0,1);
+        ModelItemBase::loadSelection(str);
+    }
+    else
+    {
+        forceCheck(false);
+        str.remove(0,1);
+    }
+}
+
+void ModelItemBasic::saveSelection(QTextStream &str)
+{
+    if (_checked)
+    {
+        str << "!";
+        ModelItemBase::saveSelection(str);
+    }
+    else
+        str << "/";
+}
+
 int ModelItemBasic::getCurrentCount() const
 {
     return _trunk->getCurrentCount();

@@ -11,6 +11,7 @@
 ModelItemUnit::ModelItemUnit(ModelItemBase *parent)
     : ModelItemSpinner(parent)
     , _clickClock(new QTimer(this))
+    , _cloned(0)
 {
     _clickClock->setSingleShot(true);
     _clickClock->setInterval(QApplication::doubleClickInterval());
@@ -21,6 +22,7 @@ ModelItemUnit::ModelItemUnit(ModelItemBase *parent)
 ModelItemUnit::ModelItemUnit(ModelItemUnit *source, ModelItemBase *parent)
     : ModelItemSpinner(source, parent)
     , _clickClock(new QTimer(this))
+    , _cloned(0)
 {
     _clickClock->setSingleShot(true);
     _clickClock->setInterval(QApplication::doubleClickInterval());
@@ -39,6 +41,7 @@ void ModelItemUnit::clone(ModelItemBase*, int)
     cloning(clone);
     clone->resize(size());
     clone->passSpecialUp(QStringList(), true);
+    ++_cloned;
     emit itemCloned();
 }
 
@@ -54,10 +57,22 @@ void ModelItemUnit::setSpecial(const QStringList &list)
     ModelItemBasic::setSpecial(newlist);
 }
 
-/*QString ModelItemUnit::getPrintText() const
+void ModelItemUnit::loadSelection(QString &str)
 {
-    return ModelItemBasic::getPrintText();
-}*/
+    int pos = str.indexOf("#");
+    for (int i = 0; i < str.left(pos).toInt(); ++i)
+        clone();
+    str.remove(0,pos+1);
+
+    ModelItemSpinner::loadSelection(str);
+}
+
+void ModelItemUnit::saveSelection(QTextStream &str)
+{
+    str << QString::number(_cloned);
+    str << "#";
+    ModelItemSpinner::saveSelection(str);
+}
 
 void ModelItemUnit::passSpecialUp(const QStringList &list, bool check)
 {

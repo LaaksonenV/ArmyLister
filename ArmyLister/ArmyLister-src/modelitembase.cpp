@@ -100,6 +100,22 @@ void ModelItemBase::setCost(int i)
     update();
 }
 
+void ModelItemBase::loadSelection(QString &str)
+{
+    foreach (ModelItemBase *i, _branches)
+    {
+        i->loadSelection(str);
+    }
+}
+
+void ModelItemBase::saveSelection(QTextStream &str)
+{
+    foreach (ModelItemBase *i, _branches)
+    {
+        i->saveSelection(str);
+    }
+}
+
 QString ModelItemBase::getText() const
 {
      return QString();

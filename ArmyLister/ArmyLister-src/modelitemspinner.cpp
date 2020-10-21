@@ -66,6 +66,24 @@ void ModelItemSpinner::setRange(int min, int max)
         createSpinner(min,max);
 }
 
+void ModelItemSpinner::loadSelection(QString &str)
+{
+    int pos = str.indexOf(";");
+    if (_spinner)
+        _spinner->setValue(str.left(pos).toInt());
+    str.remove(0,pos+1);
+
+    ModelItemBasic::loadSelection(str);
+}
+
+void ModelItemSpinner::saveSelection(QTextStream &str)
+{
+    if (_spinner)
+        str << QString::number(_spinner->value());
+    str << ";";
+    ModelItemBasic::saveSelection(str);
+}
+
 int ModelItemSpinner::getCurrentCount() const
 {
     return _current;

@@ -5,6 +5,8 @@
 #include <QRegExp>
 #include <QtPrintSupport/QPrinter>
 #include <QFileInfo>
+#include <QDateTime>
+#include <QMessageBox>
 
 #include "settings.h"
 #include "itemfactory.h"
@@ -96,51 +98,62 @@ void ArmyListWidget::saveListAs(QString filename) const
 
     str << _name;
     endl(str);
+    str << QFileInfo(file).lastModified();
+    endl(str);
 
-/*    foreach (ModelItem *i, _topItem->_branches)
-    {
-        printRecurseSave(str, i, 0);
-    }
-    file.close();*/
+    _topItem->saveSelection(str);
+
+    file.close();
 }
 
 void ArmyListWidget::loadList(const QString &filename)
 {
 
-    // Need a bit of work, remove getchild 41
-/*    QFile file(filename);
+    QFile file(filename);
     if (!file.open(QFile::ReadOnly | QFile::Text))
         return;
     QTextStream str(&file);
 
     QString line = str.readLine();
 
-    if (str.atEnd())
+    if (line.isNull())
         return;
+
+    QString listfile = line + ".txt";
 
     ItemFactory fctr();
-    if (!fctr.addArmyFile(_topItem, line + ".txt"))
+    if (!fctr.addArmyFile(_topItem, listfile))
         return;
 
-    resize(500,400);
+    adjustSize();
 
-    _name = QFileInfo(filename).baseName();
-
-    ModelItem *itm;
-    QStringList dat;
+    _name = line;
 
     line = str.readLine();
 
-    while(!line.isNull())
+    QDateTime now = QFileInfo(listfile).lastModified();
+    if (now != QDateTime::fromString(line))
     {
-        dat = line.split(';');
-
-        itm = _topItem->getChild(dat.at(3).toInt());
-        itm->toggleCheck();
-        line = recurseLoad(str, itm, 0);
+        int ret = QMessageBox::warning(this, tr("Army book modified"),
+                                       tr("The army book has been modified "
+                                          "since the list was saved.\n"
+                                          "The list may not load as "
+                                          "intented.\n"),
+                                      QMessageBox::Ignore|QMessageBox::Abort,
+                                       QMessageBox::Ignore);
+        if (ret == QMessageBox::Abort)
+        {
+            file.close();
+            return;
+        }
     }
 
-    file.close();*/
+    line = str.readLine();
+
+    if (!line.isEmpty())
+        _topItem->loadSelection(str);
+
+    file.close();
 }
 
 void ArmyListWidget::on_valueChange(int i, int r)
@@ -149,57 +162,4 @@ void ArmyListWidget::on_valueChange(int i, int r)
         _points += i;
 
     emit valueChanged(i,r);
-}
-
-void ArmyListWidget::printRecurseSave(QTextStream &str, ModelItemBase *itm,
-                                      int d) const
-{
-/*    if (!itm->isChecked())
-        return;
-    QStringList texts = itm->createTexts();
-
-    for (int i = 0; i < d; ++i)
-        str << '\t';
-
-    str << texts.join(';');
-    endl(str);
-
-    foreach (ModelItem *i, itm->_branches)
-    {
-        printRecurseSave(str, i, d+1);
-    }*/
-}
-
-QString ArmyListWidget::recurseLoad(QTextStream &str, ModelItemBase *parnt,
-                                    int d)
-{
-
-/*    QStringList dat;
-    ModelItem *itm;
-
-    QString line = str.readLine();
-
-    while(!line.isNull() && line.count('\t') > d)
-    {
-        line.remove('\t');
-        dat = line.split(';');
-
-//        itm = parnt->getChild(dat.at(3).toInt());
-        if (dat.at(3).toInt() % 100)
-            itm = parnt->getChild(dat.at(3).toInt());
-        else
-        {
-            itm = parnt->getChild((dat.at(3).toInt()/100)-1);
-//            itm = itm->cloneItem();
-        }
-
-        itm->toggleCheck();
-//        itm->changeTexts(dat.at(0));
-        itm->setValue(dat.at(1).toInt());
-
-        line = recurseLoad(str, itm, d+1);
-    }
-
-    return line;*/
-return QString();
 }

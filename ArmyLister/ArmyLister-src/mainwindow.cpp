@@ -44,34 +44,32 @@ MainWindow::MainWindow(QWidget *parent)
                 [=](){on_selectArmy(armies.at(i));});
     }
 
-//    actMenu = menu->addMenu("Save/Load List");
+    actMenu->addSeparator();
 
-//    act = actMenu->addAction("Save");
-//    connect(act, &QAction::triggered,
-  //          [=](){_mainwidget->saveList(QString());});
+    act = actMenu->addAction("Load Army List");
+    connect(act, &QAction::triggered,
+            this, &MainWindow::on_loadList);
 
-//    act = actMenu->addAction("Save As");
-//    connect(act, &QAction::triggered,
-  //          this, &MainWindow::on_saveList);
+    actMenu->addSeparator();
 
-//    actMenu->addSeparator();
-//    actMenu->addSeparator();
+    armies = _settings->multiValue(SETTING_LIST_GROUP);
+    for (int i = 0; i < std::min(5,armies.count()); ++i)
+    {
+        forName.setFile(armies.at(i));
+        act = actMenu->addAction(forName.completeBaseName());
+        connect(act, &QAction::triggered,
+                [=](){on_loadArmy(armies.at(i));});
+    }
 
-//    act = actMenu->addAction("Load");
-//    connect(act, &QAction::triggered,
-  //          this, &MainWindow::on_loadList);
+    actMenu = menu->addMenu("Save List");
 
-//    actMenu->addSeparator();
+    act = actMenu->addAction("Save");
+    connect(act, &QAction::triggered,
+            [=](){_mainwidget->saveList(QString());});
 
-//    armies = _settings->multiValue(SETTING_LIST_GROUP);
-//    for (int i = 0; i < std::min(5,armies.count()); ++i)
-//    {
-//        forName.setFile(armies.at(i));
-//        act = actMenu->addAction(forName.completeBaseName());
-//        connect(act, &QAction::triggered,
-//                [=](){on_loadArmy(armies.at(i));});
-//    }
-
+    act = actMenu->addAction("Save As");
+    connect(act, &QAction::triggered,
+            this, &MainWindow::on_saveList);
 
     actMenu = menu->addMenu("Create");
 

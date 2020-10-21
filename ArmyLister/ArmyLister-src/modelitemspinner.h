@@ -23,6 +23,10 @@ public:
 
     virtual void setRange(int min, int max = -1);
 
+    virtual void loadSelection(QString &str);
+
+    virtual void saveSelection(QTextStream &str);
+
     virtual int getCurrentCount() const;
 
     virtual QString getPrintText() const;

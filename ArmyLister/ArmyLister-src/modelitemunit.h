@@ -17,6 +17,10 @@ public:
 
     virtual void setSpecial(const QStringList &list);
 
+    virtual void loadSelection(QString &str);
+
+    virtual void saveSelection(QTextStream &str);
+
 //    virtual QString getPrintText() const;
 
     virtual void passSpecialUp(const QStringList &list, bool check);
@@ -41,6 +45,8 @@ signals:
 
 private:
     QTimer *_clickClock;
+
+    int _cloned;
 };
 
 #endif // MODELITEMUNIT_H
