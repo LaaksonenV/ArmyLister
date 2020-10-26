@@ -61,6 +61,7 @@ SOURCES += \
     organisationrole.cpp \
     armylistwidget.cpp \
     settings.cpp \
+    statcard.cpp \
     textedit.cpp \
     itemfactory.cpp \
     armywidget.cpp
@@ -88,6 +89,7 @@ HEADERS += \
     organisationrole.h \
     armylistwidget.h \
     settings.h \
+    statcard.h \
     textedit.h \
     itemfactory.h \
     armywidget.h

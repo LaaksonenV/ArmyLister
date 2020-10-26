@@ -32,13 +32,11 @@ class ListCreator : public QDialog
 
 public:
 
-    static void CreateArmy(const QString &file, QWidget *parent);
+    static void CreateArmy(QWidget *parent = nullptr);
 
-    static void CreateList(const QString &file,
-                      QWidget *parent = nullptr);
+    static void CreateList(QWidget *parent = nullptr);
 
-    ListCreator(const QString &file,
-                const QStringList &header,
+    ListCreator(const QStringList &header,
                 QWidget *parent = nullptr);
 
     virtual ~ListCreator();
@@ -48,7 +46,10 @@ private slots:
 
     void on_includeAdd(const QString& filename);
 
+    void on_loadFile();
+    void on_parseFile();
 
+    bool on_save();
     void on_OK();
 
     QTreeWidgetItem *on_createNext();
@@ -71,6 +72,8 @@ private slots:
 private:
     void addOrg();
     void addIncl();
+
+    bool checkFileName();
 
     const int preMadeItem = 1001;
     QTreeWidgetItem *createPreMadeItem(const QString &text);

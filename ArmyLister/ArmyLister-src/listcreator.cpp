@@ -17,29 +17,42 @@
 #include <QTextEdit>
 #include <QFileDialog>
 #include <QKeyEvent>
+#include <QMessageBox>
 
 #include "textedit.h"
 #include "listcreatorwidgets.h"
 
-void ListCreator::CreateArmy(const QString &file, QWidget *parent)
+void ListCreator::CreateArmy(QWidget *parent)
 {
-    ListCreator creator(file,  QStringList("Name") << "Cost/Model#"
+    ListCreator creator(QStringList("Name") << "Cost/Model#"
                         << "Models in unit#-#" << "Initial cost#", parent);
 
     creator.addIncl();
     creator.addOrg();
-
-    creator.readFile();
 
     creator._info->setText("This window is still under development.\n"
                            "For now, a list is made by simply writing all "
                            "neccessary info manually on its respective field.\n"
                            "\n"
                            "\n"
+                           "Reading an original file will attempt to turn a "
+                           ".pdf army book into raw text and create all "
+                           "neccessary data automatically. This process will "
+                           "not be perfect, not least because some information "
+                           "is written in natural languages not easily parsed "
+                           "by automation. Thus the list will need to be "
+                           "checked later, but this will reduce the work "
+                           "substantially.\n"
+                           "\n"
                            "Army lists must contain information on how their "
                            "organisation is defined. Before building the list, "
                            "define the organisation, as this will reset the "
                            "list!!\n"
+                           "List all neccessary files in the 'include' list. "
+                           "These are the item and rule/stat list files "
+                           "created previously (or later and also added later, "
+                           "previously created lists would help with auto"
+                           "completing words while building this list.\n"
                            "\n"
                            "Army list is comprised of categories, with unit "
                            "entries under them, and items under them. If unit "
@@ -56,7 +69,21 @@ void ListCreator::CreateArmy(const QString &file, QWidget *parent)
                            "listing them after their name, each tag capsulated "
                            "by <> braces. Item entries' tags are added "
                            "similarily, but with <+AA> adding a tag and <-AA> "
-                           "removing it.\n"
+                           "removing it. Tags are used "
+                           "to restrict selections based on the role and "
+                           "equipment a unit has.\n"
+                           "IMPORTANT ABOUT WEAPONS/ARMOUR. When "
+                           "a unit has access to "
+                           "special equipment, it must also contain "
+                           "information on what equipment it has. If a unit "
+                           "can "
+                           "select a weapon, this should be made with a "
+                           "selection/slot entry, with one of the options as "
+                           "default if it MUST, and 'Hand Weapon' (or listed "
+                           "default weapon if so) as default if it MAY. Same "
+                           "goes with Armour. If these aren't changeable, "
+                           "add the units default equipment as tags."
+                           "\n"
                            "\n"
                            "Entries may be controlled by adding one or more "
                            "control elements before its name. Each control "
@@ -109,13 +136,11 @@ void ListCreator::CreateArmy(const QString &file, QWidget *parent)
     creator.exec();
 }
 
-void ListCreator::CreateList(const QString &file, QWidget *parent)
+void ListCreator::CreateList(QWidget *parent)
 {
-    ListCreator creator(file,  QStringList("Name") << "Cost", parent);
+    ListCreator creator(QStringList("Name") << "Cost", parent);
 
     creator.addIncl();
-
-    creator.readFile();
 
     creator._info->setText("This window is still under development.\n"
                            "For now, a list is made by simply writing all "
@@ -174,8 +199,7 @@ void ListCreator::CreateList(const QString &file, QWidget *parent)
     creator.exec();
 }
 
-ListCreator::ListCreator(const QString &file,
-                         const QStringList &header,
+ListCreator::ListCreator(const QStringList &header,
                          QWidget *parent)
     : QDialog(parent)
     , lay(new QGridLayout(this))
@@ -184,12 +208,27 @@ ListCreator::ListCreator(const QString &file,
     , _list(new QTreeWidget(this))
     , _lines(QList<QLineEdit*>())
     , _info(new QTextEdit())
-    , _fileName(file)
+    , _fileName(QString())
     , _clipboard(nullptr)
     , _editor(new MCLineEdit(this))
 {
     int columns = header.size();
     QVBoxLayout *lay2 = new QVBoxLayout();
+
+    QHBoxLayout *chLay = new QHBoxLayout();
+
+    QPushButton *button = new QPushButton("&Edit file", this);
+    connect(button, &QPushButton::clicked,
+            this, &ListCreator::on_loadFile);
+    chLay->addWidget(button);
+
+    button = new QPushButton("Read original PDF", this);
+    connect(button, &QPushButton::clicked,
+            this, &ListCreator::on_parseFile);
+    chLay->addWidget(button);
+
+    lay2->addLayout(chLay);
+
     _list->setColumnCount(columns);
 
     _list->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -199,9 +238,9 @@ ListCreator::ListCreator(const QString &file,
             this, &ListCreator::on_currentChanged);
     lay2->addWidget(_list,2);
 
-    QHBoxLayout *chLay = new QHBoxLayout();
+    chLay = new QHBoxLayout();
 
-    QPushButton *button = new QPushButton("&Copy", this);
+    button = new QPushButton("&Copy", this);
     connect(button, &QPushButton::clicked,
             this, &ListCreator::on_copy);
     chLay->addWidget(button);
@@ -305,28 +344,33 @@ ListCreator::ListCreator(const QString &file,
 
     lay2->addLayout(chLay);
 
-    lay->addLayout(lay2,0,1,3,2);
+    lay->addLayout(lay2,1,1,3,2);
     lay->setColumnStretch(1,2);
-    lay->setRowStretch(2,2);
+    lay->setRowStretch(3,2);
 
     _info->setReadOnly(true);
-    lay->addWidget(_info,2,0,3,1);
+    lay->addWidget(_info,3,0,4,1);
 
     chLay = new QHBoxLayout();
 
     chLay->addStretch(2);
 
-    button = new QPushButton("&Ok", this);
+    button = new QPushButton("&Save", this);
+    connect(button, &QPushButton::clicked,
+            this, &ListCreator::on_save);
+    chLay->addWidget(button);
+
+    button = new QPushButton("&Done", this);
     connect(button, &QPushButton::clicked,
             this, &ListCreator::on_OK);
     chLay->addWidget(button);
 
-    button = new QPushButton("&Cancel", this);
+    button = new QPushButton("&Return", this);
     connect(button, &QPushButton::clicked,
             this, &QDialog::reject);
     chLay->addWidget(button);
 
-    lay->addLayout(chLay,4,1);
+    lay->addLayout(chLay,5,1);
 
     setLayout(lay);
 
@@ -400,6 +444,23 @@ void ListCreator::on_includeAdd(const QString &filename)
         file.close();
         _editor->addToCompleter(strings);
     }
+    else
+        QMessageBox::critical(this, "File open error", "The specified file "
+                                                       "couldn't be opened");
+}
+
+void ListCreator::on_loadFile()
+{
+    QString file = QFileDialog::getOpenFileName
+            (this, "Choose file to load", QString(),
+             "(*.txt)", nullptr, QFileDialog::DontConfirmOverwrite);
+    if (!file.isEmpty())
+        _fileName = file;
+}
+
+void ListCreator::on_parseFile()
+{
+
 }
 
 void ListCreator::initialise40k()
@@ -442,11 +503,18 @@ QTreeWidgetItem *ListCreator::createPreMadeItem(const QString &text)
     return newItem;
 }
 
-void ListCreator::on_OK()
+bool ListCreator::on_save()
 {
+    if (!checkFileName())
+        return false;
+
     QFile f(_fileName);
     if (!f.open(QFile::Text | QFile::WriteOnly))
-        return;
+    {
+        QMessageBox::critical(this, "File open error", "The specified file "
+                                                       "couldn't be opened");
+        return false;
+    }
     f.flush();
     QTextStream str(&f);
     str.setCodec("utf-8");
@@ -467,7 +535,13 @@ void ListCreator::on_OK()
     writeFileRecurse(str, _list->invisibleRootItem(), 0);
 
     f.close();
-    accept();
+    return true;
+}
+
+void ListCreator::on_OK()
+{
+    if(on_save())
+        accept();
 }
 
 void ListCreator::writeFileRecurse(QTextStream &str,
@@ -633,6 +707,21 @@ void ListCreator::addIncl()
     connect(_incl, &ListCreatorWidgetIncl::fileAdded,
             this, &ListCreator::on_includeAdd);
     lay->addWidget(_incl,1,0);
+}
+
+bool ListCreator::checkFileName()
+{
+    if (_fileName.isNull())
+    {
+        QString file = QFileDialog::getSaveFileName
+                (this, "Choose filename", QString(),
+                 "(*.txt)", nullptr, QFileDialog::DontConfirmOverwrite);
+        if (file.isEmpty())
+            return false;
+        else
+            _fileName = file;
+    }
+    return true;
 }
 
 void ListCreator::readFile()

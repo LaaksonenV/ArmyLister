@@ -192,19 +192,10 @@ void MainWindow::on_createUPList()
 
 void MainWindow::on_createWGList()
 {
-    QString file = QFileDialog::getSaveFileName
-            (this, "Choose Wargear Lists lists' name", QString(),
-             "(*.txt)", nullptr, QFileDialog::DontConfirmOverwrite);
-    if (!file.isEmpty())
-        ListCreator::CreateList(file, this);
+    ListCreator::CreateList(this);
 }
 
 void MainWindow::on_createArmyList()
 {
-    QString file = QFileDialog::getSaveFileName
-            (this, "Choose Army Lists' name", QString(),
-             "(*.txt)", nullptr, QFileDialog::DontConfirmOverwrite);
-    if (!file.isEmpty())
-        ListCreator::CreateArmy(file, this);
-
+    ListCreator::CreateArmy(this);
 }

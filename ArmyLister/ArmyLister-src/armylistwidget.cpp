@@ -98,7 +98,7 @@ void ArmyListWidget::saveListAs(QString filename) const
 
     str << _name;
     endl(str);
-    str << QFileInfo(file).lastModified();
+    str << QFileInfo(file).lastModified().toString();
     endl(str);
 
     _topItem->saveSelection(str);
@@ -121,7 +121,7 @@ void ArmyListWidget::loadList(const QString &filename)
 
     QString listfile = line + ".txt";
 
-    ItemFactory fctr();
+    ItemFactory fctr;
     if (!fctr.addArmyFile(_topItem, listfile))
         return;
 
@@ -151,7 +151,7 @@ void ArmyListWidget::loadList(const QString &filename)
     line = str.readLine();
 
     if (!line.isEmpty())
-        _topItem->loadSelection(str);
+        _topItem->loadSelection(line);
 
     file.close();
 }
