@@ -47,7 +47,6 @@ private slots:
     void on_includeAdd(const QString& filename);
 
     void on_loadFile();
-    void on_parseFile();
 
     bool on_save();
     void on_OK();

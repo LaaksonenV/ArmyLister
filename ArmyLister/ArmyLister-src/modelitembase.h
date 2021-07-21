@@ -46,6 +46,13 @@ public:
     virtual QSize sizeHint() const;
 
     /*!
+     * \brief getItem function to get existing item
+     * \param text text in the item
+     * \return Item or nullptr if no item found
+     */
+    virtual ModelItemBase* getItem(const QString &text) const;
+
+    /*!
      * \brief addItem function to add an item as a branch
      * \param item to be added
      *

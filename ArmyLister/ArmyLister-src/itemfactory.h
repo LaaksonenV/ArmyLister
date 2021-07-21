@@ -12,6 +12,7 @@ class ModelItemCategory;
 class QTextStream;
 struct TempTreeModelItem;
 struct PointContainer;
+struct UnitContainer;
 
 
 class ItemFactory
@@ -25,13 +26,15 @@ public:
      * \brief addArmyFile Base function to create itemlist
      * \param top TopModelItem to build the list under
      * \param fileName QString name of the main file
+     * \param newArmy boolean clear old data
      * \return Success of reading neccessary files and creating the list
      *
      * Base function to call for making a new list under an already
      * built TopModelItem. Empty lines in the file are only allowed
      * between categories.
      */
-    bool addArmyFile(ModelItemBase *top, const QString &fileName);
+    bool addArmyFile(ModelItemBase *top, const QString &fileName,
+                     bool newArmy = true, const QString &tag = QString());
 
 private:
 
@@ -57,7 +60,7 @@ private:
      */
     QString parseMainList(const QString &line, QTextStream &str,
                           TempTreeModelItem *parentBranch,
-                          QStringList prev = QStringList());
+                          const QString &supTag);
 
     /*!
      * \brief parseIncludes Read the stream for included files
@@ -78,10 +81,10 @@ private:
      * \return List of control elements found
      *
      * Control elements are found at the beginning of a line, and start
-     * with exclamation point '!'. These are removed from \a text and
+     * with an exclamation point '!'. These are removed from \a text and
      * returned as a separate list.
      */
-    QStringList parseControl(QString &text);
+    QStringList parseControl(QString &text, const QChar &ctrl = '!');
 
     /*!
      * \brief parseSpecial Remove and return special information from
@@ -102,17 +105,20 @@ private:
     void compileCategories(TempTreeModelItem *temproot,
                            ModelItemBase *root);
     void compileUnit(TempTreeModelItem *tempknot,
-                     ModelItemCategory *trunk);
+                     ModelItemBase *trunk);
     void compileItems(TempTreeModelItem *tempknot,
                       ModelItemBase *trunk,
                       const QMap<QString, int> &slotmap,
+                      const UnitContainer &ucont,
                       ItemSatellite *sharedSat = nullptr);
     void compileList(TempTreeModelItem *tempknot,
                      ModelItemBase *trunk,
                      const QMap<QString, int> &slotmap,
+                     const UnitContainer &ucont,
                      ItemSatellite *sharedSat = nullptr);
     void compileSelection(TempTreeModelItem *tempknot,
-                          ModelItemBase *trunk);
+                          ModelItemBase *trunk,
+                          const UnitContainer &ucont);
     ItemSatellite *checkControls(TempTreeModelItem *tempknot,
                                          ModelItemBasic *knot);
 
@@ -138,17 +144,8 @@ private:
      */
     QString parseList(QTextStream &str, QString line);
 
-    /*!
-     * \brief parseTableEntry Creates price table entry for a given string
-     * \param line Given string
-     * \return Given string with price table information removed
-     *
-     * This function will create a price table entry for a line, if
-     * the line contains price information. It will return the line
-     * without price information and special information used by the
-     * table
-     */
-    QString parseTableEntry(const QString &line);
+
+    QString parseTable(QTextStream &str, QString line);
 
     /*!
      * \brief countItems searches the cost of the given text item
@@ -161,10 +158,11 @@ private:
      * look through the tables for each, noting down their prices and
      * returning them. If an item is preceded by number, the price
      * will be multiplied by that, unless the tables contain an item with
-     * same denominator.
+     * common denominator.
      */
     int countItems(QString text,
-                    const QStringList &special);
+                    const QStringList &special,
+                   const UnitContainer &ucont);
 
     /*!
      * \brief findTableEntry finds the best possible table entry
@@ -179,11 +177,19 @@ private:
     void clear();
 private:
     QList<PointContainer*> _pointList;
+    QMap<QString, UnitContainer> _unitList;
     QMap<QString, QStringList> _listList;
     QMap<QString, ItemSatellite*> _globalLimiters;
     QMap<QString, int> _nameMap;
+
 };
 
+/*!
+ * \brief The TempTreeModelItem struct holds each entrie's data in text
+ * in a tree form
+ *
+ * \internal
+ */
 struct TempTreeModelItem
 {
     TempTreeModelItem(const QString &text = QString(),
@@ -202,6 +208,13 @@ struct TempTreeModelItem
 
 };
 
+/*!
+ * \brief The PointContainer struct holds specific point data from a list
+ *
+ * TO BE REVISED
+ *
+ * \internal
+ */
 struct PointContainer
 {
     QString text;
@@ -223,6 +236,29 @@ struct PointContainer
     {
     }
 
+};
+
+struct ItemContainer
+{
+    int points;
+};
+
+struct UnitContainer
+{
+    int points;
+    int min;
+    int max;
+    int specialPoints;
+    QMap<QString,ItemContainer> items;
+
+    UnitContainer()
+        : points(0)
+        , min(0)
+        , max(-1)
+        , specialPoints(0)
+        , items(QMap<QString,ItemContainer>())
+    {
+    }
 };
 
 #endif // ITEMFACTORY_H

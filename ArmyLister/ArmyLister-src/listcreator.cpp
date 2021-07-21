@@ -34,16 +34,6 @@ void ListCreator::CreateArmy(QWidget *parent)
                            "For now, a list is made by simply writing all "
                            "neccessary info manually on its respective field.\n"
                            "\n"
-                           "\n"
-                           "Reading an original file will attempt to turn a "
-                           ".pdf army book into raw text and create all "
-                           "neccessary data automatically. This process will "
-                           "not be perfect, not least because some information "
-                           "is written in natural languages not easily parsed "
-                           "by automation. Thus the list will need to be "
-                           "checked later, but this will reduce the work "
-                           "substantially.\n"
-                           "\n"
                            "Army lists must contain information on how their "
                            "organisation is defined. Before building the list, "
                            "define the organisation, as this will reset the "
@@ -130,6 +120,11 @@ void ListCreator::CreateArmy(QWidget *parent)
                            " !;X Select up to X points worth of items.\n"
                            " !#X Select up to X items.\n"
                            " !#X@Y Select up to X items for Y models.\n"
+                           "A special control element staring with '?',"
+                           " ?<AAA> "
+                           "means item is only available on lists with "
+                           "global AAA tag (40k specific). This must be "
+                           "separated from other control by whitespace"
 
     );
 
@@ -220,11 +215,6 @@ ListCreator::ListCreator(const QStringList &header,
     QPushButton *button = new QPushButton("&Edit file", this);
     connect(button, &QPushButton::clicked,
             this, &ListCreator::on_loadFile);
-    chLay->addWidget(button);
-
-    button = new QPushButton("Read original PDF", this);
-    connect(button, &QPushButton::clicked,
-            this, &ListCreator::on_parseFile);
     chLay->addWidget(button);
 
     lay2->addLayout(chLay);
@@ -456,11 +446,6 @@ void ListCreator::on_loadFile()
              "(*.txt)", nullptr, QFileDialog::DontConfirmOverwrite);
     if (!file.isEmpty())
         _fileName = file;
-}
-
-void ListCreator::on_parseFile()
-{
-
 }
 
 void ListCreator::initialise40k()

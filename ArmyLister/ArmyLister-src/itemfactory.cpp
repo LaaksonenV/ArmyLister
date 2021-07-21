@@ -16,6 +16,7 @@
 
 ItemFactory::ItemFactory()
     : _pointList(QList<PointContainer*>())
+    , _unitList(QMap<QString, UnitContainer>())
     , _listList(QMap<QString, QStringList>())
     , _globalLimiters(QMap<QString, ItemSatellite*>())
     , _nameMap(QMap<QString, int>())
@@ -28,9 +29,12 @@ ItemFactory::~ItemFactory()
     clear();
 }
 
-bool ItemFactory::addArmyFile(ModelItemBase* top, const QString &fileName)
+bool ItemFactory::addArmyFile(ModelItemBase* top, const QString &fileName,
+                              bool newArmy, const QString &tag)
 {
-    clear();
+    if (newArmy)
+        clear();
+
     QFile file(fileName);
     if (!file.open(QFile::Text | QFile::ReadOnly))
         return false;
@@ -40,6 +44,8 @@ bool ItemFactory::addArmyFile(ModelItemBase* top, const QString &fileName)
 
     TempTreeModelItem *tempitem = new TempTreeModelItem();
     QString line = str.readLine();
+    QStringList suptags;
+    QString suptag = QString();
 
     // Read through the list file. Each function reads lines until one starts
     // without an indent
@@ -47,18 +53,40 @@ bool ItemFactory::addArmyFile(ModelItemBase* top, const QString &fileName)
     {
         if (line.isEmpty())
             line = str.readLine();
-        // First to create points tables from 8-9th ed. 40k codices,
-        // separated into different files introduced before main list
+
+        // First to create lists and tables,
+        // separated into different files introduced before main list.
+        // The lists will contain common items selectable by multiple entries,
+        // and their costs. If an item has different costs depending on entry,
+        // these can be defined in a separate table.
         else if (line == "INCLUDES")
             line = parseIncludes(str);
+
         // ORGANISATION is used to map category names to a number for
-        // units that count as other category in some cases
+        // units that count as other category in some cases (9th Age)
         else if (line == "ORGANISATION")
             line = mapOrganisation(str);
+
+        // SUPPLEMENT denotes that current list adds content to other list.
+        // Supplemented lists may be given a special tag, if needed (ie.
+        // Spacemarines.txt <Blood Angels>)
+        else if (line == "SUPPLEMENT")
+        {
+            line = str.readLine();
+            suptags = parseSpecial(line);
+            if (!suptags.isEmpty())
+                suptag = suptags.first();
+            addArmyFile(top, line.trimmed(), false, suptag);
+            line = str.readLine();
+        }
+
+        // Lists may be defined in main file, though it should be on their own
         else if (line.startsWith('['))
             line = parseList(str, line);
+
+
         else
-            line = parseMainList(line,str,tempitem);
+            line = parseMainList(line,str,tempitem, tag);
     }
 
 
@@ -71,19 +99,32 @@ bool ItemFactory::addArmyFile(ModelItemBase* top, const QString &fileName)
 }
 
 QString ItemFactory::parseMainList(const QString &line, QTextStream &str,
-                                      TempTreeModelItem *parentBranch,
-                                      QStringList prev)
+                                   TempTreeModelItem *parentBranch,
+                                   const QString &supTag)
 {
     // Main file is consructed with indented hierarchy
     int tabCount = line.count('\t');
     QString nLine = line.trimmed();
 
-    // parseControl will list and remove control elements from the text
-    QStringList ctrl = parseControl(nLine);
+    // Check for supplement/faction specific entry. If specific and creating
+    // a different list, don't bother with the entry.
+    QStringList tags = parseControl(nLine, '?');
+    if (!supTag.isEmpty() && !tags.isEmpty() && !tags.contains(supTag))
+    {
+        // Recursion control. EOF and empty lines will cease parsing
+        if (str.atEnd())
+            return QString();
+        nLine = str.readLine();
+        // As long as the new line is further indented, it would further the
+        // recursion.
+        while (!nLine.isEmpty() && nLine.count('\t') > tabCount)
+        {
+            nLine = str.readLine();
+        }
+        return nLine;
+    }
 
-    // parseSpecial will list and remove special information from the text,
-    // that is added to prev with the entrys name //NO, IF NEEDED, CREATE
-    // SEPARATE SPECIAL ENTRY IN TEMP TREE FOR PRICE TABLE SEARCHING
+    QStringList ctrl = parseControl(nLine);
     QStringList newspec = parseSpecial(nLine);
     QStringList splitText = nLine.split('|');
     QString text = splitText.at(0).trimmed();
@@ -95,9 +136,6 @@ QString ItemFactory::parseMainList(const QString &line, QTextStream &str,
         if (!newspec.contains(s))
             newspec << s;
     }
-/*    if (!newspec.isEmpty())
-        prev.append(newspec);
-    prev << nLine.trimmed();*/
 
     TempTreeModelItem *item = new TempTreeModelItem(nLine.trimmed(),ctrl,
                                                     newspec, parentBranch);
@@ -110,7 +148,7 @@ QString ItemFactory::parseMainList(const QString &line, QTextStream &str,
     // recursion.
     while (!nLine.isEmpty() && nLine.count('\t') > tabCount)
     {
-        nLine = parseMainList(nLine, str, item, prev);
+        nLine = parseMainList(nLine, str, item, supTag);
     }
     return nLine;
 }
@@ -149,20 +187,22 @@ QString ItemFactory::mapOrganisation(QTextStream &str)
     return line;
 }
 
-QStringList ItemFactory::parseControl(QString &text)
+QStringList ItemFactory::parseControl(QString &text, const QChar &ctrl)
 {
     QStringList ret;
     text = text.trimmed();
     int sep;
     int prevsep = 0;
-    while (text.startsWith('!'))
+
+    while (text.startsWith(ctrl))
     {
         // look for a whitespace, if its between <> it's part of a name,
-        // otherwise it separates a word, and thus also control elements
+        // otherwise it separates a word, and thus also ends control elements
         while (true)
         {
             sep = text.indexOf(' ', prevsep);
             // if no whitespaces are found, the entire item is a control item
+            // This also ensures of breaking loop, as sep will eventually <=-1
             if (sep < 0)
             {
                 sep = text.count();
@@ -182,7 +222,7 @@ QStringList ItemFactory::parseControl(QString &text)
         // after a whitespace that separates an element from another of from
         // the rest of the line is found, the word until it is stored
         // as control elements and is removed from text
-        ret << text.left(sep).split('!', QString::SkipEmptyParts);
+        ret << text.left(sep).split(ctrl, QString::SkipEmptyParts);
 
         text.remove(0,sep);
     }
@@ -217,10 +257,17 @@ void ItemFactory::compileCategories(TempTreeModelItem *temproot,
     ModelItemCategory *knot;
     foreach (TempTreeModelItem *itm, temproot->_unders)
     {
-        knot = new ModelItemCategory(root);
-        root->addItem(knot);
-        qDebug() << "Compiling category: " << itm->_text;
-        knot->setText(itm->_text);
+        // Check if category already exists..
+        knot = static_cast<ModelItemCategory*> (root->getItem(itm->_text));
+
+        // ..if not, create
+        if (!knot)
+        {
+            knot = new ModelItemCategory(root);
+            root->addItem(knot);
+            qDebug() << "Compiling category: " << itm->_text;
+            knot->setText(itm->_text);
+        }
 
         foreach (TempTreeModelItem *itm2, itm->_unders)
             compileUnit(itm2, knot);
@@ -229,18 +276,17 @@ void ItemFactory::compileCategories(TempTreeModelItem *temproot,
 }
 
 void ItemFactory::compileUnit(TempTreeModelItem *tempknot,
-                              ModelItemCategory *trunk)
+                              ModelItemBase *trunk)
 {
     ModelItemUnit *knot = new ModelItemUnit(trunk);
 
     trunk->addItem(knot);
 
-// !=X cloning limit local & global and other possible control elements
-
     QString text = tempknot->_text;
     QStringList splitText = text.split('|');
     int specCost = 0;
     int modelmin = 0;
+    UnitContainer ucont;
 
     // if Unit stats are in base list (9A)
     // Name|permodelcost|modelss(|basecost(if different than permodelcost))
@@ -266,24 +312,44 @@ void ItemFactory::compileUnit(TempTreeModelItem *tempknot,
                     -cost*modelmin;
 
         knot->setMultiCost(cost, specCost);
+
+        ucont = UnitContainer();
+
     }
     // otherwise the units stats are recorded in tables
     else
     {
-        knot->setText(text);
+/*        knot->setText(text);
 
-        PointContainer *pr = findTableEntry(text, tempknot->_spec);
-
-        if (pr)
+        if (_unitList.contains(text))
         {
-            modelmin = pr->min;
-            knot->setRange(pr->min, pr->max);
+            ucont = _unitList.value(text);
+
+            modelmin = ucont.min;
+            knot->setRange(ucont.min, ucont.max);
 
             if (pr->specialPoints)
-                specCost = pr->specialPoints - pr->points*pr->min;
+                specCost = ucont.specialPoints - ucont.points*ucont.min;
 
             knot->setMultiCost(pr->points, specCost);
         }
+        else
+        {
+            ucont = UnitContainer();
+
+            PointContainer *pr = findTableEntry(text, tempknot->_spec);
+
+            if (pr)
+            {
+                modelmin = pr->min;
+                knot->setRange(pr->min, pr->max);
+
+                if (pr->specialPoints)
+                    specCost = pr->specialPoints - pr->points*pr->min;
+
+                knot->setMultiCost(pr->points, specCost);
+            }
+        }*/
     }
 
     knot->setSpecial(tempknot->_spec);
@@ -293,7 +359,7 @@ void ItemFactory::compileUnit(TempTreeModelItem *tempknot,
 
     QMap<QString, int> slotmap;
     foreach (TempTreeModelItem *itm2, tempknot->_unders)
-        compileItems(itm2, knot, slotmap);
+        compileItems(itm2, knot, slotmap, ucont);
 
     knot->passSpecialUp(QStringList(),true);
     knot->passModelsDown(modelmin, true);
@@ -302,11 +368,12 @@ void ItemFactory::compileUnit(TempTreeModelItem *tempknot,
 void ItemFactory::compileItems(TempTreeModelItem *tempknot,
                                ModelItemBase *trunk,
                                const QMap<QString, int> &slotmap,
+                               const UnitContainer &ucont,
                                ItemSatellite *sharedSat)
 {
     if (tempknot->_text.startsWith('['))
     {
-        compileList(tempknot, trunk, slotmap, sharedSat);
+        compileList(tempknot, trunk, slotmap, ucont, sharedSat);
         return;
     }
 
@@ -320,7 +387,7 @@ void ItemFactory::compileItems(TempTreeModelItem *tempknot,
 
         if (ctrlchar == '\\')
         {
-            compileSelection(tempknot, trunk);
+            compileSelection(tempknot, trunk, ucont);
             return;
         }
         else if (ctrlchar == '/')
@@ -370,7 +437,7 @@ void ItemFactory::compileItems(TempTreeModelItem *tempknot,
     {
         knot->setText(text);
 
-        int cost = countItems(text, tempknot->_spec);
+        int cost = countItems(text, tempknot->_spec, ucont);
         if (cost >= 0)
             knot->setCost(cost);
     }
@@ -383,12 +450,13 @@ void ItemFactory::compileItems(TempTreeModelItem *tempknot,
     sharedSat = checkControls(tempknot, knot);
 
     foreach (TempTreeModelItem *itm2, tempknot->_unders)
-        compileItems(itm2, knot, slotmap, sharedSat);
+        compileItems(itm2, knot, slotmap, ucont, sharedSat);
 }
 
 void ItemFactory::compileList(TempTreeModelItem *tempknot,
                               ModelItemBase *trunk,
                               const QMap<QString, int> &slotmap,
+                              const UnitContainer &ucont,
                               ItemSatellite *sharedSat)
 {
     QString text = tempknot->_text;
@@ -458,7 +526,7 @@ void ItemFactory::compileList(TempTreeModelItem *tempknot,
     {
         if (listEntry.startsWith('['))
         {
-            compileList(tempknot, trunk, slotmap, sharedSat);
+            compileList(tempknot, trunk, slotmap, ucont, sharedSat);
             continue;
         }
 
@@ -500,7 +568,7 @@ void ItemFactory::compileList(TempTreeModelItem *tempknot,
         {
             branch->setText(listEntry);
 
-            cost = countItems(listEntry, specials);
+            cost = countItems(listEntry, specials, ucont);
             if (cost >= 0)
                 branch->setCost(cost);
         }
@@ -584,7 +652,8 @@ void ItemFactory::compileList(TempTreeModelItem *tempknot,
 }
 
 void ItemFactory::compileSelection(TempTreeModelItem *tempknot,
-                                   ModelItemBase *trunk)
+                                   ModelItemBase *trunk,
+                                   const UnitContainer &ucont)
 {
     ModelItemSelection *knot = new ModelItemSelection(trunk);
 
@@ -640,7 +709,7 @@ void ItemFactory::compileSelection(TempTreeModelItem *tempknot,
         {
             branch->setText(text);
 
-            int i = countItems(text, tempknot->_spec);
+            int i = countItems(text, tempknot->_spec, ucont);
             if (i >= 0)
                 branch->passCostUp(i);
         }
@@ -649,13 +718,12 @@ void ItemFactory::compileSelection(TempTreeModelItem *tempknot,
 
         branch->setSpecial(tempknot->_spec);
 
-
     }
 
     checkControls(tempknot, knot);
 
     foreach (TempTreeModelItem *itm2, tempknot->_unders)
-        compileItems(itm2, knot, groupMap);
+        compileItems(itm2, knot, groupMap, ucont);
 }
 
 void ItemFactory::parseFile(const QString &fileName)
@@ -675,15 +743,8 @@ void ItemFactory::parseFile(const QString &fileName)
         if (line.startsWith('['))
             line = parseList(str, line);
 
-        // Non-category list line without indent is only a heading.
-        // Table entries are all indented
         else
-        {
-            if (line.startsWith('\t'))
-                line = parseTableEntry(line);
-
-            line = str.readLine();
-        }
+            line = parseTable(str, line);
     }
 }
 
@@ -837,8 +898,7 @@ QString ItemFactory::parseList(QTextStream &str, QString line)
 
     line = str.readLine();
 
-    // read every indented line after listname, and put them through table
-    // parser in case they contain price information
+    // read every indented line after listname
     while (!line.isNull() && line.startsWith('\t'))
     {
 //        line = parseTableEntry(line).trimmed();
@@ -863,7 +923,7 @@ QString ItemFactory::parseList(QTextStream &str, QString line)
                 qDebug() << "Multiple limit entries! " << line;
             else
                 _globalLimiters.insert(entry,
-                                       new ItemSatelliteSelectionLimiter(limitReg.cap(1)
+                               new ItemSatelliteSelectionLimiter(limitReg.cap(1)
                                                                  .toInt(),
                                                   ModelItemBasic::GlobalLimit));
         }
@@ -876,68 +936,144 @@ QString ItemFactory::parseList(QTextStream &str, QString line)
     return line;
 }
 
-QString ItemFactory::parseTableEntry(const QString &line)
+QString ItemFactory::parseTable(QTextStream &str, QString line)
 {
-
+    // Unit entries have data after their name, otherwise the line is a heading
+    // and may be ignored
     QStringList splitLine = line.split("|");
-    QRegExp specialEntry("!<(.+)>");
-    specialEntry.setMinimal(true);
+    QString name;
 
-    QString name = splitLine.at(0);
-    if (name.contains('!'))
-        name = name.remove(specialEntry).trimmed();
-
-    // if the entry doesn't include price information, nothing else needs
-    // to be done
     if (splitLine.count() >= 1)
     {
+        UnitContainer ucont = UnitContainer();
+        name = splitLine.at(0).trimmed();
 
-        PointContainer *entry = new PointContainer();
-        entry->text = name;
-        QRegExp multiplier("^(\\d+)");
-        if (multiplier.indexIn(name) > 0)
-        {
-            entry->multiplier = multiplier.cap(1).toInt();
-            entry->text.remove(multiplier);
-        }
+        ucont.points = splitLine.at(1).toInt();
 
-
-        // look for special entries
-        int pos = 0;
-        while ((pos = specialEntry.indexIn(splitLine.at(0),pos)) >= 0)
-        {
-            entry->special << specialEntry.cap(1);
-            pos += specialEntry.cap(1).count();
-        }
-
-        // we have confirmed that entry has at least a price
-        entry->points = splitLine.at(1).toInt();
-
-        // if entry is a unit, it will have a second point of information for
-        // models
         if (splitLine.count() > 2)
         {
             if (splitLine.at(2).contains('-'))
             {
                 QStringList splitEntry = splitLine.at(2).split('-');
-                entry->min = splitEntry.at(0).toInt();
-                entry->max = splitEntry.at(1).toInt();
+                ucont.min = splitEntry.at(0).toInt();
+                ucont.max = splitEntry.at(1).toInt();
             }
             else
-                entry->min = splitLine.at(2).toInt();
+                ucont.min = splitLine.at(2).toInt();
+        }
+        else
+        {
+            qDebug() << "Unit entry not a unit! " << line;
         }
 
-        // unit entries may also carry special cost aside from per model price
+        // unit entries may also carry special cost aside from per model
+        // price
         if (splitLine.count() > 3)
-            entry->specialPoints = splitLine.at(3).toInt();
+            ucont.specialPoints = splitLine.at(3).toInt();
 
-        _pointList << entry;
+        _unitList.insert(name, ucont);
+
+        line = str.readLine();
+
+        ItemContainer item;
+
+        while (!line.isNull() && line.startsWith('\t'))
+        {
+            splitLine = line.split("|");
+
+            name = splitLine.at(0).trimmed();
+
+            item = ItemContainer();
+            item.points = splitLine.at(1).toInt();
+
+            ucont.items.insert(name, item);
+
+            line = str.readLine();
+        }
     }
-    return name;
+    // Entries that are not unit may or may not contain different information?
+    // Propably unnecessarily complicated, SM need only for 'Chapter Command',
+    // May be cut down in future.
+    else
+    {
+
+        QRegExp specialEntry("!<(.+)>");
+        specialEntry.setMinimal(true);
+
+        QRegExp multiplier("^(\\d+)");
+        QStringList splitEntry;
+
+        PointContainer *entry;
+
+        line = str.readLine();
+
+        while (!line.isNull() && line.startsWith('\t'))
+        {
+
+            splitLine = line.split("|");
+
+            name = splitLine.at(0);
+            if (name.contains('!'))
+                name = name.remove(specialEntry).trimmed();
+
+            // if the entry doesn't include price information, nothing else needs
+            // to be done
+            if (splitLine.count() >= 1)
+            {
+
+                entry = new PointContainer();
+                entry->text = name;
+
+                if (multiplier.indexIn(name) > 0)
+                {
+                    entry->multiplier = multiplier.cap(1).toInt();
+                    entry->text.remove(multiplier);
+                }
+
+
+                // look for special entries
+                int pos = 0;
+                while ((pos = specialEntry.indexIn(splitLine.at(0),pos)) >= 0)
+                {
+                    entry->special << specialEntry.cap(1);
+                    pos += specialEntry.cap(1).count();
+                }
+
+                // we have confirmed that entry has at least a price
+                entry->points = splitLine.at(1).toInt();
+
+                // if entry is a unit, it will have a second point of
+                // information for models
+                if (splitLine.count() > 2)
+                {
+                    if (splitLine.at(2).contains('-'))
+                    {
+                        splitEntry = splitLine.at(2).split('-');
+                        entry->min = splitEntry.at(0).toInt();
+                        entry->max = splitEntry.at(1).toInt();
+                    }
+                    else
+                        entry->min = splitLine.at(2).toInt();
+                }
+
+                // unit entries may also carry special cost aside from per model
+                // price
+                if (splitLine.count() > 3)
+                    entry->specialPoints = splitLine.at(3).toInt();
+
+                _pointList << entry;
+            }
+
+            line = str.readLine();
+        }
+
+    }
+    return line;
 }
 
 int ItemFactory::countItems(QString text,
-                             const QStringList &special)
+                            const QStringList &special,
+                            const UnitContainer &ucont)
 {
     PointContainer *pr = nullptr;
     int points = 0;
@@ -955,34 +1091,55 @@ int ItemFactory::countItems(QString text,
         text = items.at(i).trimmed();
         tempText = text;
 
-        // search for the item in tables
-        if ((pr = findTableEntry(tempText,special)))
+        if (multiplier.indexIn(text) > 0)
         {
-            if (multiplier.indexIn(text) > 0)
+            newModifier = multiplier.cap(1).toInt();
+            tempText.remove(multiplier);
+        }
+
+        // search for the item in units table
+        if (ucont.items.contains(text))
+        {
+            points += ucont.items.value(text).points;
+        }
+        else if (ucont.items.contains(tempText))
+        {
+            points += ucont.items.value(text).points * newModifier;
+        }
+
+        // search for the item in tables
+        else
+        {
+            tempText = text;
+
+            if ((pr = findTableEntry(tempText,special)))
             {
-                newModifier = multiplier.cap(1).toInt();
-
-                // findTableEntry edits text to have the greatest multiplier
-                // less than original found in tables if applicable
-                if (multiplier.indexIn(tempText) >= 0)
-                    foundModifier = multiplier.cap(1).toInt();
-                else
-                    foundModifier = 1;
-
-                costModifier = int(floor(newModifier/foundModifier));
-
-
-                // if found entry does not count for all items, insert the
-                // item with remaining multiples back to list
-                newModifier = newModifier - foundModifier * costModifier;
-                if (newModifier > 0)
+                if (multiplier.indexIn(text) > 0)
                 {
-                    text.replace(multiplier, QString::number(newModifier));
-                    items << text;
-                }
-            }
+                    newModifier = multiplier.cap(1).toInt();
 
-            points += pr->points*costModifier;
+                    // findTableEntry edits text to have the greatest multiplier
+                    // less than original found in tables if applicable
+                    if (multiplier.indexIn(tempText) >= 0)
+                        foundModifier = multiplier.cap(1).toInt();
+                    else
+                        foundModifier = 1;
+
+                    costModifier = int(floor(newModifier/foundModifier));
+
+
+                    // if found entry does not count for all items, insert the
+                    // item with remaining multiples back to list
+                    newModifier = newModifier - foundModifier * costModifier;
+                    if (newModifier > 0)
+                    {
+                        text.replace(multiplier, QString::number(newModifier));
+                        items << text;
+                    }
+                }
+
+                points += pr->points*costModifier;
+            }
         }
         // items may not have costs at all
     }
@@ -1083,7 +1240,11 @@ PointContainer *ItemFactory::findTableEntry(QString &text,
 void ItemFactory::clear()
 {
     foreach (PointContainer *p, _pointList)
+    {
         delete p;
+        p = nullptr;
+    }
+    _unitList.clear();
     _listList.clear();
     _globalLimiters.clear();
     _nameMap.clear();

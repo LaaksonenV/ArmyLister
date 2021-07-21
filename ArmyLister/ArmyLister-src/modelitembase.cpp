@@ -45,6 +45,16 @@ QSize ModelItemBase::sizeHint() const
     return QSize(300, visibleItems()*Settings::ItemMeta(Settings::ItemHeight));
 }
 
+ModelItemBase* ModelItemBase::getItem(const QString &text) const
+{
+    foreach (ModelItemBase *i, _branches)
+    {
+        if (i->getText() == text)
+            return i;
+    }
+    return nullptr;
+}
+
 void ModelItemBase::addItem(ModelItemBase *item,int)
 {
     item->moveSteps(_branches.count(),0);
