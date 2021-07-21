@@ -237,6 +237,7 @@ QStringList ItemFactory::parseSpecial(QString &text)
     QStringList ret;
     if (text.isEmpty())
         return ret;
+
     QRegExp specialReg("<(.*)>");
     specialReg.setMinimal(true);
     int pos = -1;
@@ -316,11 +317,12 @@ void ItemFactory::compileUnit(TempTreeModelItem *tempknot,
         ucont = UnitContainer();
 
     }
-    // otherwise the units stats are recorded in tables
+    // otherwise the units stats are recorded in tables (40k)
     else
     {
-/*        knot->setText(text);
+        knot->setText(text);
 
+        // look for units entry in prepared tables, units should always have one
         if (_unitList.contains(text))
         {
             ucont = _unitList.value(text);
@@ -328,11 +330,13 @@ void ItemFactory::compileUnit(TempTreeModelItem *tempknot,
             modelmin = ucont.min;
             knot->setRange(ucont.min, ucont.max);
 
-            if (pr->specialPoints)
+/*no specials in 40 right?            if (pr->specialPoints)
                 specCost = ucont.specialPoints - ucont.points*ucont.min;
-
-            knot->setMultiCost(pr->points, specCost);
+*/
+            knot->setMultiCost(ucont.points, 0);
         }
+
+        /* Units should always have entry in table
         else
         {
             ucont = UnitContainer();
@@ -371,6 +375,7 @@ void ItemFactory::compileItems(TempTreeModelItem *tempknot,
                                const UnitContainer &ucont,
                                ItemSatellite *sharedSat)
 {
+    // lists are compiled separately
     if (tempknot->_text.startsWith('['))
     {
         compileList(tempknot, trunk, slotmap, ucont, sharedSat);
@@ -385,11 +390,14 @@ void ItemFactory::compileItems(TempTreeModelItem *tempknot,
     {
         ctrlchar = ctrl.at(0);
 
+        // selection roots are compiled differently
         if (ctrlchar == '\\')
         {
             compileSelection(tempknot, trunk, ucont);
             return;
         }
+        // compileSelection gives slotmap, which includes all available
+        // slotnames mapped to an integer
         else if (ctrlchar == '/')
         {
             ctrl.remove(ctrlchar);
@@ -402,6 +410,7 @@ void ItemFactory::compileItems(TempTreeModelItem *tempknot,
             }
             group = slotmap.value(ctrl);
         }
+        // items selectable multiple times need spinners
         else if (ctrlchar == '$')
             spin = true;
     }
@@ -432,7 +441,7 @@ void ItemFactory::compileItems(TempTreeModelItem *tempknot,
         cost = splitText.at(1).trimmed().toInt();
         knot->setCost(cost);
     }
-    // otherwise the units stats are recorded in tables
+    // otherwise the units stats are recorded in tables (40k)
     else
     {
         knot->setText(text);
@@ -991,7 +1000,7 @@ QString ItemFactory::parseTable(QTextStream &str, QString line)
             line = str.readLine();
         }
     }
-    // Entries that are not unit may or may not contain different information?
+/*    // Entries that are not unit may or may not contain different information?
     // Propably unnecessarily complicated, SM need only for 'Chapter Command',
     // May be cut down in future.
     else
@@ -1067,7 +1076,7 @@ QString ItemFactory::parseTable(QTextStream &str, QString line)
             line = str.readLine();
         }
 
-    }
+    }*/
     return line;
 }
 
@@ -1075,12 +1084,12 @@ int ItemFactory::countItems(QString text,
                             const QStringList &special,
                             const UnitContainer &ucont)
 {
-    PointContainer *pr = nullptr;
+  //  PointContainer *pr = nullptr;
     int points = 0;
     QStringList items = text.split(QRegExp("[&,]"));
 
     int costModifier;
-    int foundModifier;
+ //   int foundModifier;
     int newModifier;
     QRegExp multiplier("^(\\d+)");
     QString tempText;
@@ -1091,13 +1100,15 @@ int ItemFactory::countItems(QString text,
         text = items.at(i).trimmed();
         tempText = text;
 
+        // check if item has multiplier, and make a text entry without it
         if (multiplier.indexIn(text) > 0)
         {
             newModifier = multiplier.cap(1).toInt();
             tempText.remove(multiplier);
         }
 
-        // search for the item in units table
+        // search for the item in units table, first if one with multiplier
+        // exists
         if (ucont.items.contains(text))
         {
             points += ucont.items.value(text).points;
@@ -1107,7 +1118,7 @@ int ItemFactory::countItems(QString text,
             points += ucont.items.value(text).points * newModifier;
         }
 
-        // search for the item in tables
+ /*       // search for the item in tables
         else
         {
             tempText = text;
@@ -1140,13 +1151,14 @@ int ItemFactory::countItems(QString text,
 
                 points += pr->points*costModifier;
             }
-        }
+        }*/
         // items may not have costs at all
     }
 
     return points;
 }
 
+//Not needed?
 PointContainer *ItemFactory::findTableEntry(QString &text,
                                             const QStringList &special)
 {
