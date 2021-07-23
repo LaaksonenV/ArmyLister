@@ -20,6 +20,10 @@ const QFont& Settings::Font(enum Fonts i)
     return _fonts.at(i);
 }
 
+const QString& Settings::Strng(enum Strings s)
+{
+    return _strings.at(s);
+}
 
 Settings::Settings()
     : QSettings("settings.ini", QSettings::IniFormat)

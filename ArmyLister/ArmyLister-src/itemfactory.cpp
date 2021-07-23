@@ -330,10 +330,10 @@ void ItemFactory::compileUnit(TempTreeModelItem *tempknot,
             modelmin = ucont.min;
             knot->setRange(ucont.min, ucont.max);
 
-/*no specials in 40 right?            if (pr->specialPoints)
+            if (ucont.specialPoints)
                 specCost = ucont.specialPoints - ucont.points*ucont.min;
-*/
-            knot->setMultiCost(ucont.points, 0);
+
+            knot->setMultiCost(ucont.points, specCost);
         }
 
         /* Units should always have entry in table

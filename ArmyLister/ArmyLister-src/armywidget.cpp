@@ -75,7 +75,8 @@ Organisation *ArmyWidget::create40k()
 {
     BattleForged *army = new BattleForged(this);
 
-    army->setLists(ListCreatorDetach::getOrganisationList("BattleForged.txt"),0);
+    army->setLists(ListCreatorDetach::getOrganisationList(
+                       "Appends\\BattleForged.txt"),0);
 
     connect(_list, &ArmyListWidget::roleSelected,
             army, &BattleForged::onRoleSelection);

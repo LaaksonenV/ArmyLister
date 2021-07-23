@@ -21,6 +21,7 @@
 
 #include "textedit.h"
 #include "listcreatorwidgets.h"
+#include "settings.h"
 
 void ListCreator::CreateArmy(QWidget *parent)
 {
@@ -116,7 +117,7 @@ void ListCreator::CreateArmy(QWidget *parent)
                            " (!/AA/BB Entry will replace the item in slots AA "
                            "and BB TBA)\n"
                            "Following control elements limit the choises under "
-                           "the item with the element:"
+                           "the item with the element:\n"
                            " !;X Select up to X points worth of items.\n"
                            " !#X Select up to X items.\n"
                            " !#X@Y Select up to X items for Y models.\n"
@@ -185,9 +186,8 @@ void ListCreator::CreateList(QWidget *parent)
                            "  Group limit list entries are of form !{AAA}?#X, "
                            "where AAA is the name of the group, and X the "
                            "limit a unit may select items in this group.\n"
-                           "\n"
-                           "\n"
-                           "Tables needed anymore?"
+                           "  !{AAA}?=1 limits globally."
+
 
                            );
 
@@ -442,7 +442,7 @@ void ListCreator::on_includeAdd(const QString &filename)
 void ListCreator::on_loadFile()
 {
     QString file = QFileDialog::getOpenFileName
-            (this, "Choose file to load", QString(),
+            (this, "Choose file to load", _fileName,
              "(*.txt)", nullptr, QFileDialog::DontConfirmOverwrite);
     if (!file.isEmpty())
         _fileName = file;
