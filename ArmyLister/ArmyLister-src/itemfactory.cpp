@@ -609,14 +609,15 @@ void ItemFactory::compileSelection(const TempTreeModelItem *tempknot,
     {
         text = texts.at(i);
         group = text.section("(",0,0);
-        if (group.isEmpty())
+        if (!text.contains('(') || group.isEmpty())
         {
-            if (text.count() == 1)
+            if (texts.count() == 1)
                 group = "null";
             else
             {
                 QMessageBox::warning(nullptr, "Erroneous selection",
-                                     "Omiting a slot name with multiple slots "
+                                     "Omiting a slot name "
+                                     "or parantheses with multiple slots "
                                      "is not currently allowed. Skipping " +
                                      tempknot->_text);
                 return;
@@ -624,7 +625,8 @@ void ItemFactory::compileSelection(const TempTreeModelItem *tempknot,
         }
 
         groupMap.insert(group,i);
-        text = text.section("(",1);
+        if (text.contains('('))
+            text = text.section("(",1);
 
         splitText = text.split('|');
 
