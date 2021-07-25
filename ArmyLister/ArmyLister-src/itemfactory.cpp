@@ -192,9 +192,11 @@ QStringList ItemFactory::parseControl(QString &text, const QChar &ctrl)
     QStringList ret;
     text = text.trimmed();
     int sep;
-    int prevsep = 0;
 
-    while (text.startsWith(ctrl))
+    QRegExp contrl("\\b" + ctrl);
+    int prevsep = contrl.indexIn(text);
+
+    while (prevsep >= 0)
     {
         // look for a whitespace, if its between <> it's part of a name,
         // otherwise it separates a word, and thus also ends control elements
@@ -225,6 +227,7 @@ QStringList ItemFactory::parseControl(QString &text, const QChar &ctrl)
         ret << text.left(sep).split(ctrl, QString::SkipEmptyParts);
 
         text.remove(0,sep);
+        prevsep = contrl.indexIn(text);
     }
 
     text = text.trimmed();
