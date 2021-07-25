@@ -20,6 +20,7 @@ ItemFactory::ItemFactory()
     , _listList(QMap<QString, QStringList>())
     , _globalLimiters(QMap<QString, ItemSatellite*>())
     , _nameMap(QMap<QString, int>())
+    , _retinueList(QMap<QString, TempTreeModelItem*>)
 {
 
 }
@@ -106,9 +107,19 @@ QString ItemFactory::parseMainList(const QString &line, QTextStream &str,
     int tabCount = line.count('\t');
     QString nLine = line.trimmed();
 
+    // Check for compiletime control elements
+    QStringList tags = parseControl(nLine, '?');
+
+    // Retinue units may be included in other unit entries as options, so are
+    // saved also separately
+    bool retinue = false;
+    if (tags.contains("R"))
+    {
+        retinue = true;
+        tags.removeAll("R");
+    }
     // Check for supplement/faction specific entry. If specific and creating
     // a different list, don't bother with the entry.
-    QStringList tags = parseControl(nLine, '?');
     if (!supTag.isEmpty() && !tags.isEmpty() && !tags.contains(supTag))
     {
         // Recursion control. EOF and empty lines will cease parsing
@@ -139,6 +150,9 @@ QString ItemFactory::parseMainList(const QString &line, QTextStream &str,
 
     TempTreeModelItem *item = new TempTreeModelItem(nLine.trimmed(),ctrl,
                                                     newspec, parentBranch);
+
+    if (retinue)
+        _retinueList.insert(text, item);
 
     // Recursion control. EOF and empty lines will cease parsing
     if (str.atEnd())
@@ -254,7 +268,7 @@ QStringList ItemFactory::parseSpecial(QString &text)
     return ret;
 }
 
-void ItemFactory::compileCategories(TempTreeModelItem *temproot,
+void ItemFactory::compileCategories(const TempTreeModelItem *temproot,
                                     ModelItemBase *root)
 {
 
@@ -279,90 +293,20 @@ void ItemFactory::compileCategories(TempTreeModelItem *temproot,
 
 }
 
-void ItemFactory::compileUnit(TempTreeModelItem *tempknot,
+ModelItemBasic *ItemFactory::compileUnit(TempTreeModelItem *tempknot,
                               ModelItemBase *trunk)
 {
     ModelItemUnit *knot = new ModelItemUnit(trunk);
 
     trunk->addItem(knot);
 
-    QString text = tempknot->_text;
-    QStringList splitText = text.split('|');
-    int specCost = 0;
-    int modelmin = 0;
-    UnitContainer ucont;
+    UnitContainer *ucont = nullptr;
 
-    // if Unit stats are in base list (9A)
-    // Name|permodelcost|modelss(|basecost(if different than permodelcost))
-    if (splitText.count()>1)
-    {
-        text = splitText.at(0).trimmed();
-
-        knot->setText(text);
-
-
-        QStringList modelsSplit = splitText.at(2).split('-');
-        modelmin = modelsSplit.at(0).trimmed().toInt();
-        int modelmax = -1;
-        if (modelsSplit.count() > 1)
-            modelmax = modelsSplit.at(1).trimmed().toInt();
-        knot->setRange(modelmin, modelmax);
-
-
-        int cost = splitText.at(1).trimmed().toInt();
-
-        if (splitText.count()>3)
-            specCost = splitText.at(3).trimmed().toInt()
-                    -cost*modelmin;
-
-        knot->setMultiCost(cost, specCost);
-
-        ucont = UnitContainer();
-
-    }
-    // otherwise the units stats are recorded in tables (40k)
-    else
-    {
-        knot->setText(text);
-
-        // look for units entry in prepared tables, units should always have one
-        if (_unitList.contains(text))
-        {
-            ucont = _unitList.value(text);
-
-            modelmin = ucont.min;
-            knot->setRange(ucont.min, ucont.max);
-
-            if (ucont.specialPoints)
-                specCost = ucont.specialPoints - ucont.points*ucont.min;
-
-            knot->setMultiCost(ucont.points, specCost);
-        }
-
-        /* Units should always have entry in table
-        else
-        {
-            ucont = UnitContainer();
-
-            PointContainer *pr = findTableEntry(text, tempknot->_spec);
-
-            if (pr)
-            {
-                modelmin = pr->min;
-                knot->setRange(pr->min, pr->max);
-
-                if (pr->specialPoints)
-                    specCost = pr->specialPoints - pr->points*pr->min;
-
-                knot->setMultiCost(pr->points, specCost);
-            }
-        }*/
-    }
+    checkCost(knot, tempknot->_text, ucont);
 
     knot->setSpecial(tempknot->_spec);
 
     checkControls(tempknot, knot);
-
 
     QMap<QString, int> slotmap;
     foreach (TempTreeModelItem *itm2, tempknot->_unders)
@@ -370,12 +314,14 @@ void ItemFactory::compileUnit(TempTreeModelItem *tempknot,
 
     knot->passSpecialUp(QStringList(),true);
     knot->passModelsDown(modelmin, true);
+
+    return knot;
 }
 
-void ItemFactory::compileItems(TempTreeModelItem *tempknot,
+void ItemFactory::compileItems(const TempTreeModelItem *tempknot,
                                ModelItemBase *trunk,
                                const QMap<QString, int> &slotmap,
-                               const UnitContainer &ucont,
+                               const UnitContainer *ucont,
                                ItemSatellite *sharedSat)
 {
     // lists are compiled separately
@@ -387,7 +333,10 @@ void ItemFactory::compileItems(TempTreeModelItem *tempknot,
 
     QChar ctrlchar;
     bool spin = false;
+    TempTreeModelItem *retinue = nullptr;
     int group = -1;
+
+    QString text = tempknot->_text;
 
     foreach (QString ctrl, tempknot->_control)
     {
@@ -416,43 +365,42 @@ void ItemFactory::compileItems(TempTreeModelItem *tempknot,
         // items selectable multiple times need spinners
         else if (ctrlchar == '$')
             spin = true;
+
+        // retinue items are compiled as units, and edited as needed
+        else if (ctrlchar == 'R')
+        {
+            ctrl.remove(ctrlchar);
+            // retinue name may be omitted, if option text is the name, nothing
+            // else
+            if (ctrl.isEmpty())
+                ctrl = text;
+            else
+                ctrl.remove(QRegExp("[<>]"));
+
+            retinue = _retinueList.value(ctrl);
+            if (!retinue)
+            {
+                qDebug() << "Faulty retinue name in main list: " << ctrl;
+                return;
+            }
+        }
     }
 
     ModelItemBasic *knot;
 
-    if (spin)
-        knot = new ModelItemSpinner(trunk);
-    else
-        knot = new ModelItemBasic(trunk);
-
-    trunk->addItem(knot, group);
-
-    QString text = tempknot->_text;
-
-    QStringList splitText = text.split('|');
-    int cost;
-
-
-    // if item stats are in base list (9A)
-    // Name|cost
-    if (splitText.count()>1)
-    {
-        text = splitText.at(0).trimmed();
-
-        knot->setText(text);
-
-        cost = splitText.at(1).trimmed().toInt();
-        knot->setCost(cost);
-    }
-    // otherwise the units stats are recorded in tables (40k)
+    if (retinue)
+        knot = compileUnit(retinue, trunk);
     else
     {
-        knot->setText(text);
+        if (spin)
+            knot = new ModelItemSpinner(trunk);
+        else
+            knot = new ModelItemBasic(trunk);
 
-        int cost = countItems(text, tempknot->_spec, ucont);
-        if (cost >= 0)
-            knot->setCost(cost);
+        trunk->addItem(knot, group);
     }
+
+    checkCost(knot, text, ucont);
 
     knot->setSpecial(tempknot->_spec);
 
@@ -465,10 +413,10 @@ void ItemFactory::compileItems(TempTreeModelItem *tempknot,
         compileItems(itm2, knot, slotmap, ucont, sharedSat);
 }
 
-void ItemFactory::compileList(TempTreeModelItem *tempknot,
+void ItemFactory::compileList(const TempTreeModelItem *tempknot,
                               ModelItemBase *trunk,
                               const QMap<QString, int> &slotmap,
-                              const UnitContainer &ucont,
+                              const UnitContainer *ucont,
                               ItemSatellite *sharedSat)
 {
     QString text = tempknot->_text;
@@ -561,29 +509,7 @@ void ItemFactory::compileList(TempTreeModelItem *tempknot,
             listEntry.remove(controlEntry);
         }
 
-        QStringList splitText = listEntry.split('|');
-        int cost;
-
-        // if item stats are in base list (9A)
-        // Name|cost
-        if (splitText.count()>1)
-        {
-            listEntry = splitText.at(0).trimmed();
-
-            branch->setText(listEntry);
-
-            cost = splitText.at(1).trimmed().toInt();
-            branch->setCost(cost);
-        }
-        // otherwise the units stats are recorded in tables
-        else
-        {
-            branch->setText(listEntry);
-
-            cost = countItems(listEntry, specials, ucont);
-            if (cost >= 0)
-                branch->setCost(cost);
-        }
+        checkCost(branch, listEntry);
 
         branch->setSpecial(specials);
 
@@ -663,9 +589,9 @@ void ItemFactory::compileList(TempTreeModelItem *tempknot,
     }
 }
 
-void ItemFactory::compileSelection(TempTreeModelItem *tempknot,
+void ItemFactory::compileSelection(const TempTreeModelItem *tempknot,
                                    ModelItemBase *trunk,
-                                   const UnitContainer &ucont)
+                                   const UnitContainer *ucont)
 {
     ModelItemSelection *knot = new ModelItemSelection(trunk);
 
@@ -721,7 +647,7 @@ void ItemFactory::compileSelection(TempTreeModelItem *tempknot,
         {
             branch->setText(text);
 
-            int i = countItems(text, tempknot->_spec, ucont);
+            int i = countItems(text, ucont);
             if (i >= 0)
                 branch->passCostUp(i);
         }
@@ -760,7 +686,7 @@ void ItemFactory::parseFile(const QString &fileName)
     }
 }
 
-ItemSatellite *ItemFactory::checkControls(TempTreeModelItem *tempknot,
+ItemSatellite *ItemFactory::checkControls(const TempTreeModelItem *tempknot,
                                                   ModelItemBasic *knot)
 {
     QChar ctrlchar;
@@ -878,6 +804,78 @@ ItemSatellite *ItemFactory::checkControls(TempTreeModelItem *tempknot,
         }
     }
     return ret;
+}
+
+void ItemFactory::checkCost(ModelItemBasic *knot,
+                                            const QString &text,
+                                            UnitContainer *&ucont)
+{
+    QStringList splitText = text.split('|');
+
+    int specCost = 0;
+    int modelmin = 0;
+
+    // if Item stats are in base list (9A)
+    // for items Name|cost
+    if (splitText.count()>1)
+    {
+        text = splitText.at(0).trimmed();
+
+        knot->setText(text);
+
+        int cost = splitText.at(1).trimmed().toInt();
+
+        // for units
+        // Name|permodelcost|modelss(|basecost(if different than permodelcost))
+        if (splitText.count()>2)
+        {
+            QStringList modelsSplit = splitText.at(2).split('-');
+            modelmin = modelsSplit.at(0).trimmed().toInt();
+            int modelmax = -1;
+            if (modelsSplit.count() > 1)
+                modelmax = modelsSplit.at(1).trimmed().toInt();
+            knot->setRange(modelmin, modelmax);
+
+            if (splitText.count()>3)
+                specCost = splitText.at(3).trimmed().toInt()
+                        -cost*modelmin;
+
+            knot->setMultiCost(cost, specCost);
+        }
+        else
+            knot->setCost(cost);
+
+        return;
+
+    }
+    // otherwise the units stats are recorded in tables (40k)
+    else
+    {
+        knot->setText(text);
+
+        // if unitcontainer is given, use that
+        if (ucont)
+        {
+            cost = countItems(text, ucont);
+            if (cost >= 0)
+                knot->setCost(cost);
+
+            return;
+        }
+        // otherwise look for unitcontainer in table
+        else if (_unitList.contains(text))
+        {
+            ucont = _unitList.value(text);
+
+            modelmin = ucontret.min;
+            knot->setRange(ucont->min, ucont->max);
+
+            if (ucont->specialPoints)
+                specCost = ucont->specialPoints - ucont->points*ucont->min;
+
+            knot->setMultiCost(ucont->points, specCost);
+        }
+    }
 }
 
 QString ItemFactory::parseList(QTextStream &str, QString line)
@@ -1084,8 +1082,7 @@ QString ItemFactory::parseTable(QTextStream &str, QString line)
 }
 
 int ItemFactory::countItems(QString text,
-                            const QStringList &special,
-                            const UnitContainer &ucont)
+                            const UnitContainer *ucont)
 {
   //  PointContainer *pr = nullptr;
     int points = 0;
@@ -1112,144 +1109,18 @@ int ItemFactory::countItems(QString text,
 
         // search for the item in units table, first if one with multiplier
         // exists
-        if (ucont.items.contains(text))
+        if (ucont->items.contains(text))
         {
-            points += ucont.items.value(text).points;
+            points += ucont->items.value(text).points;
         }
-        else if (ucont.items.contains(tempText))
+        else if (ucont->items.contains(tempText))
         {
-            points += ucont.items.value(text).points * newModifier;
+            points += ucont->items.value(text).points * newModifier;
         }
 
- /*       // search for the item in tables
-        else
-        {
-            tempText = text;
-
-            if ((pr = findTableEntry(tempText,special)))
-            {
-                if (multiplier.indexIn(text) > 0)
-                {
-                    newModifier = multiplier.cap(1).toInt();
-
-                    // findTableEntry edits text to have the greatest multiplier
-                    // less than original found in tables if applicable
-                    if (multiplier.indexIn(tempText) >= 0)
-                        foundModifier = multiplier.cap(1).toInt();
-                    else
-                        foundModifier = 1;
-
-                    costModifier = int(floor(newModifier/foundModifier));
-
-
-                    // if found entry does not count for all items, insert the
-                    // item with remaining multiples back to list
-                    newModifier = newModifier - foundModifier * costModifier;
-                    if (newModifier > 0)
-                    {
-                        text.replace(multiplier, QString::number(newModifier));
-                        items << text;
-                    }
-                }
-
-                points += pr->points*costModifier;
-            }
-        }*/
-        // items may not have costs at all
     }
 
     return points;
-}
-
-//Not needed?
-PointContainer *ItemFactory::findTableEntry(QString &text,
-                                            const QStringList &special)
-{
-    QRegExp multiplier("^(\\d+)");
-    PointContainer *found = nullptr;
-    PointContainer *candidate = nullptr;
-    int foundMultiplier = 0;
-    int originalMultiplier = 1;
-    if (multiplier.indexIn(text) > 0)
-        originalMultiplier = multiplier.cap(1).toInt();
-    text.remove(multiplier);
-    text = text.trimmed();
-
-    bool ok = false;
-    int ind = 0;
-
-    // look through all entries
-    foreach (PointContainer *pr, _pointList)
-    {
-        // if item names match..
-        if (pr->text == text)
-        {
-            // check if the entry has special limitations
-            if (pr->special.count())
-            {
-                ok = false;
-                ind = 0;
-
-                QStringList l;
-                // go through all limitations, if multiple limitations need
-                // matching, they are divided by a comma
-                // Search stops when list ends, or special limits are met
-                while (ind < pr->special.count() && !ok)
-                {
-                    l = pr->special.at(ind).split(",");
-                    // for each multiple limitations (or just one)
-                    foreach (QString s, l)
-                    {
-                        // compare with given specials
-                        foreach (QString p, special)
-                        {
-                            // if specials match, we can continue on
-                            if (p == s)
-                            {
-                                ok = true;
-                                break;
-                            }
-                            else
-                                ok = false;
-                        }
-                        // if no special matched for one multiple, no need to
-                        // check others
-                        if (!ok)
-                            break;
-                    }
-                    ++ind;
-                }
-                // if we found one group of limitations that match with
-                // special entries, we have a candidate
-                if (ok)
-                    candidate = pr;
-            }
-            // if no limitations, the entry is a candidate
-            else
-                candidate = pr;
-
-            if (candidate)
-            {
-            // check if the candidates multiplier is same (best candidate)
-            // or at least greater than previously founds
-                if (candidate->multiplier == originalMultiplier)
-                    return candidate;
-                else if (candidate->multiplier < originalMultiplier &&
-                         candidate->multiplier > foundMultiplier)
-                {
-                    foundMultiplier = candidate->multiplier;
-                    found = candidate;
-                }
-                candidate = nullptr;
-            }
-        } // items names don't match
-    }
-    if (found)
-    {
-        text.prepend(" ");
-        text.prepend(QString::number(foundMultiplier));
-    }
-    return found;
 }
 
 void ItemFactory::clear()

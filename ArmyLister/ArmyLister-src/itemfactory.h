@@ -102,25 +102,27 @@ private:
      */
     QStringList parseSpecial(QString &text);
 
-    void compileCategories(TempTreeModelItem *temproot,
+    void compileCategories(const TempTreeModelItem *temproot,
                            ModelItemBase *root);
-    void compileUnit(TempTreeModelItem *tempknot,
+    ModelItemBasic *compileUnit(const TempTreeModelItem *tempknot,
                      ModelItemBase *trunk);
-    void compileItems(TempTreeModelItem *tempknot,
+    void compileItems(const TempTreeModelItem *tempknot,
                       ModelItemBase *trunk,
                       const QMap<QString, int> &slotmap,
-                      const UnitContainer &ucont,
+                      const UnitContainer *ucont,
                       ItemSatellite *sharedSat = nullptr);
-    void compileList(TempTreeModelItem *tempknot,
+    void compileList(const TempTreeModelItem *tempknot,
                      ModelItemBase *trunk,
                      const QMap<QString, int> &slotmap,
-                     const UnitContainer &ucont,
+                     const UnitContainer *ucont,
                      ItemSatellite *sharedSat = nullptr);
-    void compileSelection(TempTreeModelItem *tempknot,
+    void compileSelection(const TempTreeModelItem *tempknot,
                           ModelItemBase *trunk,
-                          const UnitContainer &ucont);
-    ItemSatellite *checkControls(TempTreeModelItem *tempknot,
+                          const UnitContainer *ucont);
+    ItemSatellite *checkControls(const TempTreeModelItem *tempknot,
                                          ModelItemBasic *knot);
+    void checkCost(ModelItemBasic *knot, const QString &text,
+                            UnitContainer *&ucont = nullptr);
 
     /*!
      * \brief parseFile Function for handling included files
@@ -161,18 +163,7 @@ private:
      * common denominator.
      */
     int countItems(QString text,
-                    const QStringList &special,
-                   const UnitContainer &ucont);
-
-    /*!
-     * \brief findTableEntry finds the best possible table entry
-     * \param text Name of the item to look for
-     * \param special special entries for the item
-     * \return Pointcontainer whose name, specials and multipliers match,
-     * or null pointer if none found
-     */
-    PointContainer *findTableEntry(QString &text,
-                            const QStringList &special);
+                   const UnitContainer *ucont);
 
     void clear();
 private:
@@ -181,6 +172,7 @@ private:
     QMap<QString, QStringList> _listList;
     QMap<QString, ItemSatellite*> _globalLimiters;
     QMap<QString, int> _nameMap;
+    QMap<QString, TempTreeModelItem*> _retinueList;
 
 };
 
