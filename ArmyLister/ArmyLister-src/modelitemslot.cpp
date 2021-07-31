@@ -2,9 +2,9 @@
 
 #include "settings.h"
 
-ModelItemSlot::ModelItemSlot(ModelItemBase *parent, int slot)
-    : ModelItemBase(parent)
-    , _slot(slot)
+ModelItemSlot::ModelItemSlot(ModelItemBase *parent)
+    : ModelItemBasic(parent)
+//    , _slot(slot)
     , _currentIndex(-1)
 //    , _currentText(QString())
     , _expanded(false)
@@ -29,7 +29,7 @@ QSize ModelItemSlot::sizeHint()
     return QSize(300, 0);
 }
 
-void ModelItemSlot::addItem(ModelItemBase *item, int)
+void ModelItemSlot::addItem(ModelItemBase *item)
 {
     ModelItemBase::addItem(item);
 
@@ -86,7 +86,7 @@ void ModelItemSlot::expand(bool expanse)
      _trunk->branchExpanded(_index, toMove);
 }
 
-bool ModelItemSlot::branchSelected(int check, int ind, int role)
+bool ModelItemSlot::branchSelected(int check, int role, int ind, int)
 {
 
     if (check > 0) // A branch is toggled to selected
@@ -95,14 +95,14 @@ bool ModelItemSlot::branchSelected(int check, int ind, int role)
         // programmatically, meaning other than default was selected, causing
         // default (index 0) to be toggled
         if (_currentIndex == ind)
-            return _trunk->branchSelected(check, _slot, role);
+            return _trunk->branchSelected(check, role, _slot);
 
         // change current index to new one
         int oldIndex = _currentIndex;
         _currentIndex = ind;
 
         // if trunk disallows change, reset changes and return
-        if (!_trunk->branchSelected(check, _slot, role))
+        if (!_trunk->branchSelected(check, role, _slot))
         {
             _currentIndex = oldIndex;
             return false;

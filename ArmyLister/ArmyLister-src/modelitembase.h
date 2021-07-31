@@ -59,7 +59,7 @@ public:
      * Added item will be moved to correct place, and an index will be
      * provided.
      */
-    virtual void addItem(ModelItemBase *item, int = -1);
+    virtual void addItem(ModelItemBase *item);
 
     virtual void insertItem(ModelItemBase *item, int to);
 
@@ -181,7 +181,7 @@ public:
      * As item without root, Base item return true. Implement on an item
      * with root
      */
-    virtual bool branchSelected(int,int,int);
+    virtual bool branchSelected(int, int, int, int = 0);
 
     /*!
      * \brief resizeEvent reimplemented

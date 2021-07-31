@@ -28,7 +28,7 @@ void ModelItemCategory::passCostUp(int c, bool, int role)
     }
 }
 
-bool ModelItemCategory::branchSelected(int check, int, int role)
+bool ModelItemCategory::branchSelected(int check, int role, int, int)
 {
 //    ModelItemBasic::branchChecked(check,0,0);
     if (check > 0)

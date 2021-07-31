@@ -32,9 +32,9 @@ public:
 
     virtual ~ModelItemBasic();
 
-    virtual void clone(ModelItemBase *toRoot, int i = -1);
+    virtual void clone(ModelItemBase *toRoot);
 
-    void cloning(ModelItemBasic *clone, int i = -1);
+    void cloning(ModelItemBasic *clone);
 
     /*!
      * \brief addItem function to add an item as a branch
@@ -44,7 +44,7 @@ public:
      *
      * Creates an expansion button
      */
-    virtual void addItem(ModelItemBase *item, int = -1);
+    virtual void addItem(ModelItemBase *item);
 
 //    virtual void insertItem(ModelItemBase *item, int to);
 
@@ -120,15 +120,6 @@ public:
      */
     void setCountsAs(int role);
 
-    /*!
-     * \brief setUnitCountsAs simple setter
-     * \param role counts also as
-     *
-     * If \a role is set != 0, when the item is checked its unit will
-     * push its cost towards the role
-     */
-    void setUnitCountsAs(int role);
-
     virtual void setRange(int, int = 0){}
 
     virtual void loadSelection(QString &str);
@@ -162,7 +153,7 @@ public:
 
     virtual void branchExpanded(int item, int steps);
 
-    virtual bool branchSelected(int check, int, int role);
+    virtual bool branchSelected(int check, int role, int, int = 0);
 
     bool checkLimit(int limit);
 
@@ -227,7 +218,6 @@ protected:
 
     ModelItemBase *_trunk;
     bool _checked;
-    int _unitCountsAs;
     int _current;
 
 private:

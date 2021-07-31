@@ -1,20 +1,20 @@
 #ifndef MODELITEMSLOT_H
 #define MODELITEMSLOT_H
 
-#include "modelitembase.h"
+#include "modelitembasic.h"
 
-class ModelItemSlot : public ModelItemBase
+class ModelItemSlot : public ModelItemBasic
 {
     Q_OBJECT
 public:
-    ModelItemSlot(ModelItemBase *parent, int slot);
+    ModelItemSlot(ModelItemBase *parent);
     virtual ~ModelItemSlot();
 
     virtual QSize sizeHint();
 
-    virtual void clone(ModelItemBase *toRoot, int);
+    virtual void clone(ModelItemBase *toRoot);
 
-    virtual void addItem(ModelItemBase *item, int = -1);
+    virtual void addItem(ModelItemBase *item);
 
     virtual void setTrunk(ModelItemBase *item);
 
@@ -30,13 +30,13 @@ public:
 
     virtual void expand(bool expanse);
 
-    virtual bool branchSelected(int check, int ind, int role);
+    virtual bool branchSelected(int check, int role, int ind, int = 0);
 
     virtual void toggleExpand();
 
 private:
 
-    int _slot;
+//    int _slot;
     int _currentIndex;
 //    QString _currentText;
 

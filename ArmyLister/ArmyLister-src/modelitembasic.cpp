@@ -23,7 +23,6 @@ ModelItemBasic::ModelItemBasic(ModelItemBase *parent)
     : ModelItemBase(parent)
     , _trunk(parent)
     , _checked(false)
-    , _unitCountsAs(0)
     , _current(1)
     , _title(new QLabel(this))
     , _special(QStringList())
@@ -49,7 +48,6 @@ ModelItemBasic::ModelItemBasic(ModelItemBasic *source, ModelItemBase *parent)
     : ModelItemBase(source, parent)
     , _trunk(parent)
     , _checked(false)
-    , _unitCountsAs(0)
     , _current(1)
     , _title(new QLabel(this))
     , _special(QStringList())
@@ -85,34 +83,33 @@ ModelItemBasic::ModelItemBasic(ModelItemBasic *source, ModelItemBase *parent)
         setForAll();
     setCostLimit(source->_costLimit);
     setCountsAs(source->_countsAs-1);
-    setUnitCountsAs(source->_unitCountsAs-1);
 }
 
 ModelItemBasic::~ModelItemBasic()
 {}
 
-void ModelItemBasic::clone(ModelItemBase *toRoot, int i)
+void ModelItemBasic::clone(ModelItemBase *toRoot)
 {
     ModelItemBasic *clone = new ModelItemBasic(this, toRoot);
-    toRoot->addItem(clone, i);
-    cloning(clone, i);
+    toRoot->addItem(clone);
+    cloning(clone);
 
 }
 
-void ModelItemBasic::cloning(ModelItemBasic *clone, int i)
+void ModelItemBasic::cloning(ModelItemBasic *clone)
 {
     connect(this, &ModelItemBasic::passConnection,
             clone, &ModelItemBasic::connectToSatellite);
     emit cloneSatellite();
     emit pingSatellite(false);
-    ModelItemBase::clone(clone, i);
+    ModelItemBase::clone(clone);
     emit pingSatellite(true);
     disconnect(this, &ModelItemBasic::passConnection,
             clone, &ModelItemBasic::connectToSatellite);
 
 }
 
-void ModelItemBasic::addItem(ModelItemBase *item,int)
+void ModelItemBasic::addItem(ModelItemBase *item)
 {
     if (!_expandButton)
         _expandButton = createPlus();
@@ -397,16 +394,9 @@ void ModelItemBasic::branchExpanded(int item, int steps)
     update();
 }
 
-bool ModelItemBasic::branchSelected(int check, int, int role)
+bool ModelItemBasic::branchSelected(int check, int role, int, int)
 {
-    if (role)
-    {
-        if (check > 0)
-            _unitCountsAs = role;
-        else
-            _unitCountsAs = 0;
-    }
-    if(!_trunk->branchSelected(check, _index, role))
+    if(!_trunk->branchSelected(check, role, _index))
         return false;
 
     if ((check > 0 && !_checked) || checkLimit(SelectionLimit))
@@ -669,7 +659,7 @@ void ModelItemBasic::toggleCheck()
     if (_checked)
         change = -change;
 
-    if (!_trunk->branchSelected(change, _index, _unitCountsAs))
+    if (!_trunk->branchSelected(change, _unitCountsAs, _index))
         return;
 
     _checked = !_checked;

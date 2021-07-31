@@ -7,8 +7,9 @@
 
 ModelItemSelection::ModelItemSelection(ModelItemBase *parent)
     : ModelItemBasic(parent)
-    , _nextButton(nullptr)
-    , _currentSlot(-1)
+    , _defaults(QStringList())
+    , _defaultCosts(QList<int>())
+    , _slots(QList<short>())
 {
     show();
     setAlwaysChecked();
@@ -17,8 +18,9 @@ ModelItemSelection::ModelItemSelection(ModelItemBase *parent)
 ModelItemSelection::ModelItemSelection(ModelItemSelection *source,
                                        ModelItemBase *parent)
     : ModelItemBasic(source, parent)
-    , _nextButton(nullptr)
-    , _currentSlot(-1)
+    , _defaults(QStringList())
+    , _defaultCosts(QList<int>())
+    , _slots(QList<short>())
 {
     show();
     setAlwaysChecked();
@@ -34,103 +36,93 @@ void ModelItemSelection::clone(ModelItemBase *toRoot, int)
     cloning(clone);
 }
 
-void ModelItemSelection::addItem(ModelItemBase *item, int slot)
-{
-
-
-    ModelItemBase *slotItem;
-    while (_branches.count() <= slot)
-    {
-        slotItem = new ModelItemSlot(this, slot);
-        ModelItemBasic::addItem(slotItem);
-
-        slotItem->move(0,0);
-        slotItem->moveSteps(1,1);
-
-    }
-
-    if (_branches.count() > 1 && !_nextButton)
-    {
-        _nextButton = createNext();
-    }
-
-    slotItem = _branches.at(slot);
-
-    item->setTrunk(slotItem);
-    slotItem->addItem(item);
-
-}
-
-int ModelItemSelection::visibleItems(bool) const
-{
-    if (_currentSlot >= 0)
-        return _branches.at(_currentSlot)->visibleItems()+1;    
-    else return 1;
-}
-
 void ModelItemSelection::printToStream(QTextStream &str)
 {
     str.setPadChar(' ');
     print(str, 2);
 }
 
-void ModelItemSelection::expand(bool expanse)
+void ModelItemSelection::setText(const QString &text, int slot)
 {
+    fillSlots(slot);
 
-    if (expanse && _currentSlot < 0)
-    {
-        if (_nextButton)
-            _nextButton->show();
-        _currentSlot = 0;
-        _branches.at(_currentSlot)->toggleExpand();
-    }
-    else if (!expanse && _currentSlot >= 0)
-    {
-        _branches.at(_currentSlot)->toggleExpand();
-        if (_nextButton)
-            _nextButton->hide();
-        _currentSlot = -1;
-    }
+    _slots[slot]._defaultText = text;
+
+    updateItem();
 }
 
-void ModelItemSelection::nextSlot()
+void ModelItemSelection::setCost(int i, int slot)
 {
-    _branches.at(_currentSlot)->toggleExpand();
+    fillSlots(slot);
 
-    ++_currentSlot;
-    if (_branches.count() <= _currentSlot)
-        _currentSlot = 0;
+    _slots[slot]._defaultCost = i;
 
-    _branches.at(_currentSlot)->toggleExpand();
+    passCostUp(i);
 }
 
-bool ModelItemSelection::branchSelected(int check, int, int role)
+void ModelItemSelection::updateItem()
 {
-    if (check > 0)
+    QStringList newtext;
+
+    foreach (SelectionSlot s, _slots)
     {
-        QStringList newtext;
-        //int total = 0;
-        foreach (ModelItemBase* m, _branches)
-      //  {
-            newtext << m->getText();
-    //        total += m.getCost();
-  //      }
-        setText(newtext.join(", "));
-//        _cost = total;
+        if (s._index >= 0)
+            newtext << _branches.at(_current)->getText();
+        else if (s._type == -1)
+            newtext << s._defaultText;
+        // else nonting
     }
+
+    if (newtext.count() > 1)
+    {
+        QString last = newtext.takeLast();
+        newtext.last().append(" and " + last);
+    }
+
+    ModelItemBasic::setText(newtext.join(", "));
+}
+
+bool ModelItemSelection::branchSelected(int check, int role, int index,
+                                        int slot)
+{
+    if (check >= 0)
+    {
+        // check if able to select
+        if (!_trunk->branchSelected(check, slot, role))
+            return false;
+
+        if (_slots.at(slot)._index == -1) // disable default if needed
+            passCostUp(-_slots[slot]._defaultCost);
+
+        // check if current slot is used by different item and needs to change
+        if (_slots.at(slot)._index != index)
+        {
+            _slots[slot]._index = -2; // slot is changing
+            _branches.at(_slots.at(slot)._index)->toggleCheck();
+            _slots[slot]._index = index;
+        }
+        updateItem();
+
+    }
+    // slot unchecked, enable default on slot if not currently changing
+    else if (_slots.at(slot)._index != -2)
+    {
+        _slots[slot]._index = -1;
+        passCostUp(_slots[slot]._defaultCost);
+        updateItem();
+    }
+
     if (role)
-        ModelItemBasic::branchSelected(check, 0, role);
+        ModelItemBasic::branchSelected(check, role, index);
     return true;
 }
 
-QPushButton* ModelItemSelection::createNext()
+void ModelItemSelection::fillSlots(int c)
 {
-    QPushButton *nxt = new QPushButton(">", this);
+    while (_slots.count() <= c)
+    {
+        _slots << SelectionSlot();
+    }
 
-    fitButton(nxt);
-
-    connect(nxt, &QPushButton::pressed,
-            this, &ModelItemSelection::nextSlot);
-
-    return nxt;
+    _slots[c]._index = -1;
 }

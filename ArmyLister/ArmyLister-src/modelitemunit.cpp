@@ -12,6 +12,7 @@ ModelItemUnit::ModelItemUnit(ModelItemBase *parent)
     : ModelItemSpinner(parent)
     , _clickClock(new QTimer(this))
     , _cloned(0)
+    , _unitCountsAs(0)
 {
     _clickClock->setSingleShot(true);
     _clickClock->setInterval(QApplication::doubleClickInterval());
@@ -23,11 +24,13 @@ ModelItemUnit::ModelItemUnit(ModelItemUnit *source, ModelItemBase *parent)
     : ModelItemSpinner(source, parent)
     , _clickClock(new QTimer(this))
     , _cloned(0)
+    , _unitCountsAs(0)
 {
     _clickClock->setSingleShot(true);
     _clickClock->setInterval(QApplication::doubleClickInterval());
     connect(_clickClock, &QTimer::timeout,
             this, &ModelItemBasic::toggleCheck);
+    setUnitCountsAs(source->_unitCountsAs-1);
 
 }
 
@@ -57,6 +60,11 @@ void ModelItemUnit::setSpecial(const QStringList &list)
     ModelItemBasic::setSpecial(newlist);
 }
 
+void ModelItemUnit::setUnitCountsAs(int role)
+{
+    _unitCountsAs = role+1;
+}
+
 void ModelItemUnit::loadSelection(QString &str)
 {
     int pos = str.indexOf("#");
@@ -79,16 +87,22 @@ void ModelItemUnit::passSpecialUp(const QStringList &list, bool check)
     dealWithSpecials(list, check);
 }
 
-bool ModelItemUnit::branchSelected(bool check, int i, int role)
+bool ModelItemUnit::branchSelected(bool check, int role, int, int)
 {
-    if (ModelItemBasic::branchSelected(check,i,role))
+    if (ModelItemBasic::branchSelected(check, role, 0))
     {
         if (role)
         {
             if (check)
+            {
+                _unitCountsAs = role;
                 _trunk->passCostUp(_cost, false, role);
+            }
             else
+            {
                 _trunk->passCostUp(-_cost, false, role);
+                _unitCountsAs = 0;
+            }
         }
         return true;
     }

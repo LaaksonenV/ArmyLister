@@ -17,6 +17,15 @@ public:
 
     virtual void setSpecial(const QStringList &list);
 
+    /*!
+     * \brief setUnitCountsAs simple setter
+     * \param role counts also as
+     *
+     * If \a role is set != 0, when the item is checked its unit will
+     * push its cost towards the role
+     */
+    void setUnitCountsAs(int role);
+
     virtual void loadSelection(QString &str);
 
     virtual void saveSelection(QTextStream &str);
@@ -25,7 +34,7 @@ public:
 
     virtual void passSpecialUp(const QStringList &list, bool check);
 
-    virtual bool branchSelected(bool check, int i, int role);
+    virtual bool branchSelected(bool check, int role, int, int = 0);
 
     virtual void passCostUp(int c, bool perModel = false, int role = 0);
 
@@ -47,6 +56,8 @@ private:
     QTimer *_clickClock;
 
     int _cloned;
+
+    int _unitCountsAs;
 };
 
 #endif // MODELITEMUNIT_H

@@ -18,10 +18,6 @@ ModelItemBase::ModelItemBase(QWidget *parent)
 
 ModelItemBase::ModelItemBase(ModelItemBase *source, ModelItemBase *parent)
     : ModelItemBase(parent)
-/*    , _cost(source->_initCost)
-    , _initCost(source->_initCost)
-    , _index(-1)
-    , _branches(QList<ModelItemBase *>())*/
 {
     setCost(source->_initCost);
     setFixedHeight(0);
@@ -55,7 +51,7 @@ ModelItemBase* ModelItemBase::getItem(const QString &text) const
     return nullptr;
 }
 
-void ModelItemBase::addItem(ModelItemBase *item,int)
+void ModelItemBase::addItem(ModelItemBase *item)
 {
     item->moveSteps(_branches.count(),0);
     item->setIndex(_branches.count());
@@ -178,7 +174,7 @@ void ModelItemBase::passCostDown(int left)
     }
 }
 
-bool ModelItemBase::branchSelected(int, int, int)
+bool ModelItemBase::branchSelected(int, int, int, int)
 {
     return true;
 }

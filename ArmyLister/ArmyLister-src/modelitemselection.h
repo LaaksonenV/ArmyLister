@@ -3,6 +3,20 @@
 
 #include "modelitembasic.h"
 
+
+struct SelectionSlot
+{
+    short _index;
+    QString _defaultText;
+    int _defaultCost;
+
+    SelectionSlot()
+        : _index(-1)
+        , _defaultText(QString(""))
+        , _defaultCost(0)
+    {}
+};
+
 class ModelItemSelection : public ModelItemBasic
 {
     Q_OBJECT
@@ -16,34 +30,25 @@ public:
 
     virtual void clone(ModelItemBase *toRoot, int = 0);
 
-    virtual void addItem(ModelItemBase* item, int slot);
+    virtual void setText(const QString &text, int slot);
 
-    virtual int visibleItems(bool = false) const;
+    virtual void setCost(int i, int slot);
 
-//    virtual void setText(const QString &text);
+    virtual void updateItem();
 
-
-    virtual bool branchSelected(int check, int, int role);
+    virtual bool branchSelected(int check, int role, int index, int slot);
 
     virtual void printToStream(QTextStream &str);
 
 private:
 
-    virtual void expand(bool expanse);
-
-public slots:
-
-    virtual void nextSlot();
+    void fillSlots(int c);
 
 private:
 
-    QPushButton *createNext();
+    QList<SelectionSlot> _slots;
 
-private:
-
-    QPushButton *_nextButton;
-
-    int _currentSlot;
 };
+
 
 #endif // MODELITEMSELECTION_H
