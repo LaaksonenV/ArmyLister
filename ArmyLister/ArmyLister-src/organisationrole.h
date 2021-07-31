@@ -25,11 +25,11 @@ protected:
 
     virtual void printFaultLabel();
 
-    QString vq_name;
+    QString name_;
 
-    static const int c_frameWidth = 6;
-    static const int c_iconSideLength = 40;
-    static const int c_labelHeight = 15;
+    static const int s_frameWidth_ = 6;
+    static const int s_iconSideLength_ = 40;
+    static const int s_labelHeight_ = 15;
 };
 
 #endif // ROLESLOT_H

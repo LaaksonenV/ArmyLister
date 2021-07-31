@@ -14,17 +14,17 @@
 
 Detachment::Detachment(const QStringList &args, QWidget *parent)
     : OrganisationRole(args, parent)
-    , vq_args(args)
-    , vq_slotList()
-    , vq_availableList()
-    , vq_handlerList()
-    , v_points(0)
-    , v_isAvailable(false)
-    , v_isSelected(false)
-    , v_hasMouse(false)
+    , argsList_(args)
+    , slotList_()
+    , availableList_()
+    , handlerList_()
+    , points_(0)
+    , bAvailable_(false)
+    , bSelected_(false)
+    , bHasMouse_(false)
 {
-    setFixedWidth(c_iconSideLength * BattlefieldRole::OverRoles
-                  + 2*c_frameWidth);
+    setFixedWidth(s_iconSideLength_ * BattlefieldRole::eBattlefieldRole_OverRoles
+                  + 2*s_frameWidth_);
 
     
     QStringList line(args.at(0).split(','));
@@ -34,52 +34,52 @@ Detachment::Detachment(const QStringList &args, QWidget *parent)
         return;
         
     } 
-    vq_name = line.at(0);
-    v_points = line.at(1).toInt();
+    name_ = line.at(0);
+    points_ = line.at(1).toInt();
 
     if (args.count() > 1)
     {
         DetachmentRoleType *slot;
-        for (int i = 0; i < BattlefieldRole::OverRoles; ++i)
+        for (int i = 0; i < BattlefieldRole::eBattlefieldRole_OverRoles; ++i)
         {
-            vq_slotList << nullptr;
-            vq_handlerList << nullptr;
+            slotList_ << nullptr;
+            handlerList_ << nullptr;
         }
         int role;
-        v_isAvailable = true;
+        bAvailable_ = true;
         for (int i = 1; i < args.count(); ++i)
         {
             line = args.at(i).split(',');
-            if (line.count() <= SlotIndex::Role)
+            if (line.count() <= SlotIndex::eRole)
                 continue;
-            role = line.at(SlotIndex::Role).toInt();
+            role = line.at(SlotIndex::eRole).toInt();
             slot = new DetachmentRoleType(getIcon(role), this);
-            vq_slotList[line.at(SlotIndex::Role).toInt()] = slot;
-            slot->setFixedSize(c_iconSideLength,c_iconSideLength);
-            slot->move((i-1)*c_iconSideLength + c_frameWidth
-                       , c_labelHeight + c_frameWidth);
+            slotList_[line.at(SlotIndex::eRole).toInt()] = slot;
+            slot->setFixedSize(s_iconSideLength_,s_iconSideLength_);
+            slot->move((i-1)*s_iconSideLength_ + s_frameWidth_
+                       , s_labelHeight_ + s_frameWidth_);
 
-            if (line.count() > SlotIndex::Min)
-                slot->setMin(line.at(SlotIndex::Min).toInt());
+            if (line.count() > SlotIndex::eMin)
+                slot->setMin(line.at(SlotIndex::eMin).toInt());
 
-            if (line.count() > SlotIndex::Max)
-                slot->setMax(line.at(SlotIndex::Max).toInt());
+            if (line.count() > SlotIndex::eMax)
+                slot->setMax(line.at(SlotIndex::eMax).toInt());
             
-            if (line.count() > SlotIndex::Special)
+            if (line.count() > SlotIndex::eSpecial)
             {
-                if (line.at(SlotIndex::Special).toInt()
-                        == SpecialSlot::LimitByMax)
-                    vq_handlerList[line.at(SlotIndex::Role).toInt()]
+                if (line.at(SlotIndex::eSpecial).toInt()
+                        == SpecialSlot::eSpecialSlot_LimitByMax)
+                    handlerList_[line.at(SlotIndex::eRole).toInt()]
                             = new MaxHandler(slot, this);
-                else if (line.at(SlotIndex::Special).toInt()
-                         == SpecialSlot::LimitByMin)
-                    vq_handlerList[line.at(SlotIndex::Role).toInt()]
+                else if (line.at(SlotIndex::eSpecial).toInt()
+                         == SpecialSlot::eSpecialSlot_LimitByMin)
+                    handlerList_[line.at(SlotIndex::eRole).toInt()]
                             = new MinHandler(slot, this);
             }
 
-            vq_availableList << slot->isBetweenLimits();
+            availableList_ << slot->isBetweenLimits();
             if (!slot->isBetweenLimits())
-                v_isAvailable = false;
+                bAvailable_ = false;
             connect(slot, &DetachmentRoleType::betweenLimits,
                     this, [=](bool b){on_betweenLimits(i-1,b);});
         }
@@ -94,20 +94,20 @@ Detachment::~Detachment()
 
 void Detachment::roleSelected(int role, int amount)
 {
-    if (vq_slotList.at(role) == nullptr)
+    if (slotList_.at(role) == nullptr)
         return;
 
-    vq_slotList.at(role)->selected(amount);
+    slotList_.at(role)->selected(amount);
 
-    if (vq_handlerList.at(role) == nullptr)
+    if (handlerList_.at(role) == nullptr)
         return;
 
     LimitHandler *p;
-    for(int i = 0; i < vq_handlerList.count(); ++i)
+    for(int i = 0; i < handlerList_.count(); ++i)
     {
         if(i == role)
             continue;
-        p = vq_handlerList.at(i);
+        p = handlerList_.at(i);
         if (p)
             p->selection(amount);
     }
@@ -116,22 +116,22 @@ void Detachment::roleSelected(int role, int amount)
 void Detachment::selectionChange(const QList<int> &mins,
                                  const QList<int> &maxs)
 {
-    if (mins.count() != vq_slotList.count()
-            || maxs.count() != vq_slotList.count())
+    if (mins.count() != slotList_.count()
+            || maxs.count() != slotList_.count())
         return;
-    for (int i = 0; i < BattlefieldRole::OverRoles; ++i)
-        if (vq_slotList.at(i) != nullptr)
-            vq_slotList.at(i)->on_Selection(mins.at(i), maxs.at(i));
+    for (int i = 0; i < BattlefieldRole::eBattlefieldRole_OverRoles; ++i)
+        if (slotList_.at(i) != nullptr)
+            slotList_.at(i)->on_Selection(mins.at(i), maxs.at(i));
 
 }
 
 QList<int> Detachment::getMinimums()
 {
     QList<int> ret;
-    for (int i = 0; i < BattlefieldRole::OverRoles; ++i)
+    for (int i = 0; i < BattlefieldRole::eBattlefieldRole_OverRoles; ++i)
     {
-        if (vq_slotList.at(i) != nullptr)
-            ret << vq_slotList.at(i)->getMin();
+        if (slotList_.at(i) != nullptr)
+            ret << slotList_.at(i)->getMin();
         else
             ret << 0;
     }
@@ -141,10 +141,10 @@ QList<int> Detachment::getMinimums()
 QList<int> Detachment::getMaximums()
 {
     QList<int> ret;
-    for (int i = 0; i < BattlefieldRole::OverRoles; ++i)
+    for (int i = 0; i < BattlefieldRole::eBattlefieldRole_OverRoles; ++i)
     {
-        if (vq_slotList.at(i) != nullptr)
-            ret << vq_slotList.at(i)->getMax();
+        if (slotList_.at(i) != nullptr)
+            ret << slotList_.at(i)->getMax();
         else
             ret << 0;
     }
@@ -153,31 +153,31 @@ QList<int> Detachment::getMaximums()
 
 int Detachment::getPoints()
 {
-    return v_points;
+    return points_;
 }
 
 void Detachment::enterEvent(QEvent *)
 {
-    v_hasMouse = true;
+    bHasMouse_ = true;
     update();
 }
 
 void Detachment::leaveEvent(QEvent *)
 {
-    v_hasMouse = false;
+    bHasMouse_ = false;
     update();
 }
 
 void Detachment::mouseReleaseEvent(QMouseEvent *)
 {
-    v_isSelected = !v_isSelected;
-    emit toggled(this, v_isSelected);
+    bSelected_ = !bSelected_;
+    emit toggled(this, bSelected_);
     update();
 }
 
 void Detachment::mouseDoubleClickEvent(QMouseEvent *)
 {
-    emit clone(vq_args);
+    emit clone(argsList_);
 }
 
 void Detachment::paintEvent(QPaintEvent *)
@@ -186,10 +186,10 @@ void Detachment::paintEvent(QPaintEvent *)
     QPen pen;
     QRect r(QPoint(), size());
     r.adjust(2,2,-2,-2);
-    if (v_isSelected)
+    if (bSelected_)
         pen.setColor(Qt::blue);
 
-    else if (v_hasMouse)
+    else if (bHasMouse_)
         pen.setColor(Qt::black);
 
     else
@@ -204,39 +204,39 @@ void Detachment::paintEvent(QPaintEvent *)
     p.setPen(pen);
     r.adjust(1,1,-1,-1);
     p.drawRect(r);
-    if (v_isAvailable)
+    if (bAvailable_)
         p.fillRect(r,Qt::white);
     pen.setColor(Qt::black);
     p.setPen(pen);
-    r.setTopLeft(QPoint(c_frameWidth,c_frameWidth));
-    r.setBottomRight(QPoint(width()-c_frameWidth-c_iconSideLength,
-                            c_labelHeight+c_frameWidth));
-    p.setFont(Settings::Font(Settings::OrgFont));
-    p.drawText(r,Qt::AlignVCenter, vq_name);
+    r.setTopLeft(QPoint(s_frameWidth_,s_frameWidth_));
+    r.setBottomRight(QPoint(width()-s_frameWidth_-s_iconSideLength_,
+                            s_labelHeight_+s_frameWidth_));
+    p.setFont(Settings::Font(Settings::eFont_OrgFont));
+    p.drawText(r,Qt::AlignVCenter, name_);
 
-    r.setRight(width()-c_frameWidth);
-    r.setLeft(width()-c_frameWidth-c_iconSideLength);
-    p.drawText(r, Qt::AlignCenter, QString::number(v_points));
+    r.setRight(width()-s_frameWidth_);
+    r.setLeft(width()-s_frameWidth_-s_iconSideLength_);
+    p.drawText(r, Qt::AlignCenter, QString::number(points_));
 }
 
 void Detachment::on_betweenLimits(int from, bool check)
 {
-    if (vq_availableList.count() > from)
-        vq_availableList[from] = check;
+    if (availableList_.count() > from)
+        availableList_[from] = check;
     if (!check)
     {
-        v_isAvailable = false;
+        bAvailable_ = false;
         update();
         return;
     }
-    foreach (bool b, vq_availableList)
+    foreach (bool b, availableList_)
         if (!b)
         {
-            v_isAvailable = false;
+            bAvailable_ = false;
             update();
             return;
         }
-    v_isAvailable = true;
+    bAvailable_ = true;
     update();
 }
 
@@ -245,23 +245,23 @@ QPixmap Detachment::getIcon(int ofRole)
 {
     switch (ofRole)
     {
-    case BattlefieldRole::HQ:
+    case BattlefieldRole::eBattlefieldRole_HQ:
         return QPixmap(":/icons/HQ");
-    case BattlefieldRole::Troop:
+    case BattlefieldRole::eBattlefieldRole_Troop:
         return QPixmap(":/icons/T");
-    case BattlefieldRole::Elite:
+    case BattlefieldRole::eBattlefieldRole_Elite:
         return QPixmap(":/icons/E");
-    case BattlefieldRole::Fast:
+    case BattlefieldRole::eBattlefieldRole_Fast:
         return QPixmap(":/icons/FA");
-    case BattlefieldRole::Heavy:
+    case BattlefieldRole::eBattlefieldRole_Heavy:
         return QPixmap(":/icons/HS");
-    case BattlefieldRole::Transport:
+    case BattlefieldRole::eBattlefieldRole_Transport:
         return QPixmap(":/icons/TP");
-    case BattlefieldRole::Flyer:
+    case BattlefieldRole::eBattlefieldRole_Flyer:
         return QPixmap(":/icons/F");
-    case BattlefieldRole::Fort:
+    case BattlefieldRole::eBattlefieldRole_Fort:
         return QPixmap(":/icons/Fort");
-    case BattlefieldRole::Lord:
+    case BattlefieldRole::eBattlefieldRole_Lord:
         return QPixmap(":/icons/Lord");
     default:
         return QPixmap();

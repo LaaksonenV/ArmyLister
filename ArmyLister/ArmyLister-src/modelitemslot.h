@@ -37,12 +37,12 @@ public:
 private:
 
 //    int _slot;
-    int _currentIndex;
+    int currentIndex_;
 //    QString _currentText;
 
-    bool _expanded;
+    bool bExpanded_;
 
-    ModelItemBase *_trunk;
+    ModelItemBase *trunk_;
 
 };
 

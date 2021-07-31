@@ -35,9 +35,9 @@ signals:
 
 protected:
 
-    bool _firstCall;
+    bool firstCall_;
 
-    ItemSatellite *_clone;
+    ItemSatellite *clone_;
 };
 
 
@@ -56,9 +56,9 @@ public:
 
 protected:
 
-    int _limit;
-    int _current;
-    int _type;
+    int limit_;
+    int current_;
+    int type_;
 };
 
 class ItemSatelliteModelMirror : public ItemSatellite
@@ -89,7 +89,7 @@ public:
     virtual void releaseClone();
 
 private:
-    bool _selected;
+    bool selected_;
 };
 
 class ItemSatelliteSelectionLimiterModels : public ItemSatelliteSelectionLimiter
@@ -108,10 +108,10 @@ public:
 
 private:
 
-    int _currentModels;
-    int _criticalType;
-    int _limitFor;
-    int _perModel;
+    int currentModels_;
+    int criticalType_;
+    int limitFor_;
+    int perModel_;
 };
 
 #endif // ITEMSATELLITE_H

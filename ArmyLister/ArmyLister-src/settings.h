@@ -18,73 +18,73 @@ public:
                        const QString &group);
     QStringList multiValue(const QString &group);
 
-    bool isUSAllowed()const{return _allowUnderStrength;}
+    bool isUSAllowed()const{return allowUnderStrength_;}
 
     enum Colours
     {
-        ColorOk
-        , ColorNot
-        , ColorNeutral
+        eColor_Ok
+        , eColor_Not
+        , eColor_Neutral
     };
 
     static const QColor& Color(enum Colours c);
 
     enum Numbers
     {
-        DefaultArmySize9A
-        , DefaultArmySize40k
+        eDefaultArmySize_9A
+        , eDefaultArmySize_40k
     };
 
     static const unsigned short DefaultSize(enum Numbers i);
 
     enum ItemMetas
     {
-        PlainTextWidth
-        , ItemHeight
-        , ItemHPos
-        , OrgFontSize
-        , ItemFontSize
-        , PrintFontSize
-        , SpinnerFontSize
-        , ExpandButtonSize
-        , CostFieldWidth
+        eItem_PlainTextWidth
+        , eItem_Height
+        , eItemHPos
+        , eItem_OrgFontSize
+        , eItem_FontSize
+        , eItem_PrintFontSize
+        , eItem_SpinnerFontSize
+        , eItem_ExpandButtonSize
+        , eItem_CostFieldWidth
     };
 
     static const unsigned short ItemMeta(enum ItemMetas i);
 
     enum Fonts
     {
-        ItemFont
-        , OrgFont
-        , SpinnerFont
-        , PrintFont
+        eFont_ItemFont
+        , eFont_OrgFont
+        , eFont_SpinnerFont
+        , eFont_PrintFont
     };
 
     static const QFont& Font(enum Fonts i);
 
     enum Strings
     {
-        DefaultListFolder
-        , DefaultAppendFolder
+        eDefault_ListFolder
+        , eDefault_AppendFolder
     };
 
     static const QString& Strng(enum Strings s);
 
 private:
-    static inline QList<QColor> _colours
+    static inline QList<QColor> s_colours_
     {
         QColor("#bbffbb")
         , QColor("#ffaaaa")
         , QColor("#dddddd")
     };
 
-    static inline QList<unsigned short> _sizes
+    static inline QList<unsigned short> s_sizes_
     {
         4500
         , 2000
     };
 
-    static inline QList<unsigned short> _itemmeta
+    static inline QList<unsigned short> s_itemmeta_
     {
         80 //PlainTextWidth
         , 24 //ItemHeight
@@ -97,22 +97,22 @@ private:
         , 50 //CostFieldWidth
     };
 
-    static inline QList<QFont> _fonts
+    static inline QList<QFont> s_fonts_
     {
-        QFont("Gabriola",ItemMeta(ItemFontSize),QFont::Bold)
-        , QFont("Gabriola",ItemMeta(OrgFontSize),QFont::Bold)
-        , QFont("Calibri",ItemMeta(SpinnerFontSize),QFont::Medium)
-        , QFont("Consolas",ItemMeta(PrintFontSize))
+        QFont("Gabriola",ItemMeta(eItem_FontSize),QFont::Bold)
+        , QFont("Gabriola",ItemMeta(eItem_OrgFontSize),QFont::Bold)
+        , QFont("Calibri",ItemMeta(eItem_SpinnerFontSize),QFont::Medium)
+        , QFont("Consolas",ItemMeta(eItem_PrintFontSize))
     };
 
-    static inline QList<QString> _strings
+    static inline QList<QString> s_strings_
     {
         ".\\"
         , ".\\Appends"
     };
 
 private:
-    bool _allowUnderStrength;
+    bool allowUnderStrength_;
 };
 
 #endif // SETTINGS_H

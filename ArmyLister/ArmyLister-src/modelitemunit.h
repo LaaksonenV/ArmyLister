@@ -53,11 +53,11 @@ signals:
     void itemCloned(bool = true, int = 0);
 
 private:
-    QTimer *_clickClock;
+    QTimer *clickClock_;
 
-    int _cloned;
+    int cloned_;
 
-    int _unitCountsAs;
+    int unitCountsAs_;
 };
 
 #endif // MODELITEMUNIT_H

@@ -28,8 +28,8 @@ private slots:
     void insertCompletion(QString);
 
 private:
-    QStringListModel *_compmod;
-    QCompleter* c;
+    QStringListModel *compmod_;
+    QCompleter* c_;
 };
 
 

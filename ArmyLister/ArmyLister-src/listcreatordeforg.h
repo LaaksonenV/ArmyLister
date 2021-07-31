@@ -31,19 +31,19 @@ private slots:
 
 private:
 
-    QButtonGroup *_orgtype;
+    QButtonGroup *orgtype_;
 
-    QLineEdit *_detachment;
+    QLineEdit *detachment_;
 
-    QGridLayout *_9AOrg;
-    QPushButton *_add9AOrg;
+    QGridLayout *n9AOrg_;
+    QPushButton *add9AOrg_;
 
-    const QStringList _coreNames{"Characters","Core","Special"};
-    QList<QLineEdit*> _names;
-    QList<QComboBox*> _types;
-    QList<QSpinBox*> _values;
+    const QStringList coreNames{"Characters","Core","Special"};
+    QList<QLineEdit*> names_;
+    QList<QComboBox*> types_;
+    QList<QSpinBox*> values_;
 
-    const QStringList _items{"max","min","-"};
+    const QStringList items{"max","min","-"};
 };
 
 #endif // LISTCREATORDEFORG_H

@@ -28,8 +28,8 @@ public slots:
     void on_createArmyList();
 
 private:
-    Settings *_settings;
-    ArmyWidget *_mainwidget;
+    Settings *settings_;
+    ArmyWidget *mainwidget_;
 };
 
 #endif // MAINWINDOW_H

@@ -33,11 +33,11 @@ private:
     Organisation *create40k();
     Organisation *create9A(const QString &text, int limit);
 
-    int _points;
+    int points_;
 //    QLabel *_points;
 
-    Organisation *_army;
-    ArmyListWidget *_list;
+    Organisation *army_;
+    ArmyListWidget *list_;
 };
 
 #endif // ARMYWIDGET_H

@@ -17,8 +17,8 @@ public slots:
 protected:
     DetachmentRoleType *_handled;
 
-    int _limited;
-    int _limiter;
+    int limited_;
+    int limiter_;
 };
 
 class MinHandler : public LimitHandler

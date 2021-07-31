@@ -9,7 +9,7 @@ ModelItemSelection::ModelItemSelection(ModelItemBase *parent)
     : ModelItemBasic(parent)
     , _defaults(QStringList())
     , _defaultCosts(QList<int>())
-    , _slots(QList<short>())
+    , slots_(QList<short>())
 {
     show();
     setAlwaysChecked();
@@ -20,7 +20,7 @@ ModelItemSelection::ModelItemSelection(ModelItemSelection *source,
     : ModelItemBasic(source, parent)
     , _defaults(QStringList())
     , _defaultCosts(QList<int>())
-    , _slots(QList<short>())
+    , slots_(QList<short>())
 {
     show();
     setAlwaysChecked();
@@ -46,7 +46,7 @@ void ModelItemSelection::setText(const QString &text, int slot)
 {
     fillSlots(slot);
 
-    _slots[slot]._defaultText = text;
+    slots_[slot]._defaultText = text;
 
     updateItem();
 }
@@ -55,7 +55,7 @@ void ModelItemSelection::setCost(int i, int slot)
 {
     fillSlots(slot);
 
-    _slots[slot]._defaultCost = i;
+    slots_[slot]._defaultCost = i;
 
     passCostUp(i);
 }
@@ -64,10 +64,10 @@ void ModelItemSelection::updateItem()
 {
     QStringList newtext;
 
-    foreach (SelectionSlot s, _slots)
+    foreach (SelectionSlot s, slots_)
     {
         if (s._index >= 0)
-            newtext << _branches.at(_current)->getText();
+            newtext << branches_.at(current_)->getText();
         else if (s._type == -1)
             newtext << s._defaultText;
         // else nonting
@@ -88,27 +88,27 @@ bool ModelItemSelection::branchSelected(int check, int role, int index,
     if (check >= 0)
     {
         // check if able to select
-        if (!_trunk->branchSelected(check, slot, role))
+        if (!trunk_->branchSelected(check, slot, role))
             return false;
 
-        if (_slots.at(slot)._index == -1) // disable default if needed
-            passCostUp(-_slots[slot]._defaultCost);
+        if (slots_.at(slot)._index == -1) // disable default if needed
+            passCostUp(-slots_[slot]._defaultCost);
 
         // check if current slot is used by different item and needs to change
-        if (_slots.at(slot)._index != index)
+        if (slots_.at(slot)._index != index)
         {
-            _slots[slot]._index = -2; // slot is changing
-            _branches.at(_slots.at(slot)._index)->toggleCheck();
-            _slots[slot]._index = index;
+            slots_[slot]._index = -2; // slot is changing
+            branches_.at(slots_.at(slot)._index)->toggleCheck();
+            slots_[slot]._index = index;
         }
         updateItem();
 
     }
     // slot unchecked, enable default on slot if not currently changing
-    else if (_slots.at(slot)._index != -2)
+    else if (slots_.at(slot)._index != -2)
     {
-        _slots[slot]._index = -1;
-        passCostUp(_slots[slot]._defaultCost);
+        slots_[slot]._index = -1;
+        passCostUp(slots_[slot]._defaultCost);
         updateItem();
     }
 
@@ -119,10 +119,10 @@ bool ModelItemSelection::branchSelected(int check, int role, int index,
 
 void ModelItemSelection::fillSlots(int c)
 {
-    while (_slots.count() <= c)
+    while (slots_.count() <= c)
     {
-        _slots << SelectionSlot();
+        slots_ << SelectionSlot();
     }
 
-    _slots[c]._index = -1;
+    slots_[c]._index = -1;
 }

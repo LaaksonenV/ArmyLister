@@ -13,76 +13,76 @@ void ModelItemBasic::init()
 {
     show();
 
-    _title->setFont(Settings::Font(Settings::ItemFont));
-    _title->setFixedHeight(Settings::ItemMeta(Settings::ItemHeight));
-    _title->move(Settings::ItemMeta(Settings::ItemHeight),0);
-    setFixedHeight(Settings::ItemMeta(Settings::ItemHeight));
+    title_->setFont(Settings::Font(Settings::eFont_ItemFont));
+    title_->setFixedHeight(Settings::ItemMeta(Settings::eItem_Height));
+    title_->move(Settings::ItemMeta(Settings::eItem_Height),0);
+    setFixedHeight(Settings::ItemMeta(Settings::eItem_Height));
 }
 
 ModelItemBasic::ModelItemBasic(ModelItemBase *parent)
     : ModelItemBase(parent)
-    , _trunk(parent)
-    , _checked(false)
-    , _current(1)
-    , _title(new QLabel(this))
-    , _special(QStringList())
-    , _specialLimiter(QStringList())
-    , _initSpecial(QStringList())
-    , _forAll(-1)
-    , _costLimit(-1)
-    , _modelLimitMin(0)
-    , _hasModelLimitMin(false)
-    , _modelLimitMax(0)
-    , _hasModelLimitMax(false)
-    , _countsAs(0)
-    , _expandButton(nullptr)
-    , _expanded(false)
-    , _alwaysChecked(false)
-    , _mouseIn(false)
-    , _limit(0)
+    , trunk_(parent)
+    , checked_(false)
+    , current_(1)
+    , title_(new QLabel(this))
+    , specials_(QStringList())
+    , specialLimiters_(QStringList())
+    , initialSpecials_(QStringList())
+    , forAllModels_(-1)
+    , costLimit_(-1)
+    , modelLimitMin_(0)
+    , bHasModelLimitMin_(false)
+    , modelLimitMax_(0)
+    , bHasModelLimitMax_(false)
+    , countsAs_(0)
+    , expandButton_(nullptr)
+    , bExpanded_(false)
+    , bAlwaysChecked_(false)
+    , bMouseIn_(false)
+    , limit_(0)
 {
     init();
 }
 
 ModelItemBasic::ModelItemBasic(ModelItemBasic *source, ModelItemBase *parent)
     : ModelItemBase(source, parent)
-    , _trunk(parent)
-    , _checked(false)
-    , _current(1)
-    , _title(new QLabel(this))
-    , _special(QStringList())
-    , _specialLimiter(QStringList())
-    , _initSpecial(QStringList())
-    , _forAll(-1)
-    , _costLimit(-1)
-    , _modelLimitMin(0)
-    , _hasModelLimitMin(false)
-    , _modelLimitMax(0)
-    , _hasModelLimitMax(false)
-    , _countsAs(0)
-    , _expandButton(nullptr)
-    , _expanded(false)
-    , _alwaysChecked(false)
-    , _mouseIn(false)
-    , _limit(0)
+    , trunk_(parent)
+    , checked_(false)
+    , current_(1)
+    , title_(new QLabel(this))
+    , specials_(QStringList())
+    , specialLimiters_(QStringList())
+    , initialSpecials_(QStringList())
+    , forAllModels_(-1)
+    , costLimit_(-1)
+    , modelLimitMin_(0)
+    , bHasModelLimitMin_(false)
+    , modelLimitMax_(0)
+    , bHasModelLimitMax_(false)
+    , countsAs_(0)
+    , expandButton_(nullptr)
+    , bExpanded_(false)
+    , bAlwaysChecked_(false)
+    , bMouseIn_(false)
+    , limit_(0)
 {
     init();
 
     setText(source->getText());
-    setSpecial(source->_initSpecial);
+    setSpecial(source->initialSpecials_);
     int min = 0;
     int max = 0;
-    if (_hasModelLimitMin)
-        min = source->_modelLimitMin+source->getCurrentCount();
-    if (_hasModelLimitMax)
-        min = source->_modelLimitMax+source->getCurrentCount();
+    if (bHasModelLimitMin_)
+        min = source->modelLimitMin_+source->getCurrentCount();
+    if (bHasModelLimitMax_)
+        min = source->modelLimitMax_+source->getCurrentCount();
     if (min || max)
         setModelLimiter(min, max);
-    setAlwaysChecked(source->_alwaysChecked);
-    if (source->_forAll >= 0)
+    setAlwaysChecked(source->bAlwaysChecked_);
+    if (source->forAllModels_ >= 0)
         setForAll();
-    setCostLimit(source->_costLimit);
-    setCountsAs(source->_countsAs-1);
+    setCostLimit(source->costLimit_);
+    setCountsAs(source->countsAs_-1);
 }
 
 ModelItemBasic::~ModelItemBasic()
@@ -111,8 +111,8 @@ void ModelItemBasic::cloning(ModelItemBasic *clone)
 
 void ModelItemBasic::addItem(ModelItemBase *item)
 {
-    if (!_expandButton)
-        _expandButton = createPlus();
+    if (!expandButton_)
+        expandButton_ = createPlus();
 
     ModelItemBase::addItem(item);
     item->moveSteps(1,1);
@@ -128,7 +128,7 @@ void ModelItemBasic::addItem(ModelItemBase *item)
 
 int ModelItemBasic::visibleItems(bool underCover) const
 {
-    if (_expanded || underCover)
+    if (bExpanded_ || underCover)
         return ModelItemBase::visibleItems()+1;
     else return 1;
 }
@@ -136,7 +136,7 @@ int ModelItemBasic::visibleItems(bool underCover) const
 void ModelItemBasic::setTrunk(ModelItemBase *item)
 {
     QWidget::setParent(item);
-    _trunk = item;
+    trunk_ = item;
 }
 
 void ModelItemBasic::setText(const QString &text)
@@ -149,37 +149,37 @@ void ModelItemBasic::setText(const QString &text)
 
     name.remove(ttip).trimmed();
 
-    _title->setText(name);
-    _title->adjustSize();
-    _title->show();
+    title_->setText(name);
+    title_->adjustSize();
+    title_->show();
 //    _special << "+" + name;
 }
 
 void ModelItemBasic::setSpecial(const QStringList &list)
 {
-    _initSpecial.append(list);
+    initialSpecials_.append(list);
     foreach (QString s, list)
     {
         if (s.startsWith('-') || s.startsWith('+'))
-            _special << s;
+            specials_ << s;
         else
-            _specialLimiter << s;
+            specialLimiters_ << s;
     }
-    if (list.count() && _checked)
-        _trunk->passSpecialUp(_special,true);
+    if (list.count() && checked_)
+        trunk_->passSpecialUp(specials_,true);
 }
 
 void ModelItemBasic::setModelLimiter(int min, int max)
 {
     if (min > 0)
     {
-        _modelLimitMin = min;
-        _hasModelLimitMin = true;
+        modelLimitMin_ = min;
+        bHasModelLimitMin_ = true;
     }
     if (max > 0)
     {
-        _modelLimitMax = max;
-        _hasModelLimitMax = true;
+        modelLimitMax_ = max;
+        bHasModelLimitMax_ = true;
     }
 
 //    if (_hasModelLimitMin || _hasModelLimitMax)
@@ -188,45 +188,40 @@ void ModelItemBasic::setModelLimiter(int min, int max)
 
 void ModelItemBasic::setAlwaysChecked(bool b)
 {
-    if (b && !_checked)
+    if (b && !checked_)
     {
         bool fa = false;
-        int c = _cost;
-        if (_forAll >= 0)
+        int c = cost_;
+        if (forAllModels_ >= 0)
         {
             fa = true;
-            c = _forAll;
+            c = forAllModels_;
         }
-        _checked = true;
-        _trunk->passCostUp(c,fa);
+        checked_ = true;
+        trunk_->passCostUp(c,fa);
     }
 
-    _alwaysChecked = b;
+    bAlwaysChecked_ = b;
     update();
 }
 
 void ModelItemBasic::setForAll(bool b)
 {
-    if (b && _forAll < 0)
+    if (b && forAllModels_ < 0)
     {
-        _forAll = _cost;
+        forAllModels_ = cost_;
 //        setCost(_forAll*getCurrentCount());
     }
 }
 
 void ModelItemBasic::setCostLimit(int limit)
 {
-    _costLimit = limit;
+    costLimit_ = limit;
 }
 
 void ModelItemBasic::setCountsAs(int role)
 {
-    _countsAs = role+1;
-}
-
-void ModelItemBasic::setUnitCountsAs(int role)
-{
-    _unitCountsAs = role+1;
+    countsAs_ = role+1;
 }
 
 void ModelItemBasic::loadSelection(QString &str)
@@ -246,7 +241,7 @@ void ModelItemBasic::loadSelection(QString &str)
 
 void ModelItemBasic::saveSelection(QTextStream &str)
 {
-    if (_checked)
+    if (checked_)
     {
         str << "!";
         ModelItemBase::saveSelection(str);
@@ -257,29 +252,29 @@ void ModelItemBasic::saveSelection(QTextStream &str)
 
 int ModelItemBasic::getCurrentCount() const
 {
-    return _trunk->getCurrentCount();
+    return trunk_->getCurrentCount();
 }
 
 QString ModelItemBasic::getText() const
 {
-    return _title->text();
+    return title_->text();
 }
 
 QString ModelItemBasic::getPrintText() const
 {
-    return _title->text();
+    return title_->text();
 }
 
 void ModelItemBasic::passSpecialUp(const QStringList &list, bool check)
 {
     if (check)
-        _special << list;
+        specials_ << list;
     else
         foreach (QString s, list)
-            _special.removeOne(s);
+            specials_.removeOne(s);
 
-    if (_checked)
-        _trunk->passSpecialUp(list, check);
+    if (checked_)
+        trunk_->passSpecialUp(list, check);
 }
 
 void ModelItemBasic::passCostUp(int c, bool b, int role)
@@ -288,40 +283,40 @@ void ModelItemBasic::passCostUp(int c, bool b, int role)
   //      role = _countsAs;
     int change = c;
     bool fa = false;
-    if (_forAll >= 0)
+    if (forAllModels_ >= 0)
     {
         fa = true;
         change *= getCurrentCount();
-        _forAll += c;
+        forAllModels_ += c;
     }
     ModelItemBase::passCostUp(change,false, role);
-    if (_checked)
-        _trunk->passCostUp(c, fa || b, role);
-    if (_countsAs && _countsAs != role)
-        _trunk->passCostUp(c, fa || b, _countsAs);
-    if (_costLimit > 0 && !role)
-        ModelItemBase::passCostDown(_costLimit-_cost);
+    if (checked_)
+        trunk_->passCostUp(c, fa || b, role);
+    if (countsAs_ && countsAs_ != role)
+        trunk_->passCostUp(c, fa || b, countsAs_);
+    if (costLimit_ > 0 && !role)
+        ModelItemBase::passCostDown(costLimit_-cost_);
 }
 
 void ModelItemBasic::passModelsDown(int models, bool push)
 {
-    if (_hasModelLimitMin)
-        _modelLimitMin -= models;
-    if (_hasModelLimitMax)
-        _modelLimitMax -= models;
+    if (bHasModelLimitMin_)
+        modelLimitMin_ -= models;
+    if (bHasModelLimitMax_)
+        modelLimitMax_ -= models;
 
-    emit modelsChanged(models, _checked, false);
+    emit modelsChanged(models, checked_, false);
 
 
-    if ((_modelLimitMin > 0 || _modelLimitMax < 0) && !checkLimit(ModelsLimit))
-        setHardLimit(ModelsLimit);
-    else if (checkLimit(ModelsLimit))
-        setHardLimit(-ModelsLimit);
+    if ((modelLimitMin_ > 0 || modelLimitMax_ < 0) && !checkLimit(eModelsLimit))
+        setHardLimit(eModelsLimit);
+    else if (checkLimit(eModelsLimit))
+        setHardLimit(-eModelsLimit);
 
-    if (_forAll >= 0)
+    if (forAllModels_ >= 0)
     {
-        models *= _forAll;
-        setCost(models+_cost);
+        models *= forAllModels_;
+        setCost(models+cost_);
     }
     else
         ModelItemBase::passModelsDown(models, push);
@@ -329,15 +324,15 @@ void ModelItemBasic::passModelsDown(int models, bool push)
 
 void ModelItemBasic::passSpecialDown(const QStringList &list)
 {
-    if (_specialLimiter.count())
+    if (specialLimiters_.count())
     {
         bool ok = false;
         bool no = false;
         int ind = 0;
         QStringList l;
-        while (ind < _specialLimiter.count() && !ok)
+        while (ind < specialLimiters_.count() && !ok)
         {
-            l = _specialLimiter.at(ind).split(",");
+            l = specialLimiters_.at(ind).split(",");
             foreach (QString ss, l)
             {
                 ss = ss.trimmed();
@@ -360,14 +355,14 @@ void ModelItemBasic::passSpecialDown(const QStringList &list)
             ++ind;
         }
         if (ok)
-            setHardLimit(-SpecialLimit);
+            setHardLimit(-eSpecialLimit);
         else
-            setHardLimit(SpecialLimit);
+            setHardLimit(eSpecialLimit);
     }
-    if (!_checked)
+    if (!checked_)
     {
         QStringList newlist(list);
-        updateSpecials(_special, newlist, true);
+        updateSpecials(specials_, newlist, true);
         ModelItemBase::passSpecialDown(newlist);
     }
     else
@@ -377,29 +372,29 @@ void ModelItemBasic::passSpecialDown(const QStringList &list)
 
 void ModelItemBasic::passCostDown(int left)
 {
-    if (_cost > left)
-        limitedBy(CostLimit);
+    if (cost_ > left)
+        limitedBy(eCostLimit);
     else
-        limitedBy(-CostLimit);
+        limitedBy(-eCostLimit);
     ModelItemBase::passCostDown(left);
 }
 
 void ModelItemBasic::branchExpanded(int item, int steps)
 {
-    if (_expanded)
+    if (bExpanded_)
     {
         ModelItemBase::branchExpanded(item, steps);
-        _trunk->branchExpanded(_index, steps);
+        trunk_->branchExpanded(index_, steps);
     }
     update();
 }
 
 bool ModelItemBasic::branchSelected(int check, int role, int, int)
 {
-    if(!_trunk->branchSelected(check, role, _index))
+    if(!trunk_->branchSelected(check, role, index_))
         return false;
 
-    if ((check > 0 && !_checked) || checkLimit(SelectionLimit))
+    if ((check > 0 && !checked_) || checkLimit(eSelectionLimit))
         toggleCheck();
 
     return true;
@@ -407,7 +402,7 @@ bool ModelItemBasic::branchSelected(int check, int role, int, int)
 
 bool ModelItemBasic::checkLimit(int limit)
 {
-    if (_limit & limit)
+    if (limit_ & limit)
         return true;
     return false;
 }
@@ -417,14 +412,14 @@ void ModelItemBasic::resizeEvent(QResizeEvent *e)
     if (e->size().height() != e->oldSize().height())
         return;
     QSize sz = e->size();
-    sz.setWidth(sz.width()-Settings::ItemMeta(Settings::ItemHPos));
-    foreach (ModelItemBase *i, _branches)
+    sz.setWidth(sz.width()-Settings::ItemMeta(Settings::eItemHPos));
+    foreach (ModelItemBase *i, branches_)
         i->resize(sz);
 }
 
 void ModelItemBasic::printToStream(QTextStream &str)
 {
-    if (_checked)
+    if (checked_)
     {
         str.setPadChar(' ');
         print(str,2);
@@ -441,7 +436,7 @@ void ModelItemBasic::print(QTextStream &str, int pre,
     {
         str << QString("  ").repeated(pre);
         str.setFieldAlignment(QTextStream::AlignLeft);
-        str.setFieldWidth(Settings::ItemMeta(Settings::PlainTextWidth)
+        str.setFieldWidth(Settings::ItemMeta(Settings::eItem_PlainTextWidth)
                           -pre*10);
         str << override.at(0);
         str.setFieldWidth(0);
@@ -453,19 +448,19 @@ void ModelItemBasic::print(QTextStream &str, int pre,
         }
         endl(str);
     }
-    else if (list.indexIn(_title->text()) < 0)
+    else if (list.indexIn(title_->text()) < 0)
     {
         str << QString("  ").repeated(pre);
         str.setFieldAlignment(QTextStream::AlignLeft);
-        str.setFieldWidth(Settings::ItemMeta(Settings::PlainTextWidth)
+        str.setFieldWidth(Settings::ItemMeta(Settings::eItem_PlainTextWidth)
                           -pre*10);
-        str << _title->text();
+        str << title_->text();
         str.setFieldWidth(0);
         str.setFieldAlignment(QTextStream::AlignRight);
 
-        if (_cost)
+        if (cost_)
         {
-            str << _cost;
+            str << cost_;
         }
         endl(str);
     }
@@ -477,20 +472,20 @@ void ModelItemBasic::paintEvent(QPaintEvent *)
     {
         QPainter p(this);
         QLinearGradient g(0,0, width(),
-                          Settings::ItemMeta(Settings::ItemHeight));
-        if (_checked)
+                          Settings::ItemMeta(Settings::eItem_Height));
+        if (checked_)
         {
-            if (_limit == CriticalLimit)
-                g.setColorAt(0, Settings::Color(Settings::ColorNot));
+            if (limit_ == eCriticalLimit)
+                g.setColorAt(0, Settings::Color(Settings::eColor_Not));
             else
-                g.setColorAt(0, Settings::Color(Settings::ColorOk));
+                g.setColorAt(0, Settings::Color(Settings::eColor_Ok));
         }
-        else if (_limit > Checkable)
-            g.setColorAt(0, Settings::Color(Settings::ColorNeutral));
+        else if (limit_ > eCheckable)
+            g.setColorAt(0, Settings::Color(Settings::eColor_Neutral));
         else
             g.setColorAt(0, Qt::white);
 
-        if (_mouseIn)
+        if (bMouseIn_)
             g.setColorAt(1, QColor(255,255,255));
         else
             g.setColorAt(1, QColor(220,230,245));
@@ -499,37 +494,37 @@ void ModelItemBasic::paintEvent(QPaintEvent *)
         p.setBrush(b);
         p.drawRect(rect());
 
-        p.setFont(Settings::Font(Settings::ItemFont));
+        p.setFont(Settings::Font(Settings::eFont_ItemFont));
 
-        p.drawLine(width()-Settings::ItemMeta(Settings::CostFieldWidth),0,
-                   width()-Settings::ItemMeta(Settings::CostFieldWidth),
+        p.drawLine(width()-Settings::ItemMeta(Settings::eItem_CostFieldWidth),0,
+                   width()-Settings::ItemMeta(Settings::eItem_CostFieldWidth),
                      height());
 
-        if (checkLimit(CostLimit))
+        if (checkLimit(eCostLimit))
            p.setPen(Qt::red);
 
-        p.drawText(width()-Settings::ItemMeta(Settings::CostFieldWidth) + 10,
-                   (Settings::ItemMeta(Settings::ItemHeight)/2)
-                   +(Settings::ItemMeta(Settings::ItemFontSize)/2),
-                   QString::number(_cost));
+        p.drawText(width()-Settings::ItemMeta(Settings::eItem_CostFieldWidth) + 10,
+                   (Settings::ItemMeta(Settings::eItem_Height)/2)
+                   +(Settings::ItemMeta(Settings::eItem_FontSize)/2),
+                   QString::number(cost_));
     }
 }
 
 void ModelItemBasic::enterEvent(QEvent*)
 {
-    _mouseIn = true;
+    bMouseIn_ = true;
     update();
 }
 
 void ModelItemBasic::leaveEvent(QEvent*)
 {
-    _mouseIn = false;
+    bMouseIn_ = false;
     update();
 }
 
 void ModelItemBasic::mousePressEvent(QMouseEvent *e)
 {
-    if (!_alwaysChecked && !checkLimit(SelectionLimit) &&
+    if (!bAlwaysChecked_ && !checkLimit(eSelectionLimit) &&
             e->button() == Qt::LeftButton)
     {
         toggleCheck();
@@ -541,14 +536,14 @@ void ModelItemBasic::mousePressEvent(QMouseEvent *e)
 QPushButton *ModelItemBasic::createPlus()
 {
     QPushButton *plus = new QPushButton("+", this);
-    plus->setFixedSize(Settings::ItemMeta(Settings::ExpandButtonSize),
-                                Settings::ItemMeta(Settings::ExpandButtonSize));
+    plus->setFixedSize(Settings::ItemMeta(Settings::eItem_ExpandButtonSize),
+                                Settings::ItemMeta(Settings::eItem_ExpandButtonSize));
 //    plus->setCheckable(true);
     plus->setFlat(true);
-    plus->move((Settings::ItemMeta(Settings::ItemHeight)/2)
-                          -(Settings::ItemMeta(Settings::ExpandButtonSize)/2),
-                        (Settings::ItemMeta(Settings::ItemHeight)/2)
-                          -(Settings::ItemMeta(Settings::ExpandButtonSize)/2));
+    plus->move((Settings::ItemMeta(Settings::eItem_Height)/2)
+                          -(Settings::ItemMeta(Settings::eItem_ExpandButtonSize)/2),
+                        (Settings::ItemMeta(Settings::eItem_Height)/2)
+                          -(Settings::ItemMeta(Settings::eItem_ExpandButtonSize)/2));
 
     connect(plus, &QPushButton::pressed,
             this, &ModelItemBasic::toggleExpand);
@@ -560,52 +555,52 @@ QPushButton *ModelItemBasic::createPlus()
 
 void ModelItemBasic::toggleExpand()
 {
-    if (!_expanded)
+    if (!bExpanded_)
     {
-        _expandButton->setText("-");
-        _expanded = true;
+        expandButton_->setText("-");
+        bExpanded_ = true;
         expand(true);
 
     }
     else
     {
 
-        _expandButton->setText("+");
+        expandButton_->setText("+");
 
         expand(false);
-        _expanded = false;
+        bExpanded_ = false;
     }
 }
 
 void ModelItemBasic::dealWithSpecials(const QStringList &list, bool check)
 {
-    updateSpecials(list, _specialLimiter, check);
+    updateSpecials(list, specialLimiters_, check);
 
-    ModelItemBase::passSpecialDown(_specialLimiter);
+    ModelItemBase::passSpecialDown(specialLimiters_);
 }
 
 
 int ModelItemBasic::endOfText() const
 {
-    if (_title)
-        return _title->pos().x() + _title->width();
+    if (title_)
+        return title_->pos().x() + title_->width();
     return 0;
 }
 
 void ModelItemBasic::fitButton(QPushButton *but)
 {
-    but->setFixedSize(Settings::ItemMeta(Settings::ExpandButtonSize),
-                                Settings::ItemMeta(Settings::ExpandButtonSize));
+    but->setFixedSize(Settings::ItemMeta(Settings::eItem_ExpandButtonSize),
+                                Settings::ItemMeta(Settings::eItem_ExpandButtonSize));
 
     but->setFlat(true);
-    but->move((Settings::ItemMeta(Settings::ItemHeight)*3/2)
-                          -(Settings::ItemMeta(Settings::ExpandButtonSize)/2),
-                        (Settings::ItemMeta(Settings::ItemHeight)/2)
-                          -(Settings::ItemMeta(Settings::ExpandButtonSize)/2));
+    but->move((Settings::ItemMeta(Settings::eItem_Height)*3/2)
+                          -(Settings::ItemMeta(Settings::eItem_ExpandButtonSize)/2),
+                        (Settings::ItemMeta(Settings::eItem_Height)/2)
+                          -(Settings::ItemMeta(Settings::eItem_ExpandButtonSize)/2));
 
-    _title->move(_title->pos().x()+
-                 Settings::ItemMeta(Settings::ExpandButtonSize),
-                 _title->pos().y());
+    title_->move(title_->pos().x()+
+                 Settings::ItemMeta(Settings::eItem_ExpandButtonSize),
+                 title_->pos().y());
 }
 
 void ModelItemBasic::expand(bool expanse)
@@ -615,13 +610,13 @@ void ModelItemBasic::expand(bool expanse)
 
     if (!expanse)
     {
-        setFixedHeight(Settings::ItemMeta(Settings::ItemHeight));
+        setFixedHeight(Settings::ItemMeta(Settings::eItem_Height));
         toMove = -toMove;
     }
     else
-        setFixedHeight(Settings::ItemMeta(Settings::ItemHeight)* (toMove+1));
+        setFixedHeight(Settings::ItemMeta(Settings::eItem_Height)* (toMove+1));
 
-    _trunk->branchExpanded(_index, toMove);
+    trunk_->branchExpanded(index_, toMove);
 }
 
 void ModelItemBasic::updateSpecials(const QStringList &list,
@@ -652,61 +647,61 @@ void ModelItemBasic::updateSpecials(const QStringList &list,
 
 void ModelItemBasic::toggleCheck()
 {
-    if (!_checked && _limit > Checkable)
+    if (!checked_ && limit_ > eCheckable)
         return;
 
-    int change = _current;
-    if (_checked)
+    int change = current_;
+    if (checked_)
         change = -change;
 
-    if (!_trunk->branchSelected(change, _unitCountsAs, _index))
+    if (!trunk_->branchSelected(change, _unitCountsAs, index_))
         return;
 
-    _checked = !_checked;
+    checked_ = !checked_;
 
-    if (_checked)
-        emit modelsChanged(getCurrentCount(), _checked, true);
+    if (checked_)
+        emit modelsChanged(getCurrentCount(), checked_, true);
     else
-        emit modelsChanged(-getCurrentCount(), _checked, true);
+        emit modelsChanged(-getCurrentCount(), checked_, true);
 
-    int c = _cost;
+    int c = cost_;
     bool fa = false;
-    if (_forAll >= 0)
+    if (forAllModels_ >= 0)
     {
         fa = true;
-        c = _forAll;
+        c = forAllModels_;
     }
 
-    if (!_checked)
+    if (!checked_)
         c = -c;
 
-    _trunk->passCostUp(c, fa);
-    if (_countsAs > 0)
-        _trunk->passCostUp(c, fa, _countsAs);
-    if (_special.count())
-        _trunk->passSpecialUp(_special, _checked);
+    trunk_->passCostUp(c, fa);
+    if (countsAs_ > 0)
+        trunk_->passCostUp(c, fa, countsAs_);
+    if (specials_.count())
+        trunk_->passSpecialUp(specials_, checked_);
     update();
 
-    if (_checked)
-        emit itemSelected(_current,0);
+    if (checked_)
+        emit itemSelected(current_,0);
     else
-        emit itemSelected(-_current,0);
+        emit itemSelected(-current_,0);
 }
 
 void ModelItemBasic::forceCheck(bool check)
 {
-    if ((check && !_checked) || (!check && _checked))
+    if ((check && !checked_) || (!check && checked_))
         toggleCheck();
 }
 
 void ModelItemBasic::currentLimitChanged(int current, bool)
 {
-    if (_hasModelLimitMax)
-        _modelLimitMax -= current;
-    if (_modelLimitMax < 0 && !checkLimit(ModelsLimit))
-        limitedBy(ModelsLimit);
-    else if (checkLimit(ModelsLimit))
-        limitedBy(-ModelsLimit);
+    if (bHasModelLimitMax_)
+        modelLimitMax_ -= current;
+    if (modelLimitMax_ < 0 && !checkLimit(eModelsLimit))
+        limitedBy(eModelsLimit);
+    else if (checkLimit(eModelsLimit))
+        limitedBy(-eModelsLimit);
 }
 
 void ModelItemBasic::connectToSatellite(ItemSatellite *sat,
@@ -715,7 +710,7 @@ void ModelItemBasic::connectToSatellite(ItemSatellite *sat,
     connect(this, &ModelItemBasic::itemSelected,
             sat, &ItemSatellite::on_itemSelected);
 
-    connect(_trunk, &ModelItemBasic::modelsChanged,
+    connect(trunk_, &ModelItemBasic::modelsChanged,
             sat, &ItemSatellite::on_modelsChanged);
 
     connect(sat, &ItemSatellite::currentLimit,
@@ -745,7 +740,7 @@ void ModelItemBasic::connectToSatellite(ItemSatellite *sat,
 
 void ModelItemBasic::setHardLimit(short limit)
 {
-    if (limit > 0 && _checked)
+    if (limit > 0 && checked_)
         toggleCheck();
     limitedBy(limit);
     update();
@@ -754,10 +749,10 @@ void ModelItemBasic::setHardLimit(short limit)
 void ModelItemBasic::limitedBy(short flag)
 {
     if (flag > 0)
-        _limit = _limit | flag;
+        limit_ = limit_ | flag;
     else
-        _limit = _limit & ~flag;
+        limit_ = limit_ & ~flag;
 
-    if (abs(flag) == CriticalLimit)
-        _trunk->limitedBy(flag);
+    if (abs(flag) == eCriticalLimit)
+        trunk_->limitedBy(flag);
 }

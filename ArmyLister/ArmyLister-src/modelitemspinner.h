@@ -47,16 +47,16 @@ public slots:
 
 private:
 
-    int _singleCost;
-    int _otherCost;
+    int singleCost_;
+    int otherCost_;
 
-    int _initSingleCost;
-    int _initOtherCost;
+    int initialSingleCost_;
+    int initialOtherCost_;
 
 
-    QSpinBox *_spinner;
+    QSpinBox *spinner_;
 
-    QTimer *_clickClock;
+    QTimer *clickClock_;
 };
 
 #endif // MODELITEMSPINNER_H

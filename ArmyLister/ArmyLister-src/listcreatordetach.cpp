@@ -20,19 +20,19 @@
 
 ListCreatorDetach::ListCreatorDetach(QWidget *parent, const QString &filename)
     : QDialog(parent)
-    , v_currentIndex(-1)
-    , qv_mins(QList<QSpinBox*>())
-    , qv_maxs(QList<QSpinBox*>())
-    , qv_spes(QList<QComboBox*>())
-    , qv_structs(QList<DetachmentStruct>())
-    , qv_currentFile(filename)
+    , currentIndex_(-1)
+    , mins_(QList<QSpinBox*>())
+    , maxs_(QList<QSpinBox*>())
+    , specials_(QList<QComboBox*>())
+    , structs_(QList<DetachmentStruct>())
+    , currentFile_(filename)
 {
     QGridLayout *lay = new QGridLayout(this);
 
-    qv_detachmentList = new QListWidget(this);
-    connect(qv_detachmentList, &QListWidget::currentRowChanged,
+    detachmentList_ = new QListWidget(this);
+    connect(detachmentList_, &QListWidget::currentRowChanged,
             this, &ListCreatorDetach::itemSelected);
-    lay->addWidget(qv_detachmentList,1,0,20,1);
+    lay->addWidget(detachmentList_,1,0,20,1);
 
     QPushButton *button = new QPushButton("Add Detachment");
     lay->addWidget(button,0,0);
@@ -45,15 +45,15 @@ ListCreatorDetach::ListCreatorDetach(QWidget *parent, const QString &filename)
             this, &ListCreatorDetach::removeItem);
 
     lay->addWidget(new QLabel("Command Points"),1,1,1,2);
-    qv_cp = new QLineEdit("0", this);
-    qv_cp->setValidator(new QIntValidator());
-    qv_cp->setFixedWidth(30);
-    lay->addWidget(qv_cp,1,3,1,2);
+    cp_ = new QLineEdit("0", this);
+    cp_->setValidator(new QIntValidator());
+    cp_->setFixedWidth(30);
+    lay->addWidget(cp_,1,3,1,2);
 
     int row;
     QSpinBox *spin;
     QComboBox *box;
-    for (int i = 0; i < BattlefieldRole::OverRoles; ++i)
+    for (int i = 0; i < BattlefieldRole::eBattlefieldRole_OverRoles; ++i)
     {
         row = i+2;
 //      row = (((i)/3)*2)+2;
@@ -65,28 +65,28 @@ ListCreatorDetach::ListCreatorDetach(QWidget *parent, const QString &filename)
 
         spin = new QSpinBox(this);
         spin->setMinimum(0);
-        qv_mins.append(spin);
+        mins_.append(spin);
         lay->addWidget(spin,row,2);
 
         lay->addWidget(new QLabel("-"),row,3);
 
         spin = new QSpinBox(this);
         spin->setMinimum(-1);
-        qv_maxs << spin;
+        maxs_ << spin;
         lay->addWidget(spin,row,4);
 
         QStringList list;
-        for (int i = 0; i < SpecialSlot::OverSlot; ++i)
+        for (int i = 0; i < SpecialSlot::eSpecialSlot_OverSlot; ++i)
             list << "";
 
         box = new QComboBox(this);
-        list[SpecialSlot::Null] = "Standard";
-        list[SpecialSlot::LimitByMin] = "Min by other slots";
-        list[SpecialSlot::LimitByMax] = "Max by other slots";
+        list[SpecialSlot::eSpecialSlot_Null] = "Standard";
+        list[SpecialSlot::eSpecialSlot_LimitByMin] = "Min by other slots";
+        list[SpecialSlot::eSpecialSlot_LimitByMax] = "Max by other slots";
 
         box->addItems(list);
 
-        qv_spes << box;
+        specials_ << box;
         connect(box, SIGNAL(currentIndexChanged(int)),
                 this, SLOT(specialSelected(int)));
         lay->addWidget(box,row,5);
@@ -139,16 +139,16 @@ QString ListCreatorDetach::getOrganisationList(const QString &filename)
 int ListCreatorDetach::addItem()
 {
     DetachmentStruct strct;
-    strct.cp = 0;
-    for (int i = 0; i < BattlefieldRole::OverRoles; ++i)
+    strct.cp_ = 0;
+    for (int i = 0; i < BattlefieldRole::eBattlefieldRole_OverRoles; ++i)
     {
-        strct.roles << RoleSlotStruct{0,0,0};
+        strct.roles_ << RoleSlotStruct{0,0,0};
     }
-    qv_structs << strct;
+    structs_ << strct;
     QListWidgetItem *item = new QListWidgetItem("New Detachment");
     item->setFlags(item->flags() | Qt::ItemIsEditable);
-    qv_detachmentList->addItem(item);
-    return qv_structs.count()-1;
+    detachmentList_->addItem(item);
+    return structs_.count()-1;
 }
 
 void ListCreatorDetach::on_AddItem()
@@ -158,10 +158,10 @@ void ListCreatorDetach::on_AddItem()
 
 void ListCreatorDetach::removeItem()
 {
-    if (v_currentIndex < 0)
+    if (currentIndex_ < 0)
         return;
-    qv_structs.removeAt(v_currentIndex);
-    qv_detachmentList->takeItem(v_currentIndex);
+    structs_.removeAt(currentIndex_);
+    detachmentList_->takeItem(currentIndex_);
 }
 
 void ListCreatorDetach::specialSelected(int index)
@@ -172,16 +172,16 @@ void ListCreatorDetach::specialSelected(int index)
 void ListCreatorDetach::itemSelected(int index)
 {
     saveCurrent();
-    v_currentIndex = index;
-    qv_cp->setText(QString::number(qv_structs.at(index).cp));
-    const QList<RoleSlotStruct> &list = qv_structs.at(index).roles;
+    currentIndex_ = index;
+    cp_->setText(QString::number(structs_.at(index).cp_));
+    const QList<RoleSlotStruct> &list = structs_.at(index).roles_;
     RoleSlotStruct strct;
     for (int i = 0; i < list.count(); ++i)
     {
         strct = list.at(i);
-        qv_mins.at(i)->setValue(strct.min);
-        qv_maxs.at(i)->setValue(strct.max);
-        qv_spes.at(i)->setCurrentIndex(strct.special);
+        mins_.at(i)->setValue(strct.min_);
+        maxs_.at(i)->setValue(strct.max_);
+        specials_.at(i)->setCurrentIndex(strct.special_);
     }
 }
 
@@ -194,7 +194,7 @@ void ListCreatorDetach::on_OK()
 
 void ListCreatorDetach::writeFile()
 {
-    QFile f(qv_currentFile);
+    QFile f(currentFile_);
     if (!f.open(QFile::Text | QFile::WriteOnly))
         return;
     QTextStream str(&f);
@@ -202,23 +202,23 @@ void ListCreatorDetach::writeFile()
     QList<RoleSlotStruct> list;
     RoleSlotStruct strct;
     QListWidgetItem *item;
-    for (int i = 0; i < qv_structs.count(); ++i)
+    for (int i = 0; i < structs_.count(); ++i)
     {
-        item = qv_detachmentList->item(i);
+        item = detachmentList_->item(i);
         if (!item)
             continue;
         str << '#' << item->text()
-            << ',' << QString::number(qv_structs.at(i).cp)
+            << ',' << QString::number(structs_.at(i).cp_)
             << '\n';
-        list = qv_structs.at(i).roles;
+        list = structs_.at(i).roles_;
         for (int j = 0; j < list.count(); ++j)
         {
             strct = list.at(j);
-            if (strct.min | strct.max | strct.special)
+            if (strct.min_ | strct.max_ | strct.special_)
                 str << '\t' << QString::number(j)
-                    << ','  << QString::number(strct.min)
-                    << ','  << QString::number(strct.max)
-                    << ','  << QString::number(strct.special)
+                    << ','  << QString::number(strct.min_)
+                    << ','  << QString::number(strct.max_)
+                    << ','  << QString::number(strct.special_)
                     << '\n';
         }
     }
@@ -227,7 +227,7 @@ void ListCreatorDetach::writeFile()
 
 void ListCreatorDetach::readFile()
 {
-    QFile f(qv_currentFile);
+    QFile f(currentFile_);
     if (!f.open(QFile::Text | QFile::ReadOnly))
         return;
     QTextStream str(&f);
@@ -242,20 +242,20 @@ void ListCreatorDetach::readFile()
         {
             indx = addItem();
             splitline = str.readLine().split(',');
-            qv_detachmentList->item(indx)->setText(splitline.at(0));
+            detachmentList_->item(indx)->setText(splitline.at(0));
             if (splitline.count()>1)
-                qv_cp->setText(splitline.at(1));
+                cp_->setText(splitline.at(1));
             else
-                qv_cp->setText("0");
+                cp_->setText("0");
 
-            list = &(qv_structs[indx].roles);
+            list = &(structs_[indx].roles_);
         }
         else
         {
             splitline = str.readLine().split(',');
-            (*list)[splitline.at(0).toInt()].min = splitline.at(1).toInt();
-            (*list)[splitline.at(0).toInt()].max = splitline.at(2).toInt();
-            (*list)[splitline.at(0).toInt()].special = splitline.at(3).toInt();
+            (*list)[splitline.at(0).toInt()].min_ = splitline.at(1).toInt();
+            (*list)[splitline.at(0).toInt()].max_ = splitline.at(2).toInt();
+            (*list)[splitline.at(0).toInt()].special_ = splitline.at(3).toInt();
         }
     }
 
@@ -264,14 +264,14 @@ void ListCreatorDetach::readFile()
 
 void ListCreatorDetach::saveCurrent()
 {
-    if (v_currentIndex < 0)
+    if (currentIndex_ < 0)
         return;
-    qv_structs[v_currentIndex].cp = qv_cp->text().toInt();
-    QList<RoleSlotStruct> &list = qv_structs[v_currentIndex].roles;
+    structs_[currentIndex_].cp_ = cp_->text().toInt();
+    QList<RoleSlotStruct> &list = structs_[currentIndex_].roles_;
     for (int i = 0; i < list.count(); ++i)
     {
-        list[i].min =  qv_mins.at(i)->value();
-        list[i].max =  qv_maxs.at(i)->value();
-        list[i].special =  qv_spes.at(i)->currentIndex();
+        list[i].min_ =  mins_.at(i)->value();
+        list[i].max_ =  maxs_.at(i)->value();
+        list[i].special_ =  specials_.at(i)->currentIndex();
     }
 }

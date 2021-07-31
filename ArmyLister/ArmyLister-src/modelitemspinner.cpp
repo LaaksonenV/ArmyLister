@@ -10,27 +10,27 @@
 
 ModelItemSpinner::ModelItemSpinner(ModelItemBase *parent)
     : ModelItemBasic(parent)
-    , _singleCost(0)
-    , _initSingleCost(0)
-    , _otherCost(0)
-    , _initOtherCost(0)
-    , _spinner(nullptr)
+    , singleCost_(0)
+    , initialSingleCost_(0)
+    , otherCost_(0)
+    , initialOtherCost_(0)
+    , spinner_(nullptr)
 {
 }
 
 ModelItemSpinner::ModelItemSpinner(ModelItemSpinner *source, ModelItemBase *parent)
     : ModelItemBasic(source, parent)
-    , _singleCost(0)
-    , _initSingleCost(0)
-    , _otherCost(0)
-    , _initOtherCost(0)
-    , _spinner(nullptr)
+    , singleCost_(0)
+    , initialSingleCost_(0)
+    , otherCost_(0)
+    , initialOtherCost_(0)
+    , spinner_(nullptr)
 {
-    setMultiCost(source->_initSingleCost, source->_initOtherCost);
-    if (source->_spinner)
-        setRange(source->_spinner->minimum(), source->_spinner->maximum());
-    else if (source->_current)
-        setRange(source->_current);
+    setMultiCost(source->initialSingleCost_, source->initialOtherCost_);
+    if (source->spinner_)
+        setRange(source->spinner_->minimum(), source->spinner_->maximum());
+    else if (source->current_)
+        setRange(source->current_);
 }
 
 ModelItemSpinner::~ModelItemSpinner()
@@ -38,7 +38,7 @@ ModelItemSpinner::~ModelItemSpinner()
 
 void ModelItemSpinner::clone(ModelItemBase*toRoot, int i)
 {
-    ModelItemSpinner *clone = new ModelItemSpinner(this, _trunk);
+    ModelItemSpinner *clone = new ModelItemSpinner(this, trunk_);
     toRoot->insertItem(clone,i);
     cloning(clone,i);
 }
@@ -50,18 +50,18 @@ void ModelItemSpinner::setCost(int i)
 
 void ModelItemSpinner::setMultiCost(int base, int special)
 {
-    _singleCost = base;
-    _initSingleCost = base;
-    _otherCost = special;
-    _initOtherCost = special;
-    ModelItemBase::passCostUp((base*_current)+special);
+    singleCost_ = base;
+    initialSingleCost_ = base;
+    otherCost_ = special;
+    initialOtherCost_ = special;
+    ModelItemBase::passCostUp((base*current_)+special);
     updateSpinner();
 }
 
 void ModelItemSpinner::setRange(int min, int max)
 {
-    _current = min;
-    ModelItemBase::setCost((_singleCost*_current)+_otherCost);
+    current_ = min;
+    ModelItemBase::setCost((singleCost_*current_)+otherCost_);
     if (max >= 0)
         createSpinner(min,max);
 }
@@ -69,8 +69,8 @@ void ModelItemSpinner::setRange(int min, int max)
 void ModelItemSpinner::loadSelection(QString &str)
 {
     int pos = str.indexOf(";");
-    if (_spinner)
-        _spinner->setValue(str.left(pos).toInt());
+    if (spinner_)
+        spinner_->setValue(str.left(pos).toInt());
     str.remove(0,pos+1);
 
     ModelItemBasic::loadSelection(str);
@@ -78,24 +78,24 @@ void ModelItemSpinner::loadSelection(QString &str)
 
 void ModelItemSpinner::saveSelection(QTextStream &str)
 {
-    if (_spinner)
-        str << QString::number(_spinner->value());
+    if (spinner_)
+        str << QString::number(spinner_->value());
     str << ";";
     ModelItemBasic::saveSelection(str);
 }
 
 int ModelItemSpinner::getCurrentCount() const
 {
-    return _current;
+    return current_;
 }
 
 QString ModelItemSpinner::getPrintText() const
 {
-    if (_spinner && !_spinner->value())
+    if (spinner_ && !spinner_->value())
         return QString();
     QString ret = ModelItemBasic::getPrintText();
-    if (_spinner && _current > _spinner->minimum())
-        ret.prepend(QString::number(_spinner->value()) + " ");
+    if (spinner_ && current_ > spinner_->minimum())
+        ret.prepend(QString::number(spinner_->value()) + " ");
     return ret;
 }
 
@@ -104,65 +104,65 @@ void ModelItemSpinner::passCostUp(int c, bool perModel, int role)
     int change = c;
     if (perModel)
     {
-        change = c*_current;
+        change = c*current_;
         if (!role)
         {
-            _singleCost += c;
+            singleCost_ += c;
             updateSpinner();
         }
     }
     else if (!role)
-        _otherCost += change;
+        otherCost_ += change;
     ModelItemBasic::passCostUp(change, false, role);
 }
 
 void ModelItemSpinner::createSpinner(int min, int max)
 {
-    _spinner = new QSpinBox(this);
-    connect(_spinner, QOverload<int>::of(&QSpinBox::valueChanged),
+    spinner_ = new QSpinBox(this);
+    connect(spinner_, QOverload<int>::of(&QSpinBox::valueChanged),
             this, &ModelItemSpinner::on_spinnerChanged);
-    _spinner->setFont(Settings::Font(Settings::SpinnerFont));
-    _spinner->setRange(min, max);
+    spinner_->setFont(Settings::Font(Settings::eFont_SpinnerFont));
+    spinner_->setRange(min, max);
     updateSpinner();
 
-    _spinner->move(endOfText() + 20, 1);
-    _spinner->setMinimumHeight(Settings::ItemMeta(Settings::ItemHeight)-2);
+    spinner_->move(endOfText() + 20, 1);
+    spinner_->setMinimumHeight(Settings::ItemMeta(Settings::eItem_Height)-2);
 
-    _spinner->show();
+    spinner_->show();
 
 }
 
 void ModelItemSpinner::updateSpinner()
 {
-    if (_spinner)
+    if (spinner_)
     {
         QString suffix("/");
-        suffix += QString::number(_spinner->maximum());
+        suffix += QString::number(spinner_->maximum());
         suffix += " @ ";
-        suffix += QString::number(_singleCost);
+        suffix += QString::number(singleCost_);
 
-        _spinner->setSuffix(suffix);
+        spinner_->setSuffix(suffix);
     }
 }
 
 void ModelItemSpinner::on_spinnerChanged(int now)
 {
-    int change = now-_current;
-    _current = now;
+    int change = now-current_;
+    current_ = now;
     ModelItemBasic::branchSelected(change,0,0);
-    ModelItemBasic::passCostUp(change*_singleCost);
+    ModelItemBasic::passCostUp(change*singleCost_);
     ModelItemBasic::passModelsDown(change);
 
 }
 
 void ModelItemSpinner::currentLimitChanged(int current, bool whole)
 {
-    if (_spinner)
+    if (spinner_)
     {
-        int change = _spinner->maximum()-current;
+        int change = spinner_->maximum()-current;
         if (!whole)
-            change += _spinner->value();
-        _spinner->setMaximum(change);
+            change += spinner_->value();
+        spinner_->setMaximum(change);
         updateSpinner();
     }
     else

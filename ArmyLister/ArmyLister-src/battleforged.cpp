@@ -9,13 +9,13 @@
 BattleForged::BattleForged(QWidget *parent)
     : Organisation(parent)
 //    , qv_partsList()
-    , qv_currentMin()
-    , qv_currentMax()
+    , qv_currentMin_()
+    , qv_currentMax_()
 {
-    for(int i = 0; i < BattlefieldRole::OverRoles; ++i)
+    for(int i = 0; i < BattlefieldRole::eBattlefieldRole_OverRoles; ++i)
     {
-        qv_currentMax << 0;
-        qv_currentMin << 0;
+        qv_currentMax_ << 0;
+        qv_currentMin_ << 0;
     }
 
 }
@@ -55,10 +55,10 @@ void BattleForged::detachmentSelected(Detachment *det, bool check)
                 maxs[i] *= -1;
         }
 
-    for (int i = 0; i < qv_currentMax.count(); ++i)
+    for (int i = 0; i < qv_currentMax_.count(); ++i)
     {
-        qv_currentMax[i] += maxs.at(i);
-        qv_currentMin[i] += mins.at(i);
+        qv_currentMax_[i] += maxs.at(i);
+        qv_currentMin_[i] += mins.at(i);
     }
 /*
 //    for (int i = 0; i < qv_detachmentList.count(); ++i)

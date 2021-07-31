@@ -38,7 +38,7 @@ protected:
 
 private:
 
-    QList<OrganisationRole*> _roles;
+    QList<OrganisationRole*> roles_;
 };
 
 #endif // ORGANISATION_H

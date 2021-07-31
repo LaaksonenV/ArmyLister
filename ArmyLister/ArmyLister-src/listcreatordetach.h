@@ -39,27 +39,27 @@ private: //functions
     void saveCurrent();
     
 private:
-    QListWidget *qv_detachmentList;
-    int v_currentIndex;
+    QListWidget *detachmentList_;
+    int currentIndex_;
 
-    QLineEdit *qv_cp;
-    QList<QSpinBox*> qv_mins;
-    QList<QSpinBox*> qv_maxs;
-    QList<QComboBox*> qv_spes;
+    QLineEdit *cp_;
+    QList<QSpinBox*> mins_;
+    QList<QSpinBox*> maxs_;
+    QList<QComboBox*> specials_;
 
     struct RoleSlotStruct
     {
-        int min, max, special;
+        int min_, max_, special_;
     };
     struct DetachmentStruct
     {
-        int cp;
-        QList<RoleSlotStruct> roles;
+        int cp_;
+        QList<RoleSlotStruct> roles_;
     };
 
-    QList<DetachmentStruct> qv_structs;
+    QList<DetachmentStruct> structs_;
 
-    QString qv_currentFile;
+    QString currentFile_;
 };
 
 

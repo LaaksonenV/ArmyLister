@@ -8,17 +8,17 @@
 
 BasicRole::BasicRole(const QStringList &args, QWidget *parent)
     : OrganisationRole(args, parent)
-    , _printText(QString())
-    , _max(0)
-    , _current(0)
-    , _globalMax(0)
+    , printText_(QString())
+    , max_(0)
+    , current_(0)
+    , globalMax_(0)
  //   , _currentMax(0)
 {
-    _printText = vq_name + "0";
+    printText_ = name_ + "0";
     if (args.count() > 1)
     {
-        _max = args.at(1).toInt();
-        _printText = vq_name + " 0/" + QString::number(_max);
+        max_ = args.at(1).toInt();
+        printText_ = name_ + " 0/" + QString::number(max_);
     }
 }
 
@@ -29,40 +29,40 @@ BasicRole::~BasicRole()
 
 void BasicRole::setGlobalMax(int n)
 {
-    _globalMax = n;
+    globalMax_ = n;
 
-    if (_max != 0)
-        _max = _globalMax*_max/100;
+    if (max_ != 0)
+        max_ = globalMax_*max_/100;
 
-    if (_max == 0)
-        _printText = vq_name + "   " + QString::number(_current)
-                + "/" + QString::number(_globalMax);
-    else if (_max < 0)
-        _printText = vq_name + "   " + QString::number(-_max)
-                + "/" + QString::number(_current)
-                + "/" + QString::number(_globalMax);
+    if (max_ == 0)
+        printText_ = name_ + "   " + QString::number(current_)
+                + "/" + QString::number(globalMax_);
+    else if (max_ < 0)
+        printText_ = name_ + "   " + QString::number(-max_)
+                + "/" + QString::number(current_)
+                + "/" + QString::number(globalMax_);
     else
-        _printText = vq_name + "   " + QString::number(_current)
-                + "/" + QString::number(_max)
-                + "/" + QString::number(_globalMax);
+        printText_ = name_ + "   " + QString::number(current_)
+                + "/" + QString::number(max_)
+                + "/" + QString::number(globalMax_);
     update();
 }
 
 void BasicRole::roleSelected(int, int amount)
 {
-    _current += amount;
+    current_ += amount;
 
-    if (_max == 0)
-        _printText = vq_name + "   " + QString::number(_current)
-                + "/" + QString::number(_globalMax);
-    else if (_max < 0)
-        _printText = vq_name + "   " + QString::number(-_max)
-                + "/" + QString::number(_current)
-                + "/" + QString::number(_globalMax);
+    if (max_ == 0)
+        printText_ = name_ + "   " + QString::number(current_)
+                + "/" + QString::number(globalMax_);
+    else if (max_ < 0)
+        printText_ = name_ + "   " + QString::number(-max_)
+                + "/" + QString::number(current_)
+                + "/" + QString::number(globalMax_);
     else
-        _printText = vq_name + "   " + QString::number(_current)
-                + "/" + QString::number(_max)
-                + "/" + QString::number(_globalMax);
+        printText_ = name_ + "   " + QString::number(current_)
+                + "/" + QString::number(max_)
+                + "/" + QString::number(globalMax_);
 
     update();
 }
@@ -72,41 +72,41 @@ void BasicRole::paintEvent(QPaintEvent *)
     QPainter p(this);
     QPen pen;
     QRect r(rect());
-    QMargins m(c_frameWidth,c_frameWidth,c_frameWidth,c_frameWidth);
+    QMargins m(s_frameWidth_,s_frameWidth_,s_frameWidth_,s_frameWidth_);
 
     // paint borders
     pen.setColor(Qt::blue);
-    pen.setWidth(c_frameWidth/2);
+    pen.setWidth(s_frameWidth_/2);
     p.setPen(pen);
-    m -= c_frameWidth/2;
+    m -= s_frameWidth_/2;
     p.drawRect(r.marginsRemoved(m));
 
     pen.setColor(Qt::gray);
     pen.setWidth(1);
     p.setPen(pen);
-    m += c_frameWidth/2;
+    m += s_frameWidth_/2;
     p.drawRect(r.marginsRemoved(m));
 
     // paint filler
     r = r.marginsRemoved(m);
-    p.fillRect(r,Settings::Color(Settings::ColorNeutral));
-    if (_globalMax)
+    p.fillRect(r,Settings::Color(Settings::eColor_Neutral));
+    if (globalMax_)
     {
-        r.setWidth(r.width()*_current/_globalMax);
-        if (_max > 0)
+        r.setWidth(r.width()*current_/globalMax_);
+        if (max_ > 0)
         {
-            if (_current <= _max)
-                p.fillRect(r, Settings::Color(Settings::ColorOk));
+            if (current_ <= max_)
+                p.fillRect(r, Settings::Color(Settings::eColor_Ok));
             else
-                p.fillRect(r, Settings::Color(Settings::ColorNot));
+                p.fillRect(r, Settings::Color(Settings::eColor_Not));
         }
-        else if (_max < 0)
+        else if (max_ < 0)
         {
-            if (_current <= -_max)
+            if (current_ <= -max_)
 
-                p.fillRect(r, Settings::Color(Settings::ColorNot));
+                p.fillRect(r, Settings::Color(Settings::eColor_Not));
             else
-                p.fillRect(r, Settings::Color(Settings::ColorOk));
+                p.fillRect(r, Settings::Color(Settings::eColor_Ok));
         }
         else
         {
@@ -121,10 +121,10 @@ void BasicRole::paintEvent(QPaintEvent *)
 
     r = rect().marginsRemoved(m);
 
-    if (_max != 0)
+    if (max_ != 0)
     {
-        int d = r.width()*_max/_globalMax;
-        if (_max < 0)
+        int d = r.width()*max_/globalMax_;
+        if (max_ < 0)
             d = -d;
 
         p.drawLine(d,r.top(),d,r.bottom());
@@ -134,7 +134,7 @@ void BasicRole::paintEvent(QPaintEvent *)
     pen.setWidth(1);
     p.setPen(pen);
 
-    p.setFont(Settings::Font(Settings::OrgFont));
-    p.drawText(r, _printText);
+    p.setFont(Settings::Font(Settings::eFont_OrgFont));
+    p.drawText(r, printText_);
 
 }

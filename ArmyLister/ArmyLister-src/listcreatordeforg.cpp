@@ -18,10 +18,10 @@ ListCreatorDefOrg::ListCreatorDefOrg(QWidget *parent)
     QGridLayout *mainlay = new QGridLayout(this);
     mainlay->setSizeConstraint(QLayout::SetFixedSize);
 
-    _orgtype = new QButtonGroup(this);
-    _orgtype->setExclusive(true);
+    orgtype_ = new QButtonGroup(this);
+    orgtype_->setExclusive(true);
     QRadioButton *typebut = new QRadioButton("40k", this);
-    _orgtype->addButton(typebut);
+    orgtype_->addButton(typebut);
     //typebut->setChecked(true);
 
   // FOR NOW
@@ -31,8 +31,8 @@ ListCreatorDefOrg::ListCreatorDefOrg(QWidget *parent)
 
     QHBoxLayout *lay = new QHBoxLayout(this);
 
-    _detachment = new QLineEdit("BattleForged.txt", this);
-    lay->addWidget(_detachment);
+    detachment_ = new QLineEdit("BattleForged.txt", this);
+    lay->addWidget(detachment_);
 
     QPushButton *but = new QPushButton("Browse file", this);
     connect(but, &QPushButton::clicked,
@@ -52,94 +52,94 @@ ListCreatorDefOrg::ListCreatorDefOrg(QWidget *parent)
 
 
     typebut = new QRadioButton("9A", this);
-    _orgtype->addButton(typebut);
+    orgtype_->addButton(typebut);
     typebut->setChecked(true);
 
     mainlay->addWidget(typebut,3,0);
 
 
-    _9AOrg = new QGridLayout(this);
+    9AOrg_ = new QGridLayout(this);
 
     QLabel *lab = new QLabel("Characters", this);
-    _9AOrg->addWidget(lab,0,0,Qt::AlignRight);
+    9AOrg_->addWidget(lab,0,0,Qt::AlignRight);
 
     QComboBox *drop = new QComboBox(this);
-    _types << drop;
-    drop->addItems(_items);
+    types_ << drop;
+    drop->addItems(items);
     drop->setCurrentIndex(0);
-    _9AOrg->addWidget(drop,0,1);
+    9AOrg_->addWidget(drop,0,1);
 
     QSpinBox *value = new QSpinBox(this);
-    _values << value;
+    values_ << value;
     value->setRange(0,100);
     value->setSuffix("%");
     value->setValue(40);
     value->setSingleStep(5);
-    _9AOrg->addWidget(value,0,2);
+    9AOrg_->addWidget(value,0,2);
 
 
     lab = new QLabel("Core", this);
-    _9AOrg->addWidget(lab,1,0,Qt::AlignRight);
+    9AOrg_->addWidget(lab,1,0,Qt::AlignRight);
 
     drop = new QComboBox(this);
-    _types << drop;
-    drop->addItems(_items);
+    types_ << drop;
+    drop->addItems(items);
     drop->setCurrentIndex(1);
-    _9AOrg->addWidget(drop,1,1);
+    9AOrg_->addWidget(drop,1,1);
 
     value = new QSpinBox(this);
-    _values << value;
+    values_ << value;
     value->setRange(0,100);
     value->setSuffix("%");
     value->setValue(20);
     value->setSingleStep(5);
-    _9AOrg->addWidget(value,1,2);
+    9AOrg_->addWidget(value,1,2);
 
 
     lab = new QLabel("Special", this);
-    _9AOrg->addWidget(lab,2,0,Qt::AlignRight);
+    9AOrg_->addWidget(lab,2,0,Qt::AlignRight);
 
     drop = new QComboBox(this);
-    _types << drop;
-    drop->addItems(_items);
+    types_ << drop;
+    drop->addItems(items);
     drop->setCurrentIndex(2);
-    _9AOrg->addWidget(drop,2,1);
+    9AOrg_->addWidget(drop,2,1);
 
     value = new QSpinBox(this);
-    _values << value;
+    values_ << value;
     value->setRange(0,100);
     value->setSuffix("%");
     value->setValue(0);
     value->setSingleStep(5);
-    _9AOrg->addWidget(value,2,2);
+    9AOrg_->addWidget(value,2,2);
 
 
     QLineEdit *txt = new QLineEdit("Army-Specific", this);
-    _names << txt;
-    _9AOrg->addWidget(txt,3,0);
+    names_ << txt;
+    9AOrg_->addWidget(txt,3,0);
 
     drop = new QComboBox(this);
-    _types << drop;
-    drop->addItems(_items);
+    types_ << drop;
+    drop->addItems(items);
     drop->setCurrentIndex(0);
-    _9AOrg->addWidget(drop,3,1);
+    9AOrg_->addWidget(drop,3,1);
 
     value = new QSpinBox(this);
-    _values << value;
+    values_ << value;
     value->setRange(0,100);
     value->setSuffix("%");
     value->setValue(0);
     value->setSingleStep(5);
-    _9AOrg->addWidget(value,3,2);
+    9AOrg_->addWidget(value,3,2);
 
 
-    _add9AOrg = new QPushButton("+", this);
-    connect(_add9AOrg, &QPushButton::clicked,
+    add9AOrg_ = new QPushButton("+", this);
+    connect(add9AOrg_, &QPushButton::clicked,
             this, &ListCreatorDefOrg::on_add9AAS);
-    _9AOrg->addWidget(_add9AOrg,4,0);
+    9AOrg_->addWidget(add9AOrg_,4,0);
 
 
-    mainlay->addLayout(_9AOrg,3,1,1,2);
+    mainlay->addLayout(n9AOrg_,3,1,1,2);
 
     mainlay->addItem(new QSpacerItem(5,5),4,0);
 
@@ -157,43 +157,43 @@ ListCreatorDefOrg::ListCreatorDefOrg(QWidget *parent)
 
 QString ListCreatorDefOrg::getType() const
 {
-    return _orgtype->checkedButton()->text();
+    return orgtype_->checkedButton()->text();
 }
 
 QStringList ListCreatorDefOrg::getOrg() const
 {
-    if (_orgtype->checkedId() == 0)
-        return QStringList(_detachment->text());
+    if (orgtype_->checkedId() == 0)
+        return QStringList(detachment_->text());
     QStringList lst;
     QString ret;
     int i = 0;
     while (i < 3)
     {
-        ret = _coreNames.at(i);
+        ret = coreNames.at(i);
         ret += ";";
-        if (_types.at(i)->currentText()== "min")
+        if (types_.at(i)->currentText()== "min")
         {
             ret += "-";
-            ret += QString::number(_values.at(i)->value());
+            ret += QString::number(values_.at(i)->value());
         }
-        else if (_types.at(i)->currentText()== "max")
-            ret += QString::number(_values.at(i)->value());
+        else if (types_.at(i)->currentText()== "max")
+            ret += QString::number(values_.at(i)->value());
         else
             ret += "0";
         lst << ret;
         ++i;
     }
-    while (i < _types.count())
+    while (i < types_.count())
     {
-        ret = _names.at(i-3)->text();
+        ret = names_.at(i-3)->text();
         ret += ";";
-        if (_types.at(i)->currentText()== "min")
+        if (types_.at(i)->currentText()== "min")
         {
             ret += "-";
-            ret += QString::number(_values.at(i)->value());
+            ret += QString::number(values_.at(i)->value());
         }
-        else if (_types.at(i)->currentText()== "max")
-            ret += QString::number(_values.at(i)->value());
+        else if (types_.at(i)->currentText()== "max")
+            ret += QString::number(values_.at(i)->value());
         else
             ret += "0";
         lst << ret;
@@ -206,12 +206,12 @@ void ListCreatorDefOrg::init(const QString &orgtype, const QStringList &org)
 {
     if (orgtype == "40k")
     {
-        _orgtype->button(0)->setChecked(true);
-        _detachment->setText(org.first());
+        orgtype_->button(0)->setChecked(true);
+        detachment_->setText(org.first());
     }
     else
     {
-        _orgtype->button(1)->setChecked(true);
+        orgtype_->button(1)->setChecked(true);
 
         int i = 0;
         int num;
@@ -220,40 +220,40 @@ void ListCreatorDefOrg::init(const QString &orgtype, const QStringList &org)
             num = org.at(i).section(';',1).toInt();
             if (num < 0)
             {
-                _types.at(i)->setCurrentText("min");
-                _values.at(i)->setValue(-num);
+                types_.at(i)->setCurrentText("min");
+                values_.at(i)->setValue(-num);
             }
             else if (num > 0)
             {
-                _types.at(i)->setCurrentText("max");
-                _values.at(i)->setValue(num);
+                types_.at(i)->setCurrentText("max");
+                values_.at(i)->setValue(num);
             }
             else
             {
-                _types.at(i)->setCurrentText("-");
-                _values.at(i)->setValue(0);
+                types_.at(i)->setCurrentText("-");
+                values_.at(i)->setValue(0);
             }
             ++i;
         }
         while (i < org.count())
         {
-            _names[i-3]->setText(org.at(i).section(';',0,1));
+            names_[i-3]->setText(org.at(i).section(';',0,1));
 
             num = org.at(i).section(';',1).toInt();
             if (num < 0)
             {
-                _types.at(i)->setCurrentText("min");
-                _values.at(i)->setValue(-num);
+                types_.at(i)->setCurrentText("min");
+                values_.at(i)->setValue(-num);
             }
             else if (num > 0)
             {
-                _types.at(i)->setCurrentText("max");
-                _values.at(i)->setValue(num);
+                types_.at(i)->setCurrentText("max");
+                values_.at(i)->setValue(num);
             }
             else
             {
-                _types.at(i)->setCurrentText("-");
-                _values.at(i)->setValue(0);
+                types_.at(i)->setCurrentText("-");
+                values_.at(i)->setValue(0);
             }
             ++i;
         }
@@ -265,30 +265,30 @@ void ListCreatorDefOrg::on_selectFile()
     QString file = QFileDialog::getOpenFileName(this,
                        tr("Select Detachment file"), QString(), "text (*txt)");
     if (!file.isNull())
-        _detachment->setText(file);
+        detachment_->setText(file);
 }
 
 void ListCreatorDefOrg::on_add9AAS()
 {
-    int row = _9AOrg->rowCount()-1;
+    int row = n9AOrg_->rowCount()-1;
 
     QLineEdit *txt = new QLineEdit("Army-Specific", this);
-    _names << txt;
-    _9AOrg->addWidget(txt,row,0);
+    names_ << txt;
+    9AOrg_->addWidget(txt,row,0);
 
     QComboBox *drop = new QComboBox(this);
-    _types << drop;
-    drop->addItems(_items);
+    types_ << drop;
+    drop->addItems(items);
     drop->setCurrentIndex(0);
-    _9AOrg->addWidget(drop,row,1);
+    9AOrg_->addWidget(drop,row,1);
 
     QSpinBox *value = new QSpinBox(this);
-    _values << value;
+    values_ << value;
     value->setRange(0,100);
     value->setSuffix("%");
     value->setValue(0);
     value->setSingleStep(5);
-    _9AOrg->addWidget(value,row,2);
+    9AOrg_->addWidget(value,row,2);
 
-    _9AOrg->addWidget(_add9AOrg,row+1,0);
+    9AOrg_->addWidget(add9AOrg_,row+1,0);
 }

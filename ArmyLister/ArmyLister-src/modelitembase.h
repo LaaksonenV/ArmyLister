@@ -202,20 +202,20 @@ public:
      */
     enum Limited : short
     {
-        NotClonable = 1,
-        SelectionLimit = NotClonable*2,
+        eNotClonable = 1,
+        eSelectionLimit = eNotClonable*2,
 
-        GlobalLimit = SelectionLimit*2,
-        SpecialLimit = GlobalLimit*2,
-        CostLimit = SpecialLimit*2,
-        CountLimit = CostLimit*2,
-        ModelsLimit = CountLimit*2,
+        eGlobalLimit = eSelectionLimit*2,
+        eSpecialLimit = eGlobalLimit*2,
+        eCostLimit = eSpecialLimit*2,
+        eCountLimit = eCostLimit*2,
+        eModelsLimit = eCountLimit*2,
 
-        CriticalLimit = ModelsLimit*2,
+        eCriticalLimit = eModelsLimit*2,
 
 
-        Checkable = SelectionLimit,
-        LastBaseLimit = CriticalLimit
+        eCheckable = eSelectionLimit,
+        eLastBaseLimit = eCriticalLimit
     };
 
     virtual void printToStream(QTextStream &str);
@@ -281,14 +281,14 @@ signals:
 
 protected:
 
-    int _cost;
-    int _index;
+    int cost_;
+    int index_;
 
-    QList<ModelItemBase *> _branches;
+    QList<ModelItemBase *> branches_;
 
 private:
 
-    int _initCost;
+    int initCost_;
 
 };
 

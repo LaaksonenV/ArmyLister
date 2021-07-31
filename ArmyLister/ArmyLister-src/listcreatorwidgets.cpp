@@ -12,14 +12,14 @@
 
 ListCreatorWidgetOrg::ListCreatorWidgetOrg(QWidget *parent)
     : QWidget(parent)
-    , _org(QString())
-    , _creator(nullptr)
+    , org_(QString())
+    , creator_(nullptr)
 {
     QHBoxLayout *chLay = new QHBoxLayout();
 
-    _text = new QLabel("Undefined");
+    text_ = new QLabel("Undefined");
 
-    chLay->addWidget(_text);
+    chLay->addWidget(text_);
 
     QPushButton *button = new QPushButton("Define organisation", this);
     connect(button, &QPushButton::clicked,
@@ -33,45 +33,45 @@ void ListCreatorWidgetOrg::setOrg(const QString &line)
 {
     if (!line.isEmpty())
     {
-        _text->setText(line.section('#',0,0));
-        _org = line.section('#',1);
+        text_->setText(line.section('#',0,0));
+        org_ = line.section('#',1);
 //        emit finished();
     }
 }
 
 QString ListCreatorWidgetOrg::getOrg() const
 {
-    if (_org.isNull())
+    if (org_.isNull())
         return QString();
 
-    QString ret = _text->text();
+    QString ret = text_->text();
 
-    ret += "#" + _org;
+    ret += "#" + org_;
 
     return ret;
 }
 
 void ListCreatorWidgetOrg::on_create()
 {
-    if (!_creator)
+    if (!creator_)
     {
-        _creator = new ListCreatorDefOrg(this);
-        connect(_creator, &ListCreatorDefOrg::finished,
+        creator_ = new ListCreatorDefOrg(this);
+        connect(creator_, &ListCreatorDefOrg::finished,
                 this, &ListCreatorWidgetOrg::on_finished);
 
-        if (!_org.isNull())
-            _creator->init(_text->text(), _org.split('#'));
+        if (!org_.isNull())
+            creator_->init(text_->text(), org_.split('#'));
     }
 
-    _creator->open();
+    creator_->open();
 }
 
 void ListCreatorWidgetOrg::on_finished()
 {
-    if (_creator->result() == QDialog::Accepted)
+    if (creator_->result() == QDialog::Accepted)
     {
-        _text->setText(_creator->getType());
-        _org = _creator->getOrg().join('#');
+        text_->setText(creator_->getType());
+        org_ = creator_->getOrg().join('#');
         emit finished();
     }
 }
@@ -83,11 +83,11 @@ ListCreatorWidgetIncl::ListCreatorWidgetIncl(QWidget *parent)
 {
     QHBoxLayout *chLay = new QHBoxLayout();
 
-    _files = new QListWidget(this);
-    _files->setSizePolicy(QSizePolicy::Maximum,QSizePolicy::Maximum);
-    _files->setSelectionMode(QAbstractItemView::SingleSelection);
+    files_ = new QListWidget(this);
+    files_->setSizePolicy(QSizePolicy::Maximum,QSizePolicy::Maximum);
+    files_->setSelectionMode(QAbstractItemView::SingleSelection);
 
-    chLay->addWidget(_files);
+    chLay->addWidget(files_);
 
     QVBoxLayout *butLay = new QVBoxLayout();
 
@@ -111,9 +111,9 @@ QStringList ListCreatorWidgetIncl::getFiles() const
 {
     QStringList ret;
     QListWidgetItem *itm;
-    for (int i = 0; i < _files->count(); ++i)
+    for (int i = 0; i < files_->count(); ++i)
     {
-        itm = _files->item(i);
+        itm = files_->item(i);
         ret << itm->text();
     }
     return ret;
@@ -124,8 +124,8 @@ void ListCreatorWidgetIncl::addFile(const QString &file)
     bool ok = true;
 
 
-    for (int i = 0; i < _files->count(); ++i)
-        if (file == _files->item(i)->text())
+    for (int i = 0; i < files_->count(); ++i)
+        if (file == files_->item(i)->text())
         {
             ok = false;
             break;
@@ -133,7 +133,7 @@ void ListCreatorWidgetIncl::addFile(const QString &file)
 
     if (ok)
     {
-        _files->addItem(file);
+        files_->addItem(file);
         emit fileAdded(file);
     }
 }
@@ -153,9 +153,9 @@ void ListCreatorWidgetIncl::on_add()
 
 void ListCreatorWidgetIncl::on_remove()
 {
-    if (!_files->currentItem())
+    if (!files_->currentItem())
         return;
 
-    QListWidgetItem *itm = _files->takeItem(_files->currentRow());
+    QListWidgetItem *itm = files_->takeItem(files_->currentRow());
     emit fileRemoved(itm->text());
 }

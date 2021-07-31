@@ -167,12 +167,12 @@ private:
 
     void clear();
 private:
-    QList<PointContainer*> _pointList;
-    QMap<QString, UnitContainer> _unitList;
-    QMap<QString, QStringList> _listList;
-    QMap<QString, ItemSatellite*> _globalLimiters;
-    QMap<QString, int> _nameMap;
-    QMap<QString, TempTreeModelItem*> _retinueList;
+    QList<PointContainer*> pointList_;
+    QMap<QString, UnitContainer> unitMap_;
+    QMap<QString, QStringList> listMap_;
+    QMap<QString, ItemSatellite*> globalLimiterMap_;
+    QMap<QString, int> nameMap_;
+    QMap<QString, TempTreeModelItem*> retinueMap_;
 
 };
 
@@ -193,10 +193,10 @@ struct TempTreeModelItem
 
 
 
-    QString _text;
-    QStringList _control;
-    QStringList _spec;
-    QList<TempTreeModelItem*> _unders;
+    QString text_;
+    QStringList control_;
+    QStringList spec_;
+    QList<TempTreeModelItem*> unders_;
 
 };
 
@@ -209,22 +209,22 @@ struct TempTreeModelItem
  */
 struct PointContainer
 {
-    QString text;
-    QStringList special;
-    int points;
-    int min;
-    int max;
-    int specialPoints;
-    int multiplier;
+    QString text_;
+    QStringList special_;
+    int points_;
+    int min_;
+    int max_;
+    int specialPoints_;
+    int multiplier_;
 
     PointContainer()
-        : text(QString())
-        , special(QStringList())
-        , points(0)
-        , min(0)
-        , max(-1)
-        , specialPoints(0)
-        , multiplier(1)
+        : text_(QString())
+        , special_(QStringList())
+        , points_(0)
+        , min_(0)
+        , max_(-1)
+        , specialPoints_(0)
+        , multiplier_(1)
     {
     }
 
@@ -232,23 +232,23 @@ struct PointContainer
 
 struct ItemContainer
 {
-    int points;
+    int points_;
 };
 
 struct UnitContainer
 {
-    int points;
-    int min;
-    int max;
-    int specialPoints;
-    QMap<QString,ItemContainer> items;
+    int points_;
+    int min_;
+    int max_;
+    int specialPoints_;
+    QMap<QString,ItemContainer> items_;
 
     UnitContainer()
-        : points(0)
-        , min(0)
-        , max(-1)
-        , specialPoints(0)
-        , items(QMap<QString,ItemContainer>())
+        : points_(0)
+        , min_(0)
+        , max_(-1)
+        , specialPoints_(0)
+        , items_(QMap<QString,ItemContainer>())
     {
     }
 };

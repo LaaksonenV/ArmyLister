@@ -3,7 +3,7 @@
 OrganisationRole::OrganisationRole(const QStringList &args
                                    , QWidget *parent)
     : QWidget(parent)
-    , vq_name("")
+    , name_("")
 {
     setFixedWidth(fixedWidth());
 
@@ -13,7 +13,7 @@ OrganisationRole::OrganisationRole(const QStringList &args
 
     else
     {
-        vq_name = args.at(0);
+        name_ = args.at(0);
         setFixedHeight(fixedHeight());
     }
 
@@ -32,12 +32,12 @@ QSize OrganisationRole::sizeHint() const
 
 int OrganisationRole::fixedHeight()
 {
-    return c_iconSideLength + c_labelHeight + 2*c_frameWidth;
+    return s_iconSideLength_ + s_labelHeight_ + 2*s_frameWidth_;
 }
 
 int OrganisationRole::fixedWidth()
 {
-    return c_iconSideLength * 10 + 2*c_frameWidth;
+    return s_iconSideLength_ * 10 + 2*s_frameWidth_;
 }
 
 void OrganisationRole::moveStep(int count)
@@ -47,5 +47,5 @@ void OrganisationRole::moveStep(int count)
 
 void OrganisationRole::printFaultLabel()
 {
-    vq_name = "Faulty detachment line";
+    name_ = "Faulty detachment line";
 }

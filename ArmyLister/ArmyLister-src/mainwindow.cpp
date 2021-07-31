@@ -16,14 +16,14 @@
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
-    , _settings(new Settings())
-    , _mainwidget(nullptr)
+    , settings_(new Settings())
+    , mainwidget_(nullptr)
 
 {
     setWindowTitle(QString("ArmyLister ") + QString(APP_VERSION));
-    _mainwidget = new ArmyWidget(this);
+    mainwidget_ = new ArmyWidget(this);
 
-    setCentralWidget(_mainwidget);
+    setCentralWidget(mainwidget_);
 
     QMenuBar *menu = menuBar();
     QMenu *actMenu = menu->addMenu("Select");
@@ -34,7 +34,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     actMenu->addSeparator();
 
-    QStringList armies = _settings->multiValue(SETTING_ARMY_GROUP);
+    QStringList armies = settings_->multiValue(SETTING_ARMY_GROUP);
     QFileInfo forName;
     for (int i = 0; i < std::min(5,armies.count()); ++i)
     {
@@ -52,7 +52,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     actMenu->addSeparator();
 
-    armies = _settings->multiValue(SETTING_LIST_GROUP);
+    armies = settings_->multiValue(SETTING_LIST_GROUP);
     for (int i = 0; i < std::min(5,armies.count()); ++i)
     {
         forName.setFile(armies.at(i));
@@ -65,7 +65,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     act = actMenu->addAction("Save");
     connect(act, &QAction::triggered,
-            [=](){_mainwidget->saveList(QString());});
+            [=](){mainwidget_->saveList(QString());});
 
     act = actMenu->addAction("Save As");
     connect(act, &QAction::triggered,
@@ -99,14 +99,14 @@ MainWindow::MainWindow(QWidget *parent)
 
     act = actMenu->addAction("Txt file");
     connect(act, &QAction::triggered,
-            _mainwidget, &ArmyWidget::printList);
+            mainwidget_, &ArmyWidget::printList);
 
     resize(500,500);
 }
 
 MainWindow::~MainWindow()
 {
-    delete _settings;
+    delete settings_;
 }
 
 void MainWindow::on_selectList()
@@ -114,13 +114,13 @@ void MainWindow::on_selectList()
     QString file = QFileDialog::getOpenFileName
             (this, tr("Select Army to create"), QString(), "text (*txt)");
 
-    if (!file.isEmpty() && _mainwidget->createArmy(file))
-            _settings->addMultiValue(file, SETTING_ARMY_GROUP);
+    if (!file.isEmpty() && mainwidget_->createArmy(file))
+            settings_->addMultiValue(file, SETTING_ARMY_GROUP);
 }
 
 void MainWindow::on_selectArmy(const QString &fileName)
 {
-    _mainwidget->createArmy(fileName);
+    mainwidget_->createArmy(fileName);
 }
 
 void MainWindow::on_saveList()
@@ -129,8 +129,8 @@ void MainWindow::on_saveList()
             (this, "Choose where to save", QString(), "Armylist (*alst)");
     if (!file.isEmpty())
     {
-        _mainwidget->saveList(file);
-        _settings->addMultiValue(file, SETTING_LIST_GROUP);
+        mainwidget_->saveList(file);
+        settings_->addMultiValue(file, SETTING_LIST_GROUP);
     }
 }
 
@@ -140,14 +140,14 @@ void MainWindow::on_loadList()
             (this, "Select List to load", QString(), "Armylist (*alst)");
     if (!file.isEmpty())
     {
-        _mainwidget->loadList(file);
-        _settings->addMultiValue(file, SETTING_LIST_GROUP);
+        mainwidget_->loadList(file);
+        settings_->addMultiValue(file, SETTING_LIST_GROUP);
     }
 }
 
 void MainWindow::on_loadArmy(const QString &fileName)
 {
-    _mainwidget->loadList(fileName);
+    mainwidget_->loadList(fileName);
 }
 
 void MainWindow::on_createOrg()

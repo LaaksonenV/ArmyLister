@@ -2,19 +2,19 @@
 
 ItemSatellite::ItemSatellite(QObject *parent)
     : QObject(parent)
-    , _firstCall(false)
-    , _clone(nullptr)
+    , firstCall_(false)
+    , clone_(nullptr)
 {
 
 }
 
 void ItemSatellite::ping(bool)
 {
-    if (_clone)
+    if (clone_)
     {
-        emit sendConnection(_clone, _firstCall);
-        if (_firstCall)
-            _firstCall = false;
+        emit sendConnection(clone_, firstCall_);
+        if (firstCall_)
+            firstCall_ = false;
     }
     else
         emit sendConnection(this, false);
@@ -22,32 +22,32 @@ void ItemSatellite::ping(bool)
 
 void ItemSatellite::releaseClone()
 {
-    _clone = nullptr;
+    clone_ = nullptr;
 }
 
 ItemSatelliteSelectionLimiter::ItemSatelliteSelectionLimiter(int max,
                                                              int type,
                                                              QObject *parent)
     : ItemSatellite(parent)
-    , _limit(max)
-    , _current(0)
-    , _type(type)
+    , limit_(max)
+    , current_(0)
+    , type_(type)
 {
 
 }
 
 void ItemSatelliteSelectionLimiter::on_itemSelected(int b, int)
 {
-    if (b < 0 && _current >= _limit)
+    if (b < 0 && current_ >= limit_)
     {
-        emit limitReach(-_type);
+        emit limitReach(-type_);
     }
 
-    _current += b;
+    current_ += b;
 
-    if (b > 0 && _current >= _limit)
+    if (b > 0 && current_ >= limit_)
     {
-        emit limitReach(_type);
+        emit limitReach(type_);
     }
 }
 
@@ -55,16 +55,16 @@ void ItemSatelliteSelectionLimiter::ping(bool status)
 {
     if (status)
     {
-        if(_current >= _limit)
-            emit limitReach(_type);
+        if(current_ >= limit_)
+            emit limitReach(type_);
     }
     else ItemSatellite::ping(status);
 }
 
 void ItemSatelliteSelectionLimiter::createClone()
 {
-    _clone = new ItemSatelliteSelectionLimiter(_limit, _type, this);
-    _firstCall = true;
+    clone_ = new ItemSatelliteSelectionLimiter(limit_, type_, this);
+    firstCall_ = true;
 }
 
 ItemSatelliteModelMirror::ItemSatelliteModelMirror(QObject *parent)
@@ -80,44 +80,44 @@ void ItemSatelliteModelMirror::on_modelsChanged(int i, bool check,
 
 void ItemSatelliteModelMirror::createClone()
 {
-    _clone = new ItemSatelliteModelMirror(this);
-    _firstCall = true;
+    clone_ = new ItemSatelliteModelMirror(this);
+    firstCall_ = true;
 }
 
 ItemSatelliteSelectionMirror::ItemSatelliteSelectionMirror(QObject *parent)
     : ItemSatellite(parent)
-    , _selected(false)
+    , selected_(false)
 {}
 
 void ItemSatelliteSelectionMirror::on_itemSelected(int b, int)
 {
     if (b > 0)
-        _selected = true;
+        selected_ = true;
     else
-        _selected = false;
+        selected_ = false;
     emit check(b);
 }
 
 void ItemSatelliteSelectionMirror::createClone()
 {
-    _clone = new ItemSatelliteSelectionMirror(this);
-    _firstCall = true;
+    clone_ = new ItemSatelliteSelectionMirror(this);
+    firstCall_ = true;
 }
 
 void ItemSatelliteSelectionMirror::releaseClone()
 {
-    if (_selected)
-        _clone->on_itemSelected(1,-1);
+    if (selected_)
+        clone_->on_itemSelected(1,-1);
     ItemSatellite::releaseClone();
 }
 
 ItemSatelliteSelectionLimiterModels::ItemSatelliteSelectionLimiterModels
     (int one, int per, int type, int crit, QObject *parent)
     : ItemSatelliteSelectionLimiter(0, type, parent)
-    , _currentModels(0)
-    , _criticalType(crit)
-    , _limitFor(one)
-    , _perModel(per)
+    , currentModels_(0)
+    , criticalType_(crit)
+    , limitFor_(one)
+    , perModel_(per)
 {}
 
 void ItemSatelliteSelectionLimiterModels::on_itemSelected(int i, int)
@@ -131,28 +131,28 @@ void ItemSatelliteSelectionLimiterModels::on_modelsChanged(int i, bool,
 {
     if (!toggle)
     {
-        int limitChange = _limit;
-        _currentModels += i;
-        _limit = _limitFor*(floor(_currentModels/_perModel));
-        limitChange = _limit - limitChange;
+        int limitChange = limit_;
+        currentModels_ += i;
+        limit_ = limitFor_*(floor(currentModels_/perModel_));
+        limitChange = limit_ - limitChange;
         emit currentLimit(-limitChange, true);
 
-        if (limitChange < 0 && _current > _limit)
+        if (limitChange < 0 && current_ > limit_)
         {
-            emit limitReach(_criticalType);
+            emit limitReach(criticalType_);
         }
 
-        if (limitChange > 0 && _current <= _limit)
+        if (limitChange > 0 && current_ <= limit_)
         {
-            emit limitReach(-_criticalType);
+            emit limitReach(-criticalType_);
         }
     }
 }
 
 void ItemSatelliteSelectionLimiterModels::createClone()
 {
-    _clone = new ItemSatelliteSelectionLimiterModels(_limitFor, _perModel,
-                                                     _type, _criticalType,
+    clone_ = new ItemSatelliteSelectionLimiterModels(limitFor_, perModel_,
+                                                     type_, criticalType_,
                                                      this);
-    _firstCall = true;
+    firstCall_ = true;
 }

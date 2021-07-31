@@ -115,8 +115,7 @@ public:
      * \param role counts also as
      *
      * If \a role is set >= 0, when the item is checked its cost will be
-     * passed up twice, without changing actual items's costs, eventually
-     * changing given roles points towards limit
+     * passed up towards the set role also, for limiting purposes
      */
     void setCountsAs(int role);
 
@@ -216,34 +215,34 @@ public slots:
 
 protected:
 
-    ModelItemBase *_trunk;
-    bool _checked;
-    int _current;
+    ModelItemBase *trunk_;
+    bool checked_;
+    int current_;
 
 private:
 
-    QLabel *_title;
+    QLabel *title_;
 
-    QStringList _special;
-    QStringList _specialLimiter;
+    QStringList specials_;
+    QStringList specialLimiters_;
 
-    QStringList _initSpecial;
+    QStringList initialSpecials_;
 
-    int _forAll;
-    int _costLimit;
-    int _modelLimitMin;
-    bool _hasModelLimitMin;
-    int _modelLimitMax;
-    bool _hasModelLimitMax;
-    int _countsAs;
+    int forAllModels_;
+    int costLimit_;
+    int modelLimitMin_;
+    bool bHasModelLimitMin_;
+    int modelLimitMax_;
+    bool bHasModelLimitMax_;
+    int countsAs_;
 
-    QPushButton *_expandButton;
-    bool _expanded;
+    QPushButton *expandButton_;
+    bool bExpanded_;
 
-    bool _alwaysChecked;
-    bool _mouseIn;
+    bool bAlwaysChecked_;
+    bool bMouseIn_;
 
-    int _limit;
+    int limit_;
 };
 
 #endif // MODELITEMBASIC_H

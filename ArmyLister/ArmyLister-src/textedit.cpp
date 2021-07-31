@@ -9,8 +9,8 @@
 
 MCLineEdit::MCLineEdit(QWidget *parent)
     : QLineEdit(parent)
-    , _compmod(nullptr)
-    , c(nullptr)
+    , compmod_(nullptr)
+    , c_(nullptr)
 {
     connect(this, &MCLineEdit::editingFinished,
             [this](){addToCompleter(QStringList(text()));});
@@ -18,7 +18,7 @@ MCLineEdit::MCLineEdit(QWidget *parent)
 void MCLineEdit::keyPressEvent(QKeyEvent *e)
 {
 
-    if (c && c->popup()->isVisible()) {
+    if (c_ && c_->popup()->isVisible()) {
         // The following keys are forwarded by the completer to the widget
         switch (e->key()) {
         case Qt::Key_Enter:
@@ -35,13 +35,13 @@ void MCLineEdit::keyPressEvent(QKeyEvent *e)
 
     bool isShortcut = ((e->modifiers() & Qt::ControlModifier) &&
                        e->key() == Qt::Key_E); // CTRL+E
-    if (!c || !isShortcut)
+    if (!c_ || !isShortcut)
         // do not process the shortcut when we have a completer
         QLineEdit::keyPressEvent(e);
 
     const bool ctrlOrShift = e->modifiers() & (Qt::ControlModifier
                                                | Qt::ShiftModifier);
-    if (!c || (ctrlOrShift && e->text().isEmpty()))
+    if (!c_ || (ctrlOrShift && e->text().isEmpty()))
         return;
 
     static QString eow("~!@#$%^&*()_+{}|:\"<>?,./;'[]\\-="); // end of word
@@ -51,18 +51,18 @@ void MCLineEdit::keyPressEvent(QKeyEvent *e)
     if (!isShortcut && (hasModifier || e->text().isEmpty()
                         || completionPrefix.length() < 3
                         || eow.contains(e->text().right(1)))) {
-        c->popup()->hide();
+        c_->popup()->hide();
         return;
     }
 
-    if (completionPrefix != c->completionPrefix()) {
-        c->setCompletionPrefix(completionPrefix);
-        c->popup()->setCurrentIndex(c->completionModel()->index(0, 0));
+    if (completionPrefix != c_->completionPrefix()) {
+        c_->setCompletionPrefix(completionPrefix);
+        c_->popup()->setCurrentIndex(c_->completionModel()->index(0, 0));
     }
     QRect cr = cursorRect();
-    cr.setWidth(c->popup()->sizeHintForColumn(0)
-                + c->popup()->verticalScrollBar()->sizeHint().width());
-    c->complete(cr); // popup it up!
+    cr.setWidth(c_->popup()->sizeHintForColumn(0)
+                + c_->popup()->verticalScrollBar()->sizeHint().width());
+    c_->complete(cr); // popup it up!
 
 
 }
@@ -94,25 +94,25 @@ void MCLineEdit::insertCompletion(QString arg)
 void MCLineEdit::addToCompleter(const QStringList &list)
 {
 
-    if (!c)
+    if (!c_)
     {
-        _compmod = new QStringListModel(list);
-        _compmod->sort(0);
-        c = new QCompleter(_compmod);
-        c->setWidget(this);
-        connect(c, SIGNAL(activated(QString)),
+        compmod_ = new QStringListModel(list);
+        compmod_->sort(0);
+        c_ = new QCompleter(compmod_);
+        c_->setWidget(this);
+        connect(c_, SIGNAL(activated(QString)),
                 this, SLOT(insertCompletion(QString)));
     }
     else
     {
-        int cnt = _compmod->rowCount();
+        int cnt = compmod_->rowCount();
         QModelIndex index;
-        if(_compmod->insertRows(cnt, list.count()))
+        if(compmod_->insertRows(cnt, list.count()))
         {
-            for (int i = cnt; i < _compmod->rowCount(); ++i)
+            for (int i = cnt; i < compmod_->rowCount(); ++i)
             {
-                index = _compmod->index(i, 0);
-                _compmod->setData(index, list.at(i-cnt));
+                index = compmod_->index(i, 0);
+                compmod_->setData(index, list.at(i-cnt));
             }
         }
     }

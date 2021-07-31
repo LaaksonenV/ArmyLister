@@ -10,27 +10,27 @@
 
 ModelItemUnit::ModelItemUnit(ModelItemBase *parent)
     : ModelItemSpinner(parent)
-    , _clickClock(new QTimer(this))
-    , _cloned(0)
-    , _unitCountsAs(0)
+    , clickClock_(new QTimer(this))
+    , cloned_(0)
+    , unitCountsAs_(0)
 {
-    _clickClock->setSingleShot(true);
-    _clickClock->setInterval(QApplication::doubleClickInterval());
-    connect(_clickClock, &QTimer::timeout,
+    clickClock_->setSingleShot(true);
+    clickClock_->setInterval(QApplication::doubleClickInterval());
+    connect(clickClock_, &QTimer::timeout,
             this, &ModelItemBasic::toggleCheck);
 }
 
 ModelItemUnit::ModelItemUnit(ModelItemUnit *source, ModelItemBase *parent)
     : ModelItemSpinner(source, parent)
-    , _clickClock(new QTimer(this))
-    , _cloned(0)
-    , _unitCountsAs(0)
+    , clickClock_(new QTimer(this))
+    , cloned_(0)
+    , unitCountsAs_(0)
 {
-    _clickClock->setSingleShot(true);
-    _clickClock->setInterval(QApplication::doubleClickInterval());
-    connect(_clickClock, &QTimer::timeout,
+    clickClock_->setSingleShot(true);
+    clickClock_->setInterval(QApplication::doubleClickInterval());
+    connect(clickClock_, &QTimer::timeout,
             this, &ModelItemBasic::toggleCheck);
-    setUnitCountsAs(source->_unitCountsAs-1);
+    setUnitCountsAs(source->unitCountsAs_-1);
 
 }
 
@@ -39,12 +39,12 @@ ModelItemUnit::~ModelItemUnit()
 
 void ModelItemUnit::clone(ModelItemBase*, int)
 {
-    ModelItemUnit *clone = new ModelItemUnit(this, _trunk);
-    _trunk->insertItem(clone, _index+1);
+    ModelItemUnit *clone = new ModelItemUnit(this, trunk_);
+    trunk_->insertItem(clone, index_+1);
     cloning(clone);
     clone->resize(size());
     clone->passSpecialUp(QStringList(), true);
-    ++_cloned;
+    ++cloned_;
     emit itemCloned();
 }
 
@@ -62,7 +62,7 @@ void ModelItemUnit::setSpecial(const QStringList &list)
 
 void ModelItemUnit::setUnitCountsAs(int role)
 {
-    _unitCountsAs = role+1;
+    unitCountsAs_ = role+1;
 }
 
 void ModelItemUnit::loadSelection(QString &str)
@@ -77,7 +77,7 @@ void ModelItemUnit::loadSelection(QString &str)
 
 void ModelItemUnit::saveSelection(QTextStream &str)
 {
-    str << QString::number(_cloned);
+    str << QString::number(cloned_);
     str << "#";
     ModelItemSpinner::saveSelection(str);
 }
@@ -95,13 +95,13 @@ bool ModelItemUnit::branchSelected(bool check, int role, int, int)
         {
             if (check)
             {
-                _unitCountsAs = role;
-                _trunk->passCostUp(_cost, false, role);
+                unitCountsAs_ = role;
+                trunk_->passCostUp(cost_, false, role);
             }
             else
             {
-                _trunk->passCostUp(-_cost, false, role);
-                _unitCountsAs = 0;
+                trunk_->passCostUp(-cost_, false, role);
+                unitCountsAs_ = 0;
             }
         }
         return true;
@@ -112,13 +112,13 @@ bool ModelItemUnit::branchSelected(bool check, int role, int, int)
 void ModelItemUnit::passCostUp(int c, bool perModel, int role)
 {
     ModelItemSpinner::passCostUp(c, perModel, role);
-    if (_unitCountsAs && -role != _unitCountsAs)
-        ModelItemSpinner::passCostUp(c, perModel, _unitCountsAs);
+    if (unitCountsAs_ && -role != unitCountsAs_)
+        ModelItemSpinner::passCostUp(c, perModel, unitCountsAs_);
 }
 
 void ModelItemUnit::printToStream(QTextStream &str)
 {
-    if (_checked)
+    if (checked_)
     {
         endl(str);
         str.setPadChar('.');
@@ -140,7 +140,7 @@ void ModelItemUnit::mousePressEvent(QMouseEvent *e)
 {
     if (e->button() == Qt::LeftButton)
     {
-        _clickClock->start();
+        clickClock_->start();
 
         e->accept();
     }
@@ -148,10 +148,10 @@ void ModelItemUnit::mousePressEvent(QMouseEvent *e)
 
 void ModelItemUnit::mouseDoubleClickEvent(QMouseEvent *e)
 {
-    if (!checkLimit(NotClonable) &&
+    if (!checkLimit(eNotClonable) &&
             e->button() == Qt::LeftButton)
     {
-        _clickClock->stop();
+        clickClock_->stop();
         clone();
 
         e->accept();

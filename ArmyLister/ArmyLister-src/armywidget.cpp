@@ -15,12 +15,12 @@
 
 ArmyWidget::ArmyWidget(QWidget *parent)
     : QWidget(parent)
-    , _points(0)
-    , _army(nullptr)
-    , _list(new ArmyListWidget(this))
+    , points_(0)
+    , army_(nullptr)
+    , list_(new ArmyListWidget(this))
 
 {
-    connect(_list, &ArmyListWidget::valueChanged,
+    connect(list_, &ArmyListWidget::valueChanged,
             this, &ArmyWidget::on_valueChange);
 }
 
@@ -43,7 +43,7 @@ bool ArmyWidget::createArmy(const QString &filename)
     if (orgtype == "9A")
     {
         limit = QInputDialog::getInt(this, tr("Army size"), tr("Points"),
-                                 Settings::DefaultSize(Settings::DefaultArmySize9A),
+                                 Settings::DefaultSize(Settings::eDefaultArmySize_9A),
                                      0, 10000, 100, &ok);
         army = create9A(org,limit);
     }
@@ -61,9 +61,9 @@ bool ArmyWidget::createArmy(const QString &filename)
     lay->addWidget(armyarea);
     armyarea->show();
 
-    _list->addArmyFile(filename);
+    list_->addArmyFile(filename);
 
-    lay->addWidget(_list);
+    lay->addWidget(list_);
 
     setLayout(lay);
 
@@ -78,7 +78,7 @@ Organisation *ArmyWidget::create40k()
     army->setLists(ListCreatorDetach::getOrganisationList(
                        "Appends\\BattleForged.txt"),0);
 
-    connect(_list, &ArmyListWidget::roleSelected,
+    connect(list_, &ArmyListWidget::roleSelected,
             army, &BattleForged::onRoleSelection);
 
     return army;
@@ -90,7 +90,7 @@ Organisation *ArmyWidget::create9A(const QString &text, int limit)
 
     army->setLists(text, limit);
 
-    connect(_list, &ArmyListWidget::valueChanged,
+    connect(list_, &ArmyListWidget::valueChanged,
             army, &Organisation::onRoleSelection);
 
     return army;
@@ -98,24 +98,24 @@ Organisation *ArmyWidget::create9A(const QString &text, int limit)
 
 void ArmyWidget::saveList(const QString &filename)
 {
-    _list->saveListAs(filename);
+    list_->saveListAs(filename);
 }
 
 void ArmyWidget::loadList(const QString &filename)
 {
-    _list->loadList(filename);
+    list_->loadList(filename);
 }
 
 void ArmyWidget::printList()
 {
-    _list->printList();
+    list_->printList();
 }
 
 void ArmyWidget::on_valueChange(int amount, int role)
 {
     if (role < 0)
     {
-        _points += amount;
+        points_ += amount;
 //        setWindowTitle(QString::number(_points));
     }
 }

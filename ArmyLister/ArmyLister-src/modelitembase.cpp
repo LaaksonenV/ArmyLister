@@ -6,10 +6,10 @@
 
 ModelItemBase::ModelItemBase(QWidget *parent)
     : QWidget(parent)
-    , _cost(0)
-    , _index(-1)
-    , _branches(QList<ModelItemBase *>())
-    , _initCost(0)
+    , cost_(0)
+    , index_(-1)
+    , branches_(QList<ModelItemBase *>())
+    , initCost_(0)
 {
     setFixedHeight(0);
     setSizePolicy(QSizePolicy::MinimumExpanding,
@@ -19,7 +19,7 @@ ModelItemBase::ModelItemBase(QWidget *parent)
 ModelItemBase::ModelItemBase(ModelItemBase *source, ModelItemBase *parent)
     : ModelItemBase(parent)
 {
-    setCost(source->_initCost);
+    setCost(source->initCost_);
     setFixedHeight(0);
     setSizePolicy(QSizePolicy::MinimumExpanding,
                   QSizePolicy::Fixed);
@@ -32,18 +32,18 @@ ModelItemBase::~ModelItemBase()
 
 void ModelItemBase::clone(ModelItemBase *toRoot, int i)
 {
-    for (int j = 0; j < _branches.count(); ++j)
-        _branches.at(j)->clone(toRoot, i);
+    for (int j = 0; j < branches_.count(); ++j)
+        branches_.at(j)->clone(toRoot, i);
 }
 
 QSize ModelItemBase::sizeHint() const
 {
-    return QSize(300, visibleItems()*Settings::ItemMeta(Settings::ItemHeight));
+    return QSize(300, visibleItems()*Settings::ItemMeta(Settings::eItem_Height));
 }
 
 ModelItemBase* ModelItemBase::getItem(const QString &text) const
 {
-    foreach (ModelItemBase *i, _branches)
+    foreach (ModelItemBase *i, branches_)
     {
         if (i->getText() == text)
             return i;
@@ -53,26 +53,26 @@ ModelItemBase* ModelItemBase::getItem(const QString &text) const
 
 void ModelItemBase::addItem(ModelItemBase *item)
 {
-    item->moveSteps(_branches.count(),0);
-    item->setIndex(_branches.count());
-    _branches << item;
+    item->moveSteps(branches_.count(),0);
+    item->setIndex(branches_.count());
+    branches_ << item;
     branchExpanded(-1,1);
     item->show();
 }
 
 void ModelItemBase::insertItem(ModelItemBase *item, int to)
 {
-    if (_branches.count() <= to)
+    if (branches_.count() <= to)
         addItem(item);
     else
     {
-        QPoint p = _branches.at(to)->pos();
-        for (int i = to; i < _branches.count(); ++i)
-            _branches.at(i)->setIndex(i+1);
+        QPoint p = branches_.at(to)->pos();
+        for (int i = to; i < branches_.count(); ++i)
+            branches_.at(i)->setIndex(i+1);
 
         item->move(p);
         item->setIndex(to);
-        _branches.insert(to, item);
+        branches_.insert(to, item);
         branchExpanded(to, 1);
         item->show();
     }
@@ -80,14 +80,14 @@ void ModelItemBase::insertItem(ModelItemBase *item, int to)
 
 void ModelItemBase::moveSteps(short stepY, short stepX)
 {
-    QWidget::move(pos().x()+Settings::ItemMeta(Settings::ItemHPos)*stepX,
-                  pos().y()+Settings::ItemMeta(Settings::ItemHeight)*stepY);
+    QWidget::move(pos().x()+Settings::ItemMeta(Settings::eItemHPos)*stepX,
+                  pos().y()+Settings::ItemMeta(Settings::eItem_Height)*stepY);
 }
 
 int ModelItemBase::visibleItems(bool) const
 {
     int ret = 0;
-    foreach (ModelItemBase *i, _branches)
+    foreach (ModelItemBase *i, branches_)
     {
         ret += i->visibleItems();
     }
@@ -96,19 +96,19 @@ int ModelItemBase::visibleItems(bool) const
 
 void ModelItemBase::setIndex(int i)
 {
-    _index = i;
+    index_ = i;
 }
 
 void ModelItemBase::setCost(int i)
 {
-    _cost = i;
-    _initCost = i;
+    cost_ = i;
+    initCost_ = i;
     update();
 }
 
 void ModelItemBase::loadSelection(QString &str)
 {
-    foreach (ModelItemBase *i, _branches)
+    foreach (ModelItemBase *i, branches_)
     {
         i->loadSelection(str);
     }
@@ -116,7 +116,7 @@ void ModelItemBase::loadSelection(QString &str)
 
 void ModelItemBase::saveSelection(QTextStream &str)
 {
-    foreach (ModelItemBase *i, _branches)
+    foreach (ModelItemBase *i, branches_)
     {
         i->saveSelection(str);
     }
@@ -129,7 +129,7 @@ QString ModelItemBase::getText() const
 
 int ModelItemBase::getCost() const
 {
-    return _cost;
+    return cost_;
 }
 
 int ModelItemBase::getCurrentCount() const
@@ -144,7 +144,7 @@ void ModelItemBase::passCostUp(int c, bool, int role)
 {
     if (role <= 0)
     {
-        _cost += c;
+        cost_ += c;
         update();
         emit valueChanged(c, -1);
     }
@@ -152,7 +152,7 @@ void ModelItemBase::passCostUp(int c, bool, int role)
 
 void ModelItemBase::passModelsDown(int models, bool push)
 {
-    foreach (ModelItemBase *i, _branches)
+    foreach (ModelItemBase *i, branches_)
     {
         i->passModelsDown(models, push);
     }
@@ -160,7 +160,7 @@ void ModelItemBase::passModelsDown(int models, bool push)
 
 void ModelItemBase::passSpecialDown(const QStringList &list)
 {
-    foreach (ModelItemBase *i, _branches)
+    foreach (ModelItemBase *i, branches_)
     {
         i->passSpecialDown(list);
     }
@@ -168,7 +168,7 @@ void ModelItemBase::passSpecialDown(const QStringList &list)
 
 void ModelItemBase::passCostDown(int left)
 {
-    foreach (ModelItemBase *i, _branches)
+    foreach (ModelItemBase *i, branches_)
     {
         i->passCostDown(left);
     }
@@ -183,20 +183,20 @@ void ModelItemBase::resizeEvent(QResizeEvent *e)
 {
     if (e->size().height() != e->oldSize().height())
         return;
-    foreach (ModelItemBase *i, _branches)
+    foreach (ModelItemBase *i, branches_)
         i->resize(e->size());
 }
 
 void ModelItemBase::printToStream(QTextStream &str)
 {
-    foreach (ModelItemBase *i, _branches)
+    foreach (ModelItemBase *i, branches_)
         i->printToStream(str);
 }
 
 void ModelItemBase::endCloning()
 {
     emit releaseCloneSatellite();
-    foreach (ModelItemBase *i, _branches)
+    foreach (ModelItemBase *i, branches_)
     {
         i->endCloning();
     }
@@ -208,8 +208,8 @@ void ModelItemBase::expand(bool)
 
 void ModelItemBase::branchExpanded(int item, int steps)
 {
-    setFixedHeight(height()+ steps*Settings::ItemMeta(Settings::ItemHeight));
+    setFixedHeight(height()+ steps*Settings::ItemMeta(Settings::eItem_Height));
     if (item >= 0)
-        for (int i = item+1; i < _branches.count(); ++i)
-            _branches.at(i)->moveSteps(steps);
+        for (int i = item+1; i < branches_.count(); ++i)
+            branches_.at(i)->moveSteps(steps);
 }

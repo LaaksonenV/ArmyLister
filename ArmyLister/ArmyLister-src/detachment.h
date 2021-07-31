@@ -21,8 +21,16 @@ namespace BattlefieldRole
 {
 enum
 {
-    HQ, Troop, Elite, Fast, Heavy,
-    Transport, Flyer, Fort, Lord, OverRoles
+    eBattlefieldRole_HQ
+    , eBattlefieldRole_Troop
+    , eBattlefieldRole_Elite
+    , eBattlefieldRole_Fast
+    , eBattlefieldRole_Heavy
+    , eBattlefieldRole_Transport
+    , eBattlefieldRole_Flyer
+    , eBattlefieldRole_Fort
+    , eBattlefieldRole_Lord
+    , eBattlefieldRole_OverRoles
 };
 }
 
@@ -30,7 +38,10 @@ namespace SpecialSlot
 {
 enum
 {
-    Null, LimitByMin, LimitByMax, OverSlot
+    eSpecialSlot_Null
+    , eSpecialSlot_LimitByMin
+    , eSpecialSlot_LimitByMax
+    , eSpecialSlot_OverSlot
 };
 }
 
@@ -43,7 +54,7 @@ public:
 
     enum SlotIndex // Printing slots
     {
-        Role, Min, Max, Special
+        eRole, eMin, eMax, eSpecial
     };
 
     explicit Detachment(const QStringList &args, QWidget *parent = nullptr);
@@ -74,15 +85,15 @@ public slots:
 
     
 private:
-    QStringList vq_args;
-    QList<DetachmentRoleType*> vq_slotList;
-    QList<bool> vq_availableList;
-    QList<LimitHandler*> vq_handlerList;
-    int v_points;
+    QStringList argsList_;
+    QList<DetachmentRoleType*> slotList_;
+    QList<bool> availableList_;
+    QList<LimitHandler*> handlerList_;
+    int points_;
 
-    bool v_isAvailable;
-    bool v_isSelected;
-    bool v_hasMouse;
+    bool bAvailable_;
+    bool bSelected_;
+    bool bHasMouse_;
 
 
 };

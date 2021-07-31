@@ -33,10 +33,10 @@ public slots:
     void on_Selection(int incrMin, int incrMax);
 
 private:
-    QPixmap vq_pixm;
+    QPixmap icon_;
 
-    int v_min, v_max, v_current;
-    int _effectiveMin, _effectiveMax;
+    int min_, max_, current_;
+    int effectiveMin_, effectiveMax_;
 };
 
 #endif // SELECTCOUNTER_H

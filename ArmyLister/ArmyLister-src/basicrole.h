@@ -22,11 +22,11 @@ protected:
 signals:
 
 private:
-    QString _printText;
+    QString printText_;
 
-    int _max;
-    int _current;
-    int _globalMax;
+    int max_;
+    int current_;
+    int globalMax_;
 //    int _currentMax;
 
 };

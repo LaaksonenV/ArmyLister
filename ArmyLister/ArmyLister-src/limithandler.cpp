@@ -5,8 +5,8 @@
 LimitHandler::LimitHandler(DetachmentRoleType *handleThis, QObject *parent)
     : QObject(parent)
     , _handled(handleThis)
-    , _limited(0)
-    , _limiter(0)
+    , limited_(0)
+    , limiter_(0)
 {
 
 }
@@ -14,25 +14,25 @@ LimitHandler::LimitHandler(DetachmentRoleType *handleThis, QObject *parent)
 MinHandler::MinHandler(DetachmentRoleType *handleThis, QObject *parent)
     : LimitHandler(handleThis, parent)
 {
-    _limited = _handled->getMin();
+    limited_ = _handled->getMin();
     _handled->setMin(0);
 }
 
 void MinHandler::selection(int count)
 {
-    _limiter += count;
-    _handled->setMin(_limiter*_limited);
+    limiter_ += count;
+    _handled->setMin(limiter_*limited_);
 }
 
 MaxHandler::MaxHandler(DetachmentRoleType *handleThis, QObject *parent)
     : LimitHandler(handleThis, parent)
 {
-    _limited = _handled->getMax();
+    limited_ = _handled->getMax();
     _handled->setMax(0);
 }
 
 void MaxHandler::selection(int count)
 {
-    _limiter += count;
-    _handled->setMax(_limiter*_limited);
+    limiter_ += count;
+    _handled->setMax(limiter_*limited_);
 }

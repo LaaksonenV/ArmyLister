@@ -2,32 +2,32 @@
 
 const QColor& Settings::Color(enum Colours c)
 {
-    return _colours.at(c);
+    return s_colours_.at(c);
 }
 
 const unsigned short Settings::DefaultSize(enum Numbers i)
 {
-    return _sizes.at(i);
+    return s_sizes_.at(i);
 }
 
 const unsigned short Settings::ItemMeta(enum ItemMetas i)
 {
-    return _itemmeta.at(i);
+    return s_itemmeta_.at(i);
 }
 
 const QFont& Settings::Font(enum Fonts i)
 {
-    return _fonts.at(i);
+    return s_fonts_.at(i);
 }
 
 const QString& Settings::Strng(enum Strings s)
 {
-    return _strings.at(s);
+    return s_strings_.at(s);
 }
 
 Settings::Settings()
     : QSettings("settings.ini", QSettings::IniFormat)
-    , _allowUnderStrength(false)
+    , allowUnderStrength_(false)
 {
 }
 

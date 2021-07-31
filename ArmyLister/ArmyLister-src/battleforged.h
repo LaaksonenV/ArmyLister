@@ -36,8 +36,8 @@ private:
 
 //    QList<Detachment*> qv_partsList;
 
-    QList<int> qv_currentMin;
-    QList<int> qv_currentMax;
+    QList<int> qv_currentMin_;
+    QList<int> qv_currentMax_;
 };
 
 #endif // BATTLEFORGED_H

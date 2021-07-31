@@ -25,10 +25,10 @@ private slots:
 
 private:
 
-    QLabel *_text;
-    QString _org;
+    QLabel *text_;
+    QString org_;
 
-    ListCreatorDefOrg *_creator;
+    ListCreatorDefOrg *creator_;
 };
 
 class QListWidget;
@@ -51,7 +51,7 @@ private slots:
     void on_remove();
 
 private:
-    QListWidget *_files;
+    QListWidget *files_;
 };
 
 #endif // LISTCREATORWIDGETS_H

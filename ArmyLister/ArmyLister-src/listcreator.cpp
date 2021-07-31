@@ -31,7 +31,7 @@ void ListCreator::CreateArmy(QWidget *parent)
     creator.addIncl();
     creator.addOrg();
 
-    creator._info->setText("This window is still under development.\n"
+    creator.info_->setText("This window is still under development.\n"
                            "For now, a list is made by simply writing all "
                            "neccessary info manually on its respective field.\n"
                            "\n"
@@ -138,7 +138,7 @@ void ListCreator::CreateList(QWidget *parent)
 
     creator.addIncl();
 
-    creator._info->setText("This window is still under development.\n"
+    creator.info_->setText("This window is still under development.\n"
                            "For now, a list is made by simply writing all "
                            "neccessary info manually on its respective field.\n"
                            "\n"
@@ -197,15 +197,15 @@ void ListCreator::CreateList(QWidget *parent)
 ListCreator::ListCreator(const QStringList &header,
                          QWidget *parent)
     : QDialog(parent)
-    , lay(new QGridLayout(this))
-    , _org(nullptr)
-    , _incl(nullptr)
-    , _list(new QTreeWidget(this))
-    , _lines(QList<QLineEdit*>())
-    , _info(new QTextEdit())
-    , _fileName(QString())
-    , _clipboard(nullptr)
-    , _editor(new MCLineEdit(this))
+    , lay_(new QGridLayout(this))
+    , org_(nullptr)
+    , incl_(nullptr)
+    , list_(new QTreeWidget(this))
+    , lineEdits_(QList<QLineEdit*>())
+    , info_(new QTextEdit())
+    , fileName_(QString())
+    , clipboard_(nullptr)
+    , editor_(new MCLineEdit(this))
 {
     int columns = header.size();
     QVBoxLayout *lay2 = new QVBoxLayout();
@@ -219,14 +219,14 @@ ListCreator::ListCreator(const QStringList &header,
 
     lay2->addLayout(chLay);
 
-    _list->setColumnCount(columns);
+    list_->setColumnCount(columns);
 
-    _list->setSelectionMode(QAbstractItemView::SingleSelection);
-    _list->setSelectionBehavior(QAbstractItemView::SelectRows);
-    _list->setHeaderLabels(header);
-    connect(_list, &QTreeWidget::currentItemChanged,
+    list_->setSelectionMode(QAbstractItemView::SingleSelection);
+    list_->setSelectionBehavior(QAbstractItemView::SelectRows);
+    list_->setHeaderLabels(header);
+    connect(list_, &QTreeWidget::currentItemChanged,
             this, &ListCreator::on_currentChanged);
-    lay2->addWidget(_list,2);
+    lay2->addWidget(list_,2);
 
     chLay = new QHBoxLayout();
 
@@ -293,7 +293,7 @@ ListCreator::ListCreator(const QStringList &header,
 
         if (i == 0)
         {
-            edit = _editor;
+            edit = editor_;
             lay2->addWidget(edit);
 //            setTabOrder(button, edit);
         }
@@ -307,11 +307,11 @@ ListCreator::ListCreator(const QStringList &header,
             setTabOrder(edittemp,edit);
         }
 
-        _lines << edit;
+        lineEdits_ << edit;
 
         connect(edit, &QLineEdit::textChanged,
                 this, [=](const QString &text)
-        {_list->currentItem()->setText(i,text);});
+        {list_->currentItem()->setText(i,text);});
         //chLay->addWidget(edit);
 
         if (header.at(i).endsWith("#-#"))
@@ -329,17 +329,17 @@ ListCreator::ListCreator(const QStringList &header,
             chLay->setStretch((i*2)+1,2);
 
     }
-    _editor->setEnabled(false);
-    _list->setColumnWidth(0,200);
+    editor_->setEnabled(false);
+    list_->setColumnWidth(0,200);
 
     lay2->addLayout(chLay);
 
-    lay->addLayout(lay2,1,1,3,2);
-    lay->setColumnStretch(1,2);
-    lay->setRowStretch(3,2);
+    lay_->addLayout(lay2,1,1,3,2);
+    lay_->setColumnStretch(1,2);
+    lay_->setRowStretch(3,2);
 
-    _info->setReadOnly(true);
-    lay->addWidget(_info,3,0,4,1);
+    info_->setReadOnly(true);
+    lay_->addWidget(info_,3,0,4,1);
 
     chLay = new QHBoxLayout();
 
@@ -360,23 +360,23 @@ ListCreator::ListCreator(const QStringList &header,
             this, &QDialog::reject);
     chLay->addWidget(button);
 
-    lay->addLayout(chLay,5,1);
+    lay_->addLayout(chLay,5,1);
 
-    setLayout(lay);
+    setLayout(lay_);
 
     resize(800,800);
 }
 
 ListCreator::~ListCreator()
 {
-    if (_clipboard)
-        delete _clipboard;
-    _clipboard = nullptr;
+    if (clipboard_)
+        delete clipboard_;
+    clipboard_ = nullptr;
 }
 
 void ListCreator::on_orgChange()
 {
-    QStringList org = _org->getOrg().split('#');
+    QStringList org = org_->getOrg().split('#');
     QString type = org.takeFirst();
     if (type == "40k")
         initialise40k();
@@ -432,7 +432,7 @@ void ListCreator::on_includeAdd(const QString &filename)
 
         }
         file.close();
-        _editor->addToCompleter(strings);
+        editor_->addToCompleter(strings);
     }
     else
         QMessageBox::critical(this, "File open error", "The specified file "
@@ -442,17 +442,17 @@ void ListCreator::on_includeAdd(const QString &filename)
 void ListCreator::on_loadFile()
 {
     QString file = QFileDialog::getOpenFileName
-            (this, "Choose file to load", _fileName,
+            (this, "Choose file to load", fileName_,
              "(*.txt)", nullptr, QFileDialog::DontConfirmOverwrite);
     if (!file.isEmpty())
-        _fileName = file;
+        fileName_ = file;
 }
 
 void ListCreator::initialise40k()
 {
     // Take previous items and add them to end
 
-    _list->clear();
+    list_->clear();
 
     createPreMadeItem(HQ_ROLE);
     createPreMadeItem(TROOP_ROLE);
@@ -469,7 +469,7 @@ void ListCreator::initialise40k()
 void ListCreator::initialise9A(const QStringList &org)
 {
 
-    _list->clear();
+    list_->clear();
 
     for (int i = 0; i < org.count(); ++i)
     {
@@ -484,7 +484,7 @@ QTreeWidgetItem *ListCreator::createPreMadeItem(const QString &text)
 {
     QTreeWidgetItem *newItem = new QTreeWidgetItem(preMadeItem);
     newItem->setText(0,text);
-    _list->addTopLevelItem(newItem);
+    list_->addTopLevelItem(newItem);
     return newItem;
 }
 
@@ -493,7 +493,7 @@ bool ListCreator::on_save()
     if (!checkFileName())
         return false;
 
-    QFile f(_fileName);
+    QFile f(fileName_);
     if (!f.open(QFile::Text | QFile::WriteOnly))
     {
         QMessageBox::critical(this, "File open error", "The specified file "
@@ -504,20 +504,20 @@ bool ListCreator::on_save()
     QTextStream str(&f);
     str.setCodec("utf-8");
 
-    if (_org)
+    if (org_)
     {
         str << "ORGANISATION" << '\n';
-        str << '\t' << _org->getOrg() << '\n';
+        str << '\t' << org_->getOrg() << '\n';
 
-        if (_incl)
+        if (incl_)
         {
             str << "INCLUDES" << '\n';
-            foreach (QString f, _incl->getFiles())
+            foreach (QString f, incl_->getFiles())
                 str << '\t' << f << '\n';
         }
     }
 
-    writeFileRecurse(str, _list->invisibleRootItem(), 0);
+    writeFileRecurse(str, list_->invisibleRootItem(), 0);
 
     f.close();
     return true;
@@ -553,73 +553,73 @@ void ListCreator::writeFileRecurse(QTextStream &str,
 
 QTreeWidgetItem *ListCreator::on_createNext()
 {
-    QTreeWidgetItem *currentItem = _list->currentItem();
+    QTreeWidgetItem *currentItem = list_->currentItem();
     if (!currentItem)
-        currentItem = _list->invisibleRootItem();
+        currentItem = list_->invisibleRootItem();
     QTreeWidgetItem *newItem = new QTreeWidgetItem(QStringList("New"));
     QTreeWidgetItem *parentItem = currentItem->parent();
     if (!parentItem)
-        parentItem = _list->invisibleRootItem();
+        parentItem = list_->invisibleRootItem();
 
     parentItem->addChild(newItem);
 
-    _list->setCurrentItem(newItem);
+    list_->setCurrentItem(newItem);
     return newItem;
 }
 
 QTreeWidgetItem *ListCreator::on_createUnder()
 {
-    QTreeWidgetItem *currentItem = _list->currentItem();
+    QTreeWidgetItem *currentItem = list_->currentItem();
     if (!currentItem)
-        currentItem = _list->invisibleRootItem();
+        currentItem = list_->invisibleRootItem();
     QTreeWidgetItem *newItem = new QTreeWidgetItem(QStringList("New"));
     currentItem->addChild(newItem);
 
-    _list->setCurrentItem(newItem);
+    list_->setCurrentItem(newItem);
     return newItem;
 }
 
 QTreeWidgetItem *ListCreator::on_createOver()
 {
-    QTreeWidgetItem *currentItem = _list->currentItem();
+    QTreeWidgetItem *currentItem = list_->currentItem();
     if (!currentItem)
         return on_createUnder();
     else if (currentItem->type() == preMadeItem)
         return nullptr;
     QTreeWidgetItem *newItem = new QTreeWidgetItem(QStringList("New"));
-    QTreeWidgetItem *parentItem = _list->currentItem()->parent();
+    QTreeWidgetItem *parentItem = list_->currentItem()->parent();
     if (!parentItem)
-        parentItem = _list->invisibleRootItem();
+        parentItem = list_->invisibleRootItem();
 
     parentItem->addChild(newItem);
     parentItem->removeChild(currentItem);
     newItem->addChild(currentItem);
 
-    _list->setCurrentItem(newItem);
+    list_->setCurrentItem(newItem);
     return newItem;
 }
 
 void ListCreator::on_copy()
 {
-    QTreeWidgetItem *currentItem = _list->currentItem();
+    QTreeWidgetItem *currentItem = list_->currentItem();
     if (!currentItem)
         return;
 
-    if (_clipboard)
-        delete _clipboard;
-    _clipboard = currentItem->clone();
+    if (clipboard_)
+        delete clipboard_;
+    clipboard_ = currentItem->clone();
 }
 
 void ListCreator::on_delete()
 {
-    QTreeWidgetItem *currentItem = _list->currentItem();
+    QTreeWidgetItem *currentItem = list_->currentItem();
     if (!currentItem || currentItem->type() == preMadeItem)
         return;
     QTreeWidgetItem *parentItem = currentItem->parent();
     if (!parentItem)
-        parentItem = _list->invisibleRootItem();
+        parentItem = list_->invisibleRootItem();
 
-    _list->setCurrentItem(_list->itemBelow(currentItem));
+    list_->setCurrentItem(list_->itemBelow(currentItem));
 
     parentItem->removeChild(currentItem);
     delete currentItem;
@@ -633,70 +633,70 @@ void ListCreator::on_cut()
 
 void ListCreator::on_pasteUnder()
 {
-    QTreeWidgetItem *currentItem = _list->currentItem();
-    if (!currentItem || !_clipboard)
+    QTreeWidgetItem *currentItem = list_->currentItem();
+    if (!currentItem || !clipboard_)
         return;
 
-    currentItem->addChild(_clipboard->clone());
+    currentItem->addChild(clipboard_->clone());
 }
 
 void ListCreator::on_pasteNext()
 {
-    QTreeWidgetItem *currentItem = _list->currentItem();
-    if (!currentItem || !_clipboard)
+    QTreeWidgetItem *currentItem = list_->currentItem();
+    if (!currentItem || !clipboard_)
         return;
     QTreeWidgetItem *parentItem = currentItem->parent();
     if (!parentItem)
-        parentItem = _list->invisibleRootItem();
+        parentItem = list_->invisibleRootItem();
 
-    parentItem->addChild(_clipboard->clone());
+    parentItem->addChild(clipboard_->clone());
 }
 
 void ListCreator::on_labelChange(const QString &text)
 {
-    if (!_list->currentItem())
+    if (!list_->currentItem())
         return;
-    _list->currentItem()->setText(0,text);
+    list_->currentItem()->setText(0,text);
 }
 
 void ListCreator::on_costChange(const QString &text)
 {
-    if (!_list->currentItem())
+    if (!list_->currentItem())
         return;
-    _list->currentItem()->setText(1,text);
+    list_->currentItem()->setText(1,text);
 }
 
 void ListCreator::on_currentChanged(QTreeWidgetItem *now, QTreeWidgetItem *)
 {
     if (!now)
         return;
-    for (int i = 0; i < _lines.size(); ++i)
-        _lines.at(i)->setText(now->text(i));
+    for (int i = 0; i < lineEdits_.size(); ++i)
+        lineEdits_.at(i)->setText(now->text(i));
 
-    _lines.at(0)->setFocus();
-    _lines.at(0)->selectAll();
-    _editor->setEnabled(true);
+    lineEdits_.at(0)->setFocus();
+    lineEdits_.at(0)->selectAll();
+    editor_->setEnabled(true);
 }
 
 void ListCreator::addOrg()
 {
-    _org = new ListCreatorWidgetOrg(this);
-    connect(_org, &ListCreatorWidgetOrg::finished,
+    org_ = new ListCreatorWidgetOrg(this);
+    connect(org_, &ListCreatorWidgetOrg::finished,
             this, &ListCreator::on_orgChange);
-    lay->addWidget(_org,0,0);
+    lay_->addWidget(org_,0,0);
 }
 
 void ListCreator::addIncl()
 {
-    _incl = new ListCreatorWidgetIncl(this);
-    connect(_incl, &ListCreatorWidgetIncl::fileAdded,
+    incl_ = new ListCreatorWidgetIncl(this);
+    connect(incl_, &ListCreatorWidgetIncl::fileAdded,
             this, &ListCreator::on_includeAdd);
-    lay->addWidget(_incl,1,0);
+    lay_->addWidget(incl_,1,0);
 }
 
 bool ListCreator::checkFileName()
 {
-    if (_fileName.isNull())
+    if (fileName_.isNull())
     {
         QString file = QFileDialog::getSaveFileName
                 (this, "Choose filename", QString(),
@@ -704,14 +704,14 @@ bool ListCreator::checkFileName()
         if (file.isEmpty())
             return false;
         else
-            _fileName = file;
+            fileName_ = file;
     }
     return true;
 }
 
 void ListCreator::readFile()
 {
-    QFile f(_fileName);
+    QFile f(fileName_);
     QTreeWidgetItem *currentItem = nullptr;
     if (!f.exists())
     {
@@ -731,20 +731,20 @@ void ListCreator::readFile()
     line = str.readLine();
     if (!line.isNull() && line == "ORGANISATION")
     {
-        if (_org)
-            _org->setOrg(str.readLine().trimmed());
+        if (org_)
+            org_->setOrg(str.readLine().trimmed());
         line = str.readLine();
 
     }
 
     if (!line.isNull() && line == "INCLUDES")
     {
-        if (_incl)
+        if (incl_)
         {
             line = str.readLine();
             while (!line.isNull() && line.startsWith('\t'))
             {
-                _incl->addFile(line.trimmed());
+                incl_->addFile(line.trimmed());
                 line = str.readLine();
             }
         }
@@ -767,7 +767,7 @@ void ListCreator::readFile()
         newItem = new QTreeWidgetItem(textFromFile(line));
 
         if (count == 0)
-            _list->addTopLevelItem(newItem);
+            list_->addTopLevelItem(newItem);
 
         else
         {

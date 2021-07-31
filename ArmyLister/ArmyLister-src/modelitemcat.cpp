@@ -24,7 +24,7 @@ void ModelItemCategory::passCostUp(int c, bool, int role)
     else
     {
         ModelItemBase::passCostUp(c);
-        emit valueChanged(c, _index);
+        emit valueChanged(c, index_);
     }
 }
 
@@ -36,14 +36,14 @@ bool ModelItemCategory::branchSelected(int check, int role, int, int)
         if (role)
             emit itemSelected(1, role-1);
         else
-            emit itemSelected(1, _index);
+            emit itemSelected(1, index_);
     }
     else
     {
         if (role)
             emit itemSelected(-1, role-1);
         else
-            emit itemSelected(-1, _index);
+            emit itemSelected(-1, index_);
     }
 
     return true;

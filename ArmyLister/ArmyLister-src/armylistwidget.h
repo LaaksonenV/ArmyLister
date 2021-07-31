@@ -31,10 +31,10 @@ signals:
     void valueChanged(int value, int role);
 
 private:
-    ModelItemBase *_topItem;
+    ModelItemBase *topItem_;
 
-    QString _name;
-    int _points;
+    QString name_;
+    int points_;
 };
 
 #endif // ARMYLISTWIDGET_H

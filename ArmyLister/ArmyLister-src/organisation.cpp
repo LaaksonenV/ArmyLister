@@ -6,7 +6,7 @@
 
 Organisation::Organisation(QWidget *parent)
     : QWidget(parent)
-    , _roles(QList<OrganisationRole*>())
+    , roles_(QList<OrganisationRole*>())
 {
 //    setMinimumSize(100,200);
     setSizePolicy(QSizePolicy::Fixed,QSizePolicy::Fixed);
@@ -17,7 +17,7 @@ Organisation::~Organisation(){}
 
 QSize Organisation::sizeHint() const
 {
-    if (!_roles.count())
+    if (!roles_.count())
         return QSize();
     QSize ret(OrganisationRole::fixedWidth(),
               OrganisationRole::fixedHeight());
@@ -44,21 +44,21 @@ void Organisation::setLists(const QString &detachments, int limit)
 
 int Organisation::getCount() const
 {
-    return _roles.count();
+    return roles_.count();
 }
 
 
 void Organisation::onRoleSelection(int amount, int role)
 {
     if (role+1 >= getCount())
-        foreach (OrganisationRole *r, _roles)
+        foreach (OrganisationRole *r, roles_)
         {
             r->roleSelected(role, amount);
         }
     else if (role >= 0)
-        _roles.at(role+1)->roleSelected(role, amount);
+        roles_.at(role+1)->roleSelected(role, amount);
     else
-        _roles.first()->roleSelected(-1, amount);
+        roles_.first()->roleSelected(-1, amount);
 }
 
 void Organisation::addPart(const QStringList &args, int limit)
@@ -66,7 +66,7 @@ void Organisation::addPart(const QStringList &args, int limit)
     BasicRole *role = new BasicRole(args, this);
 
     role->setGlobalMax(limit);
-    _roles << role;
+    roles_ << role;
 
     insertPart(role);
 }

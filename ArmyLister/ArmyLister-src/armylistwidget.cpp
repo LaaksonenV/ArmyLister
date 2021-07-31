@@ -14,19 +14,19 @@
 
 ArmyListWidget::ArmyListWidget(QWidget *parent)
     : QScrollArea(parent)
-    , _topItem(new ModelItemBase(this))
-    , _name(QString())
-    , _points(0)
+    , topItem_(new ModelItemBase(this))
+    , name_(QString())
+    , points_(0)
 {
-    setWidget(_topItem);
+    setWidget(topItem_);
     setWidgetResizable(true);
     setMinimumWidth(500);
     setSizePolicy(QSizePolicy::Expanding,
                   QSizePolicy::MinimumExpanding);
 
-    connect(_topItem, &ModelItemBase::itemSelected,
+    connect(topItem_, &ModelItemBase::itemSelected,
             this, &ArmyListWidget::roleSelected);
-    connect(_topItem, &ModelItemBase::valueChanged,
+    connect(topItem_, &ModelItemBase::valueChanged,
             this, &ArmyListWidget::on_valueChange);
 
 }
@@ -41,22 +41,22 @@ bool ArmyListWidget::addArmyFile(const QString &fileName)
 {
       // Reusable class, move to members
     ItemFactory fctr;
-    if (!fctr.addArmyFile(_topItem, fileName))
+    if (!fctr.addArmyFile(topItem_, fileName))
         return false;
     QFileInfo forName;
     forName.setFile(fileName);
-    _name = forName.completeBaseName();
+    name_ = forName.completeBaseName();
     adjustSize();
     return true;
 }
 
 void ArmyListWidget::printList() const
 {
-    if (!_topItem)
+    if (!topItem_)
         return;
-    QString filename = _name;
+    QString filename = name_;
     filename.append("-");
-    filename.append(QString::number(_points));
+    filename.append(QString::number(points_));
     filename.append(".txt");
     QFile file(filename);
     if (!file.open(QFile::WriteOnly | QFile::Text))
@@ -64,31 +64,31 @@ void ArmyListWidget::printList() const
 
     QTextStream str(&file);
 
-    int count = _name.size()+5;
-    str.setFieldWidth(int(Settings::ItemMeta(Settings::PlainTextWidth)-count)
+    int count = name_.size()+5;
+    str.setFieldWidth(int(Settings::ItemMeta(Settings::eItem_PlainTextWidth)-count)
                       /2);
-    str << _name;
+    str << name_;
     str.setFieldWidth(0);
-    str << " " << _points;
+    str << " " << points_;
     endl(str);
 
-    _topItem->printToStream(str);
+    topItem_->printToStream(str);
 
     file.close();
 }
 
 void ArmyListWidget::saveList() const
 {
-    QString filename = _name;
+    QString filename = name_;
     filename.append("-");
-    filename.append(QString::number(_points));
+    filename.append(QString::number(points_));
     filename.append(".alst");
     saveListAs(filename);
 }
 
 void ArmyListWidget::saveListAs(QString filename) const
 {
-    if (!_topItem)
+    if (!topItem_)
         return;
 
     QFile file(filename);
@@ -96,12 +96,12 @@ void ArmyListWidget::saveListAs(QString filename) const
         return;
     QTextStream str(&file);
 
-    str << _name;
+    str << name_;
     endl(str);
     str << QFileInfo(file).lastModified().toString();
     endl(str);
 
-    _topItem->saveSelection(str);
+    topItem_->saveSelection(str);
 
     file.close();
 }
@@ -122,12 +122,12 @@ void ArmyListWidget::loadList(const QString &filename)
     QString listfile = line + ".txt";
 
     ItemFactory fctr;
-    if (!fctr.addArmyFile(_topItem, listfile))
+    if (!fctr.addArmyFile(topItem_, listfile))
         return;
 
     adjustSize();
 
-    _name = line;
+    name_ = line;
 
     line = str.readLine();
 
@@ -151,7 +151,7 @@ void ArmyListWidget::loadList(const QString &filename)
     line = str.readLine();
 
     if (!line.isEmpty())
-        _topItem->loadSelection(line);
+        topItem_->loadSelection(line);
 
     file.close();
 }
@@ -159,7 +159,7 @@ void ArmyListWidget::loadList(const QString &filename)
 void ArmyListWidget::on_valueChange(int i, int r)
 {
     if (r<0)
-        _points += i;
+        points_ += i;
 
     emit valueChanged(i,r);
 }

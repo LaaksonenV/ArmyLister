@@ -92,21 +92,21 @@ private:
     void keyPressEvent(QKeyEvent *e);
 
 private:
-    QGridLayout *lay;
+    QGridLayout *lay_;
 
-    ListCreatorWidgetOrg *_org;
-    ListCreatorWidgetIncl *_incl;
+    ListCreatorWidgetOrg *org_;
+    ListCreatorWidgetIncl *incl_;
 
-    QTreeWidget *_list;
-    QList<QLineEdit *> _lines;
-    QTextEdit *_info;
-    QStringList _included;
+    QTreeWidget *list_;
+    QList<QLineEdit *> lineEdits_;
+    QTextEdit *info_;
+    QStringList included_;
 
-    QString _fileName;
+    QString fileName_;
 
-    QTreeWidgetItem *_clipboard;
+    QTreeWidgetItem *clipboard_;
 
-    MCLineEdit *_editor;
+    MCLineEdit *editor_;
     };
 
 #endif // LISTCREATOR_H

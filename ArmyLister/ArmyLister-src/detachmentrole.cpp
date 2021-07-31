@@ -6,12 +6,12 @@
 
 DetachmentRoleType::DetachmentRoleType(QPixmap icon, QWidget *parent)
     : QWidget(parent)
-    , vq_pixm(icon)
-    , v_min(0)
-    , v_max(-1)
-    , v_current(0)
-    , _effectiveMin(0)
-    , _effectiveMax(0)
+    , icon_(icon)
+    , min_(0)
+    , max_(-1)
+    , current_(0)
+    , effectiveMin_(0)
+    , effectiveMax_(0)
 {
     setFixedSize(50,50);
 }
@@ -24,41 +24,41 @@ void DetachmentRoleType::setLimits(int min, int max)
 
 void DetachmentRoleType::setMax(int max)
 {
-    v_max = max;
-    _effectiveMax = v_max;
+    max_ = max;
+    effectiveMax_ = max_;
     emit betweenLimits(isBetweenLimits());
     update();
 }
 
 void DetachmentRoleType::setMin(int min)
 {
-    v_min = min;
-    _effectiveMin = v_min;
+    min_ = min;
+    effectiveMin_ = min_;
     emit betweenLimits(isBetweenLimits());
     update();
 }
 
 int DetachmentRoleType::getMin()
 {
-    return v_min;
+    return min_;
 }
 
 int DetachmentRoleType::getMax()
 {
-    return v_max;
+    return max_;
 }
 
 bool DetachmentRoleType::isBetweenLimits()
 {
-    if (v_current < _effectiveMin
-            || (v_max >= 0 && v_current > _effectiveMax))
+    if (current_ < effectiveMin_
+            || (max_ >= 0 && current_ > effectiveMax_))
         return false;
     return true;
 }
 
 void DetachmentRoleType::selected(int amount)
 {
-    v_current += amount;
+    current_ += amount;
     update();
 }
 
@@ -66,7 +66,7 @@ void DetachmentRoleType::paintEvent(QPaintEvent *)
 {
     QPainter p(this);
     QRect r(QPoint(), size());
-    if (_effectiveMax >= 0 && v_current > _effectiveMax)
+    if (effectiveMax_ >= 0 && current_ > effectiveMax_)
         p.fillRect(r, "#ff8888");
     else if (isBetweenLimits())
         p.fillRect(r, "#88ff55");
@@ -74,21 +74,21 @@ void DetachmentRoleType::paintEvent(QPaintEvent *)
     else
     {
         p.fillRect(r,Qt::white);
-        if (_effectiveMin && v_current < _effectiveMin)
+        if (effectiveMin_ && current_ < effectiveMin_)
         {
-            r.setBottom(r.height()-(r.height() * v_current / _effectiveMin));
+            r.setBottom(r.height()-(r.height() * current_ / effectiveMin_));
             p.fillRect(r,Qt::lightGray);
             
         }
     }
-    p.drawPixmap(QRect(QPoint(), size()), vq_pixm);
+    p.drawPixmap(QRect(QPoint(), size()), icon_);
     
 }
 
 void DetachmentRoleType::on_Selection(int incrMin, int incrMax)
 {  
-    _effectiveMin += incrMin;
-    _effectiveMax += incrMax;
+    effectiveMin_ += incrMin;
+    effectiveMax_ += incrMax;
     emit betweenLimits(isBetweenLimits());
     update();
 }
