@@ -7,43 +7,29 @@ class ModelItemSlot : public ModelItemBasic
 {
     Q_OBJECT
 public:
-    ModelItemSlot(ModelItemBase *parent);
+    ModelItemSlot(ModelItemBase *parent, const QList<int> &slot);
+    ModelItemSlot(ModelItemSlot *source, ModelItemBase *parent);
     virtual ~ModelItemSlot();
-
-    virtual QSize sizeHint();
 
     virtual void clone(ModelItemBase *toRoot);
 
-    virtual void addItem(ModelItemBase *item);
+    virtual void setText(const QString &text, int = -1);
 
-    virtual void setTrunk(ModelItemBase *item);
+    virtual void updateText();
 
     virtual QString getText() const;
 
-    virtual int getCurrentCount() const;
-
-    virtual void passSpecialUp(const QStringList & list, bool check);
-
-    virtual void passCostUp(int c, bool forall = false, int role = 0);
-
     virtual int getCost() const;
-
-    virtual void expand(bool expanse);
 
     virtual bool branchSelected(int check, int role, int ind, int = 0);
 
-    virtual void toggleExpand();
+    virtual void toggleCheck(int = -1);
 
 private:
 
-//    int _slot;
+    QList<int> slots_;
     int currentIndex_;
-//    QString _currentText;
-
-    bool bExpanded_;
-
-    ModelItemBase *trunk_;
-
+    QString defaultText_;
 };
 
 #endif // MODELITEMSLOT_H

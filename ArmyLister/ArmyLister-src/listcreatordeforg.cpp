@@ -58,16 +58,16 @@ ListCreatorDefOrg::ListCreatorDefOrg(QWidget *parent)
     mainlay->addWidget(typebut,3,0);
 
 
-    9AOrg_ = new QGridLayout(this);
+    n9AOrg_ = new QGridLayout(this);
 
     QLabel *lab = new QLabel("Characters", this);
-    9AOrg_->addWidget(lab,0,0,Qt::AlignRight);
+    n9AOrg_->addWidget(lab,0,0,Qt::AlignRight);
 
     QComboBox *drop = new QComboBox(this);
     types_ << drop;
     drop->addItems(items);
     drop->setCurrentIndex(0);
-    9AOrg_->addWidget(drop,0,1);
+    n9AOrg_->addWidget(drop,0,1);
 
     QSpinBox *value = new QSpinBox(this);
     values_ << value;
@@ -75,17 +75,17 @@ ListCreatorDefOrg::ListCreatorDefOrg(QWidget *parent)
     value->setSuffix("%");
     value->setValue(40);
     value->setSingleStep(5);
-    9AOrg_->addWidget(value,0,2);
+    n9AOrg_->addWidget(value,0,2);
 
 
     lab = new QLabel("Core", this);
-    9AOrg_->addWidget(lab,1,0,Qt::AlignRight);
+    n9AOrg_->addWidget(lab,1,0,Qt::AlignRight);
 
     drop = new QComboBox(this);
     types_ << drop;
     drop->addItems(items);
     drop->setCurrentIndex(1);
-    9AOrg_->addWidget(drop,1,1);
+    n9AOrg_->addWidget(drop,1,1);
 
     value = new QSpinBox(this);
     values_ << value;
@@ -93,17 +93,17 @@ ListCreatorDefOrg::ListCreatorDefOrg(QWidget *parent)
     value->setSuffix("%");
     value->setValue(20);
     value->setSingleStep(5);
-    9AOrg_->addWidget(value,1,2);
+    n9AOrg_->addWidget(value,1,2);
 
 
     lab = new QLabel("Special", this);
-    9AOrg_->addWidget(lab,2,0,Qt::AlignRight);
+    n9AOrg_->addWidget(lab,2,0,Qt::AlignRight);
 
     drop = new QComboBox(this);
     types_ << drop;
     drop->addItems(items);
     drop->setCurrentIndex(2);
-    9AOrg_->addWidget(drop,2,1);
+    n9AOrg_->addWidget(drop,2,1);
 
     value = new QSpinBox(this);
     values_ << value;
@@ -111,18 +111,18 @@ ListCreatorDefOrg::ListCreatorDefOrg(QWidget *parent)
     value->setSuffix("%");
     value->setValue(0);
     value->setSingleStep(5);
-    9AOrg_->addWidget(value,2,2);
+    n9AOrg_->addWidget(value,2,2);
 
 
     QLineEdit *txt = new QLineEdit("Army-Specific", this);
     names_ << txt;
-    9AOrg_->addWidget(txt,3,0);
+    n9AOrg_->addWidget(txt,3,0);
 
     drop = new QComboBox(this);
     types_ << drop;
     drop->addItems(items);
     drop->setCurrentIndex(0);
-    9AOrg_->addWidget(drop,3,1);
+    n9AOrg_->addWidget(drop,3,1);
 
     value = new QSpinBox(this);
     values_ << value;
@@ -130,13 +130,13 @@ ListCreatorDefOrg::ListCreatorDefOrg(QWidget *parent)
     value->setSuffix("%");
     value->setValue(0);
     value->setSingleStep(5);
-    9AOrg_->addWidget(value,3,2);
+    n9AOrg_->addWidget(value,3,2);
 
 
     add9AOrg_ = new QPushButton("+", this);
     connect(add9AOrg_, &QPushButton::clicked,
             this, &ListCreatorDefOrg::on_add9AAS);
-    9AOrg_->addWidget(add9AOrg_,4,0);
+    n9AOrg_->addWidget(add9AOrg_,4,0);
 
 
     mainlay->addLayout(n9AOrg_,3,1,1,2);
@@ -274,13 +274,13 @@ void ListCreatorDefOrg::on_add9AAS()
 
     QLineEdit *txt = new QLineEdit("Army-Specific", this);
     names_ << txt;
-    9AOrg_->addWidget(txt,row,0);
+    n9AOrg_->addWidget(txt,row,0);
 
     QComboBox *drop = new QComboBox(this);
     types_ << drop;
     drop->addItems(items);
     drop->setCurrentIndex(0);
-    9AOrg_->addWidget(drop,row,1);
+    n9AOrg_->addWidget(drop,row,1);
 
     QSpinBox *value = new QSpinBox(this);
     values_ << value;
@@ -288,7 +288,7 @@ void ListCreatorDefOrg::on_add9AAS()
     value->setSuffix("%");
     value->setValue(0);
     value->setSingleStep(5);
-    9AOrg_->addWidget(value,row,2);
+    n9AOrg_->addWidget(value,row,2);
 
-    9AOrg_->addWidget(add9AOrg_,row+1,0);
+    n9AOrg_->addWidget(add9AOrg_,row+1,0);
 }

@@ -17,7 +17,7 @@ public:
 
     virtual void clone(ModelItemBase * toRoot = nullptr, int i = -1);
 
-    virtual void setCost(int i);
+    virtual void setCost(int i, int = 0);
 
     void setMultiCost(int base, int special);
 

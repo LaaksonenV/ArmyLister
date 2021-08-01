@@ -108,21 +108,27 @@ private:
                      ModelItemBase *trunk);
     void compileItems(const TempTreeModelItem *tempknot,
                       ModelItemBase *trunk,
-                      const QMap<QString, int> &slotmap,
                       const UnitContainer *ucont,
                       ItemSatellite *sharedSat = nullptr);
     void compileList(const TempTreeModelItem *tempknot,
                      ModelItemBase *trunk,
-                     const QMap<QString, int> &slotmap,
                      const UnitContainer *ucont,
                      ItemSatellite *sharedSat = nullptr);
     void compileSelection(const TempTreeModelItem *tempknot,
                           ModelItemBase *trunk,
-                          const UnitContainer *ucont);
+                          const UnitContainer *ucont,
+                          ItemSatellite *sharedSat = nullptr);
+    void compileSlots(const TempTreeModelItem *tempknot,
+                      ModelItemBase *trunk,
+                      const QMap<QString, int> &slotmap,
+                      const QStringList &defaults,
+                      const UnitContainer *ucont,
+                      ItemSatellite *sharedSat = nullptr);
     ItemSatellite *checkControls(const TempTreeModelItem *tempknot,
                                          ModelItemBasic *knot);
-    void checkCost(ModelItemBasic *knot, const QString &text,
-                            UnitContainer *&ucont = nullptr);
+    const UnitContainer *checkCost(ModelItemBasic *knot, const QString &text,
+                             int &models, const UnitContainer *ucont = nullptr,
+                             int slot = 0);
 
     /*!
      * \brief parseFile Function for handling included files
@@ -168,7 +174,7 @@ private:
     void clear();
 private:
     QList<PointContainer*> pointList_;
-    QMap<QString, UnitContainer> unitMap_;
+    QMap<QString, UnitContainer *> unitMap_;
     QMap<QString, QStringList> listMap_;
     QMap<QString, ItemSatellite*> globalLimiterMap_;
     QMap<QString, int> nameMap_;

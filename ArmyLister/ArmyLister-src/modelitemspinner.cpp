@@ -40,10 +40,10 @@ void ModelItemSpinner::clone(ModelItemBase*toRoot, int i)
 {
     ModelItemSpinner *clone = new ModelItemSpinner(this, trunk_);
     toRoot->insertItem(clone,i);
-    cloning(clone,i);
+    cloning(clone);
 }
 
-void ModelItemSpinner::setCost(int i)
+void ModelItemSpinner::setCost(int i, int)
 {
     setMultiCost(i,0);
 }

@@ -6,14 +6,14 @@
 
 struct SelectionSlot
 {
-    short _index;
-    QString _defaultText;
-    int _defaultCost;
+    short index_;
+    QString defaultText_;
+    int defaultCost_;
 
     SelectionSlot()
-        : _index(-1)
-        , _defaultText(QString(""))
-        , _defaultCost(0)
+        : index_(-1)
+        , defaultText_(QString(""))
+        , defaultCost_(0)
     {}
 };
 

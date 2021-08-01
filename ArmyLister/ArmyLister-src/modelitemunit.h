@@ -3,6 +3,8 @@
 
 #include "modelitemspinner.h"
 
+class QParallelAnimationGroup;
+
 class ModelItemUnit : public ModelItemSpinner
 {
     Q_OBJECT
@@ -12,6 +14,8 @@ public:
     ModelItemUnit(ModelItemUnit *source, ModelItemBase *parent);
 
     virtual ~ModelItemUnit();
+
+    void setUpCloneAnimation();
 
     virtual void clone(ModelItemBase * = nullptr, int = -1);
 
@@ -42,9 +46,13 @@ public:
 
 protected:
 
+    virtual bool toggleSelected(int change, int slot);
+
     virtual void mousePressEvent(QMouseEvent*e);
 
-    virtual void mouseDoubleClickEvent(QMouseEvent *e);
+    virtual void mouseReleaseEvent(QMouseEvent *e);
+
+    void cloneEvent();
 
     virtual void connectToSatellite(ItemSatellite *sat);
 
@@ -53,7 +61,7 @@ signals:
     void itemCloned(bool = true, int = 0);
 
 private:
-    QTimer *clickClock_;
+    QParallelAnimationGroup *cloneAnimation_;
 
     int cloned_;
 

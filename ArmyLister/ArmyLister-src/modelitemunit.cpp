@@ -2,40 +2,42 @@
 
 #include <QSpinBox>
 #include <QMouseEvent>
-#include <QTimer>
-#include <QApplication>
+#include <QPropertyAnimation>
+#include <QParallelAnimationGroup>
+#include <QLabel>
 
 #include "settings.h"
 #include "itemsatellite.h"
 
 ModelItemUnit::ModelItemUnit(ModelItemBase *parent)
     : ModelItemSpinner(parent)
-    , clickClock_(new QTimer(this))
     , cloned_(0)
     , unitCountsAs_(0)
+    , cloneAnimation_(nullptr)
 {
-    clickClock_->setSingleShot(true);
-    clickClock_->setInterval(QApplication::doubleClickInterval());
-    connect(clickClock_, &QTimer::timeout,
-            this, &ModelItemBasic::toggleCheck);
+    setUpCloneAnimation();
 }
 
 ModelItemUnit::ModelItemUnit(ModelItemUnit *source, ModelItemBase *parent)
     : ModelItemSpinner(source, parent)
-    , clickClock_(new QTimer(this))
     , cloned_(0)
     , unitCountsAs_(0)
+    , cloneAnimation_(nullptr)
 {
-    clickClock_->setSingleShot(true);
-    clickClock_->setInterval(QApplication::doubleClickInterval());
-    connect(clickClock_, &QTimer::timeout,
-            this, &ModelItemBasic::toggleCheck);
+    setUpCloneAnimation();
     setUnitCountsAs(source->unitCountsAs_-1);
 
 }
 
 ModelItemUnit::~ModelItemUnit()
 {}
+
+void ModelItemUnit::setUpCloneAnimation()
+{
+    connect(cloneAnimation_, &QParallelAnimationGroup::finished,
+            this, &ModelItemUnit::cloneEvent);
+
+}
 
 void ModelItemUnit::clone(ModelItemBase*, int)
 {
@@ -136,26 +138,76 @@ void ModelItemUnit::printToStream(QTextStream &str)
     }
 }
 
+bool ModelItemUnit::toggleSelected(int change, int slot)
+{
+    return trunk_->branchSelected(change, unitCountsAs_, index_, slot);
+}
+
 void ModelItemUnit::mousePressEvent(QMouseEvent *e)
 {
     if (e->button() == Qt::LeftButton)
     {
-        clickClock_->start();
+
+        if (!checkLimit(eNotClonable))
+        {
+            cloneAnimation_ = new QParallelAnimationGroup(this);
+
+            QPropertyAnimation *grow;
+
+            if (height() <= Settings::ItemMeta(Settings::eItem_Height))
+            {
+            grow = new QPropertyAnimation(this, "height");
+            grow->setDuration(Settings::ItemMeta(Settings::eItem_MouseHoldTime));
+            grow->setStartValue(Settings::ItemMeta(Settings::eItem_Height));
+            grow->setEndValue(2*Settings::ItemMeta(Settings::eItem_Height));
+            cloneAnimation_->addAnimation(grow);
+            }
+
+            grow = new QPropertyAnimation(this, "itemHeight");
+            grow->setDuration(Settings::ItemMeta(Settings::eItem_MouseHoldTime));
+            grow->setKeyValueAt(0,Settings::ItemMeta(Settings::eItem_Height));
+            grow->setKeyValueAt(0.95,2*Settings::ItemMeta(Settings::eItem_Height));
+            grow->setKeyValueAt(1,Settings::ItemMeta(Settings::eItem_Height));
+            cloneAnimation_->addAnimation(grow);
+
+            QLabel *ghost = new QLabel(title_);
+            grow = new QPropertyAnimation(ghost, "pos");
+            grow->setDuration(Settings::ItemMeta(Settings::eItem_MouseHoldTime));
+            grow->setStartValue(ghost->pos());
+            grow->setEndValue(ghost->pos()+QPoint(0,Settings::ItemMeta(Settings::eItem_Height)));
+            cloneAnimation_->addAnimation(grow);
+
+            grow = new QPropertyAnimation(ghost, "windowOpacity");
+            grow->setDuration(Settings::ItemMeta(Settings::eItem_MouseHoldTime));
+            grow->setKeyValueAt(0,0.0);
+            grow->setKeyValueAt(0.9,0.6);
+            grow->setKeyValueAt(1,1.0);
+            cloneAnimation_->addAnimation(grow);
+
+            cloneAnimation_->start(QAbstractAnimation::DeleteWhenStopped);
+        }
 
         e->accept();
     }
 }
 
-void ModelItemUnit::mouseDoubleClickEvent(QMouseEvent *e)
+void ModelItemUnit::mouseReleaseEvent(QMouseEvent *e)
 {
-    if (!checkLimit(eNotClonable) &&
-            e->button() == Qt::LeftButton)
+    if (e->button() == Qt::LeftButton)
     {
-        clickClock_->stop();
-        clone();
+        if (cloneAnimation_)
+            cloneAnimation_->stop();
+
+        if (!checkLimit(eSelectionLimit))
+            toggleCheck();
 
         e->accept();
     }
+}
+
+void ModelItemUnit::cloneEvent()
+{
+    clone();
 }
 
 void ModelItemUnit::connectToSatellite(ItemSatellite *sat)

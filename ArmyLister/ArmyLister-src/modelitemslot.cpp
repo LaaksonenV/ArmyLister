@@ -2,45 +2,45 @@
 
 #include "settings.h"
 
-ModelItemSlot::ModelItemSlot(ModelItemBase *parent)
+ModelItemSlot::ModelItemSlot(ModelItemBase *parent, const QList<int> &slot)
     : ModelItemBasic(parent)
-//    , _slot(slot)
+    , slots_(slot)
     , currentIndex_(-1)
-//    , _currentText(QString())
-    , bExpanded_(false)
-    , trunk_(parent)
+    , defaultText_(QString())
 {
     show();
+}
+
+ModelItemSlot::ModelItemSlot(ModelItemSlot *source, ModelItemBase *parent)
+    : ModelItemBasic(parent)
+    , slots_(source->slots_)
+    , currentIndex_(-1)
+    , defaultText_(source->defaultText_)
+{
+    show();
+    updateText();
 }
 
 ModelItemSlot::~ModelItemSlot()
 {}
 
-void ModelItemSlot::clone(ModelItemBase *toRoot, int)
+void ModelItemSlot::clone(ModelItemBase *toRoot)
 {
-    ModelItemBase::clone(toRoot, _slot);
+    ModelItemSlot *clone = new ModelItemSlot(this, toRoot);
+    toRoot->addItem(clone);
+    cloning(clone);
 }
 
-QSize ModelItemSlot::sizeHint()
+void ModelItemSlot::setText(const QString &text, int)
 {
-    if (bExpanded_)
-        return QSize(300,
-                     (visibleItems())*Settings::ItemMeta(Settings::eItem_Height));
-    return QSize(300, 0);
+    defaultText_ = text;
+    updateText();
 }
 
-void ModelItemSlot::addItem(ModelItemBase *item)
+void ModelItemSlot::updateText()
 {
-    ModelItemBase::addItem(item);
-
-    if (branches_.count() == 1)
-        item->toggleCheck();
-}
-
-void ModelItemSlot::setTrunk(ModelItemBase *item)
-{
-    QWidget::setParent(item);
-    trunk_ = item;
+    ModelItemBasic::setText(QString("Replace " + defaultText_
+                                    + " with: " + getText()));
 }
 
 QString ModelItemSlot::getText() const
@@ -48,20 +48,6 @@ QString ModelItemSlot::getText() const
     if (currentIndex_ < 0)
         return QString();
     return branches_.at(currentIndex_)->getText();
-}
-int ModelItemSlot::getCurrentCount() const
-{
-    return trunk_->getCurrentCount();
-}
-
-void ModelItemSlot::passSpecialUp(const QStringList &list, bool check)
-{
-    trunk_->passSpecialUp(list, check);
-}
-
-void ModelItemSlot::passCostUp(int c, bool forall, int role)
-{
-    trunk_->passCostUp(c, forall, role);
 }
 
 int ModelItemSlot::getCost() const
@@ -71,81 +57,57 @@ int ModelItemSlot::getCost() const
     return branches_.at(currentIndex_)->getCost();
 }
 
-void ModelItemSlot::expand(bool expanse)
-{
-    int toMove = visibleItems();
-
-    if (!expanse)
-    {
-        setFixedHeight(0);
-        toMove = -toMove;
-    }
-    else
-        setFixedHeight(Settings::ItemMeta(Settings::eItem_Height) * (toMove));
-
-     trunk_->branchExpanded(index_, toMove);
-}
-
 bool ModelItemSlot::branchSelected(int check, int role, int ind, int)
 {
 
-    if (check > 0) // A branch is toggled to selected
+    if (check > 0)
     {
-        // This case is only reached, if current index is changed
-        // programmatically, meaning other than default was selected, causing
-        // default (index 0) to be toggled
-        if (currentIndex_ == ind)
-            return trunk_->branchSelected(check, role, _slot);
-
-        // change current index to new one
+        // change current index to new one, so when selection permit is asked
+        // right info will be transferred
         int oldIndex = currentIndex_;
         currentIndex_ = ind;
 
         // if trunk disallows change, reset changes and return
-        if (!trunk_->branchSelected(check, role, _slot))
+        if (!ModelItemBasic::branchSelected(check, role, index_, slots_.at(0)))
         {
             currentIndex_ = oldIndex;
             return false;
         }
 
         // if a branch was previously selected, it must be deselected
-        // note, currentindex != oldindex
         if (oldIndex >= 0)
             branches_.at(oldIndex)->toggleCheck();
 
     }
-    else // A branch is toggled to deselected
+    else
     {
         // if current index is same as branch's, toggle was manual
         if (currentIndex_ == ind)
         {
-            // the first choice is default, so it may not be deselected
-            // manually
-            if (currentIndex_ == 0)
-                return false;
-
-            // if trunk for some reasons disallows deselection, return
-            if (!trunk_->branchSelected(check, _slot, role))
-                return false;
-
-            // other deselections will cause the default to be selected
-            currentIndex_ = 0;
-            branches_.at(currentIndex_)->toggleCheck();
+            // if no selections are made, slot is inactive
+            toggleCheck();
+            currentIndex_ = -1;
         }
         // otherwise deselection was the effect of selecting other branch,
         // so nothing else should be done, just pass the effect on
         else
-            return trunk_->branchSelected(check, _slot, role);
+            return trunk_->branchSelected(check, role, index_, -1);
     }
+    updateText();
     return true;
 
 }
 
-void ModelItemSlot::toggleExpand()
+void ModelItemSlot::toggleCheck(int)
 {
-    bExpanded_ = !bExpanded_;
-    if (bExpanded_)
-        expand(true);
-    else
-        expand(false);
+    // slot selectable only if selection is made
+    if (currentIndex_ <= 0)
+        return
+
+    // toggle with first slot
+    ModelItemBasic::toggleCheck(slots_.at(0));
+
+    // inform trunk of other slots used
+    for (int i = 1; i < slots_.count(); ++i)
+        trunk_->branchSelected(int(checked_), 0, index_, slots_.at(i));
 }

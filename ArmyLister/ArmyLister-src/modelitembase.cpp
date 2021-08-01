@@ -99,7 +99,7 @@ void ModelItemBase::setIndex(int i)
     index_ = i;
 }
 
-void ModelItemBase::setCost(int i)
+void ModelItemBase::setCost(int i, int)
 {
     cost_ = i;
     initCost_ = i;

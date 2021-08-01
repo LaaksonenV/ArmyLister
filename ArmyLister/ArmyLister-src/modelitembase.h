@@ -97,7 +97,7 @@ public:
      * \brief setCost simple setter
      * \param i new cost
      */
-    virtual void setCost(int i);
+    virtual void setCost(int i, int = 0);
 
     virtual void loadSelection(QString &str);
 
@@ -262,7 +262,7 @@ public slots:
      * \brief toggleCheck is called when the items selection status
      * should be toggled
      */
-    virtual void toggleCheck(){}
+    virtual void toggleCheck(int = -1){}
 
     /*!
      * \brief toggleExpand is called when the item should be expanded

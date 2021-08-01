@@ -16,11 +16,11 @@
 
 ItemFactory::ItemFactory()
     : pointList_(QList<PointContainer*>())
-    , unitMap_(QMap<QString, UnitContainer>())
+    , unitMap_(QMap<QString, UnitContainer*>())
     , listMap_(QMap<QString, QStringList>())
     , globalLimiterMap_(QMap<QString, ItemSatellite*>())
     , nameMap_(QMap<QString, int>())
-    , retinueMap_(QMap<QString, TempTreeModelItem*>)
+    , retinueMap_(QMap<QString, TempTreeModelItem*>())
 {
 
 }
@@ -207,7 +207,7 @@ QStringList ItemFactory::parseControl(QString &text, const QChar &ctrl)
     text = text.trimmed();
     int sep;
 
-    QRegExp contrl("\\b" + ctrl);
+    QRegExp contrl(QString("\\b") + ctrl);
     int prevsep = contrl.indexIn(text);
 
     while (prevsep >= 0)
@@ -293,48 +293,45 @@ void ItemFactory::compileCategories(const TempTreeModelItem *temproot,
 
 }
 
-ModelItemBasic *ItemFactory::compileUnit(TempTreeModelItem *tempknot,
+ModelItemBasic *ItemFactory::compileUnit(const TempTreeModelItem *tempknot,
                               ModelItemBase *trunk)
 {
     ModelItemUnit *knot = new ModelItemUnit(trunk);
 
     trunk->addItem(knot);
 
-    UnitContainer *ucont = nullptr;
+    int models;
 
-    checkCost(knot, tempknot->text_, ucont);
+    const UnitContainer *ucont = checkCost(knot, tempknot->text_, models);
 
     knot->setSpecial(tempknot->spec_);
 
     checkControls(tempknot, knot);
 
-    QMap<QString, int> slotmap;
     foreach (TempTreeModelItem *itm2, tempknot->unders_)
-        compileItems(itm2, knot, slotmap, ucont);
+        compileItems(itm2, knot, ucont);
 
     knot->passSpecialUp(QStringList(),true);
-    knot->passModelsDown(modelmin, true);
+    knot->passModelsDown(models, true);
 
     return knot;
 }
 
 void ItemFactory::compileItems(const TempTreeModelItem *tempknot,
                                ModelItemBase *trunk,
-                               const QMap<QString, int> &slotmap,
                                const UnitContainer *ucont,
                                ItemSatellite *sharedSat)
 {
     // lists are compiled separately
     if (tempknot->text_.startsWith('['))
     {
-        compileList(tempknot, trunk, slotmap, ucont, sharedSat);
+        compileList(tempknot, trunk, ucont, sharedSat);
         return;
     }
 
     QChar ctrlchar;
     bool spin = false;
     TempTreeModelItem *retinue = nullptr;
-    int group = -1;
 
     QString text = tempknot->text_;
 
@@ -352,15 +349,8 @@ void ItemFactory::compileItems(const TempTreeModelItem *tempknot,
         // slotnames mapped to an integer
         else if (ctrlchar == '/')
         {
-            ctrl.remove(ctrlchar);
-            if (ctrl.isEmpty())
-                ctrl = "null";
-            if (!slotmap.contains(ctrl))
-            {
-                qDebug() << "Faulty slot name in main list: " << ctrl;
-                return;
-            }
-            group = slotmap.value(ctrl);
+            qDebug() << "Slot item without Selection " << text;
+            return;
         }
         // items selectable multiple times need spinners
         else if (ctrlchar == '$')
@@ -397,10 +387,12 @@ void ItemFactory::compileItems(const TempTreeModelItem *tempknot,
         else
             knot = new ModelItemBasic(trunk);
 
-        trunk->addItem(knot, group);
+        trunk->addItem(knot);
     }
 
-    checkCost(knot, text, ucont);
+    int temp;
+
+    checkCost(knot, text, temp, ucont);
 
     knot->setSpecial(tempknot->spec_);
 
@@ -410,12 +402,11 @@ void ItemFactory::compileItems(const TempTreeModelItem *tempknot,
     sharedSat = checkControls(tempknot, knot);
 
     foreach (TempTreeModelItem *itm2, tempknot->unders_)
-        compileItems(itm2, knot, slotmap, ucont, sharedSat);
+        compileItems(itm2, knot, ucont, sharedSat);
 }
 
 void ItemFactory::compileList(const TempTreeModelItem *tempknot,
                               ModelItemBase *trunk,
-                              const QMap<QString, int> &slotmap,
                               const UnitContainer *ucont,
                               ItemSatellite *sharedSat)
 {
@@ -442,30 +433,10 @@ void ItemFactory::compileList(const TempTreeModelItem *tempknot,
     }
 
     QChar ctrlchar;
-    int group = -1;
-
-    foreach (QString ctrl, tempknot->control_)
-    {
-        ctrlchar = ctrl.at(0);
-
-        if (ctrlchar == '/')
-        {
-            ctrl.remove(1,0);
-            if (ctrl.isEmpty())
-                ctrl = "null";
-            if (!slotmap.contains(ctrl))
-            {
-                qDebug() << "Faulty slot name in main list: " << ctrl;
-                return;
-            }
-            group = slotmap.value(ctrl);
-
-        }
-    }
 
     ModelItemBasic *knot = new ModelItemBasic(trunk);
 
-    trunk->addItem(knot, group);
+    trunk->addItem(knot);
 
     knot->setText(name.remove("[\\[\\]]"));
 
@@ -486,13 +457,13 @@ void ItemFactory::compileList(const TempTreeModelItem *tempknot,
     {
         if (listEntry.startsWith('['))
         {
-            compileList(tempknot, trunk, slotmap, ucont, sharedSat);
+            compileList(tempknot, trunk, ucont, sharedSat);
             continue;
         }
 
         ModelItemBasic *branch = new ModelItemBasic(knot);
 
-        knot->addItem(branch, group);
+        knot->addItem(branch);
 
         pos = 0;
         specials.clear();
@@ -509,7 +480,8 @@ void ItemFactory::compileList(const TempTreeModelItem *tempknot,
             listEntry.remove(controlEntry);
         }
 
-        checkCost(branch, listEntry);
+        int temp;
+        checkCost(branch, listEntry, temp);
 
         branch->setSpecial(specials);
 
@@ -591,79 +563,121 @@ void ItemFactory::compileList(const TempTreeModelItem *tempknot,
 
 void ItemFactory::compileSelection(const TempTreeModelItem *tempknot,
                                    ModelItemBase *trunk,
-                                   const UnitContainer *ucont)
+                                   const UnitContainer *ucont,
+                                   ItemSatellite *sharedSat)
 {
     ModelItemSelection *knot = new ModelItemSelection(trunk);
 
     trunk->addItem(knot);
 
+    // Different slots are of form "group(item) group2(item2) ..."
+    // or if only one slot group and parantheses may be omitted
     QStringList texts = tempknot->text_.split(")", QString::SkipEmptyParts);
     QString text, group;
     QMap<QString,int> groupMap;
-    QStringList splitText;
-    int cost;
-
-    ModelItemBasic *branch;
+    QStringList defaults;
+    int temp;
 
     for (int i = 0; i < texts.count(); ++i)
     {
         text = texts.at(i);
-        group = text.section("(",0,0);
-        if (!text.contains('(') || group.isEmpty())
-        {
-            if (texts.count() == 1)
-                group = "null";
-            else
-            {
-                QMessageBox::warning(nullptr, "Erroneous selection",
-                                     "Omiting a slot name "
-                                     "or parantheses with multiple slots "
-                                     "is not currently allowed. Skipping " +
-                                     tempknot->text_);
-                return;
-            }
-        }
 
-        groupMap.insert(group,i);
+        // extract group name if applicable
+        group = text.section("(",0,0);
+        if (text.contains('(') && !group.isEmpty())
+        {
+            // groups are mapped to growing integer for programmatical reasons
+            groupMap.insert(group,i);
+        }            
+
         if (text.contains('('))
             text = text.section("(",1);
 
-        splitText = text.split('|');
+        defaults << text;
 
-        branch = new ModelItemBasic(knot);
-
-
-        // if item stats are in base list (9A)
-        // Name|cost
-        if (splitText.count()>1)
-        {
-            text = splitText.at(0).trimmed();
-
-            branch->setText(text);
-
-            cost = splitText.at(1).trimmed().toInt();
-            branch->passCostUp(cost);
-        }
-        // otherwise the units stats are recorded in tables
-        else
-        {
-            branch->setText(text);
-
-            int i = countItems(text, ucont);
-            if (i >= 0)
-                branch->passCostUp(i);
-        }
-
-        knot->addItem(branch, i);
-
-        branch->setSpecial(tempknot->spec_);
-
+        checkCost(knot, text, temp, ucont, i);
     }
 
-    checkControls(tempknot, knot);
+    knot->setSpecial(tempknot->spec_);
+
+    if (sharedSat)
+        knot->connectToSatellite(sharedSat);
+
+    sharedSat = checkControls(tempknot, knot);
+
+
+    if (groupMap.isEmpty())
+        compileSlots(tempknot, knot, groupMap, defaults, ucont, sharedSat);
+    else
+        foreach (TempTreeModelItem *itm2, tempknot->unders_)
+            compileSlots(itm2, knot, groupMap, defaults, ucont, sharedSat);
+}
+
+void ItemFactory::compileSlots(const TempTreeModelItem *tempknot,
+                               ModelItemBase *trunk,
+                               const QMap<QString, int> &slotmap,
+                               const QStringList &defaults,
+                               const UnitContainer *ucont,
+                               ItemSatellite *sharedSat)
+{
+    QList<int> slotList;
+    // empty slotmap means only one unnamed slot without treemodelitem, and
+    // tempknot is still selection item
+    if (slotmap.isEmpty())
+        slotList << 0;
+    else
+    {
+        QChar ctrlchar;
+
+        foreach (QString ctrl, tempknot->control_)
+        {
+            ctrlchar = ctrl.at(0);
+
+            // compileSelection gives slotmap, which includes all available
+            // slotnames mapped to an integer
+            if (ctrlchar == '/')
+            {
+                ctrl.remove(ctrlchar);
+                if (ctrl.isEmpty())
+                    ctrl = "null";
+                if (!slotmap.contains(ctrl))
+                {
+                    qDebug() << "Faulty slot name in main list: " << ctrl;
+                    return;
+                }
+                slotList << slotmap.value(ctrl);
+            }
+        }
+    }
+
+    ModelItemSlot *knot = new ModelItemSlot(trunk, slotList);
+
+    trunk->addItem(knot);
+
+    QStringList texts;
+
+    foreach (int i, slotList)
+        texts << defaults.at(i);
+    if (texts.count() > 1)
+    {
+        QString last = texts.takeLast();
+        texts.last().append(" and " + last);
+    }
+
+    knot->setText(texts.join(", "));
+
+    if (!slotmap.isEmpty())
+    {
+        knot->setSpecial(tempknot->spec_);
+
+        if (sharedSat)
+            knot->connectToSatellite(sharedSat);
+
+        sharedSat = checkControls(tempknot, knot);
+    }
 
     foreach (TempTreeModelItem *itm2, tempknot->unders_)
-        compileItems(itm2, knot, groupMap, ucont);
+        compileItems(itm2, knot, ucont, sharedSat);
 }
 
 void ItemFactory::parseFile(const QString &fileName)
@@ -808,22 +822,20 @@ ItemSatellite *ItemFactory::checkControls(const TempTreeModelItem *tempknot,
     return ret;
 }
 
-void ItemFactory::checkCost(ModelItemBasic *knot,
-                                            const QString &text,
-                                            UnitContainer *&ucont)
+const UnitContainer *ItemFactory::checkCost(ModelItemBasic *knot,
+                                            const QString &text, int &models,
+                                            const UnitContainer *ucont,
+                                      int slot)
 {
     QStringList splitText = text.split('|');
 
     int specCost = 0;
-    int modelmin = 0;
 
     // if Item stats are in base list (9A)
     // for items Name|cost
     if (splitText.count()>1)
     {
-        text = splitText.at(0).trimmed();
-
-        knot->setText(text);
+        knot->setText(splitText.at(0).trimmed(), slot);
 
         int cost = splitText.at(1).trimmed().toInt();
 
@@ -832,52 +844,53 @@ void ItemFactory::checkCost(ModelItemBasic *knot,
         if (splitText.count()>2)
         {
             QStringList modelsSplit = splitText.at(2).split('-');
-            modelmin = modelsSplit.at(0).trimmed().toInt();
+            models = modelsSplit.at(0).trimmed().toInt();
             int modelmax = -1;
             if (modelsSplit.count() > 1)
                 modelmax = modelsSplit.at(1).trimmed().toInt();
-            knot->setRange(modelmin, modelmax);
+            knot->setRange(models, modelmax);
 
             if (splitText.count()>3)
                 specCost = splitText.at(3).trimmed().toInt()
-                        -cost*modelmin;
+                        -cost*models;
 
             knot->setMultiCost(cost, specCost);
         }
         else
             knot->setCost(cost);
 
-        return;
-
     }
     // otherwise the units stats are recorded in tables (40k)
     else
     {
-        knot->setText(text);
+        knot->setText(text, slot);
 
         // if unitcontainer is given, use that
         if (ucont)
         {
-            cost = countItems(text, ucont);
+            int cost = countItems(text, ucont);
             if (cost >= 0)
                 knot->setCost(cost);
 
-            return;
+            return ucont;
         }
         // otherwise look for unitcontainer in table
         else if (unitMap_.contains(text))
         {
             ucont = unitMap_.value(text);
 
-            modelmin = ucontret.min;
-            knot->setRange(ucont->min_, ucont->max_);
+            int models = ucont->min_;
+            knot->setRange(models, ucont->max_);
 
             if (ucont->specialPoints_)
-                specCost = ucont->specialPoints_ - ucont->points_*ucont->min_;
+                specCost = ucont->specialPoints_ - ucont->points_*models;
 
             knot->setMultiCost(ucont->points_, specCost);
+
+            return ucont;
         }
     }
+    return nullptr;
 }
 
 QString ItemFactory::parseList(QTextStream &str, QString line)
@@ -957,21 +970,21 @@ QString ItemFactory::parseTable(QTextStream &str, QString line)
 
     if (splitLine.count() >= 1)
     {
-        UnitContainer ucont = UnitContainer();
+        UnitContainer *ucont = new UnitContainer();
         name = splitLine.at(0).trimmed();
 
-        ucont.points_ = splitLine.at(1).toInt();
+        ucont->points_ = splitLine.at(1).toInt();
 
         if (splitLine.count() > 2)
         {
             if (splitLine.at(2).contains('-'))
             {
                 QStringList splitEntry = splitLine.at(2).split('-');
-                ucont.min_ = splitEntry.at(0).toInt();
-                ucont.max_ = splitEntry.at(1).toInt();
+                ucont->min_ = splitEntry.at(0).toInt();
+                ucont->max_ = splitEntry.at(1).toInt();
             }
             else
-                ucont.min_ = splitLine.at(2).toInt();
+                ucont->min_ = splitLine.at(2).toInt();
         }
         else
         {
@@ -981,7 +994,7 @@ QString ItemFactory::parseTable(QTextStream &str, QString line)
         // unit entries may also carry special cost aside from per model
         // price
         if (splitLine.count() > 3)
-            ucont.specialPoints_ = splitLine.at(3).toInt();
+            ucont->specialPoints_ = splitLine.at(3).toInt();
 
         unitMap_.insert(name, ucont);
 
@@ -998,7 +1011,7 @@ QString ItemFactory::parseTable(QTextStream &str, QString line)
             item = ItemContainer();
             item.points_ = splitLine.at(1).toInt();
 
-            ucont.items_.insert(name, item);
+            ucont->items_.insert(name, item);
 
             line = str.readLine();
         }
@@ -1132,7 +1145,11 @@ void ItemFactory::clear()
         delete p;
         p = nullptr;
     }
-    unitMap_.clear();
+    foreach (UnitContainer *p, unitMap_.values())
+    {
+        delete p;
+        p = nullptr;
+    }
     listMap_.clear();
     globalLimiterMap_.clear();
     nameMap_.clear();

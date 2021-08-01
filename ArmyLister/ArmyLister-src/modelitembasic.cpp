@@ -40,6 +40,7 @@ ModelItemBasic::ModelItemBasic(ModelItemBase *parent)
     , bAlwaysChecked_(false)
     , bMouseIn_(false)
     , limit_(0)
+    , p_ItemHeight(Settings::ItemMeta(Settings::eItem_Height))
 {
     init();
 }
@@ -139,7 +140,7 @@ void ModelItemBasic::setTrunk(ModelItemBase *item)
     trunk_ = item;
 }
 
-void ModelItemBasic::setText(const QString &text)
+void ModelItemBasic::setText(const QString &text, int)
 {
     QString name = text;
     QRegExp ttip("\\{(.*)\\}");
@@ -147,9 +148,7 @@ void ModelItemBasic::setText(const QString &text)
     while ((pos = ttip.indexIn(name,pos)) >= 0)
         setToolTip(ttip.cap(1));
 
-    name.remove(ttip).trimmed();
-
-    title_->setText(name);
+    title_->setText(name.remove(ttip).trimmed());
     title_->adjustSize();
     title_->show();
 //    _special << "+" + name;
@@ -389,9 +388,9 @@ void ModelItemBasic::branchExpanded(int item, int steps)
     update();
 }
 
-bool ModelItemBasic::branchSelected(int check, int role, int, int)
+bool ModelItemBasic::branchSelected(int check, int role, int, int slot)
 {
-    if(!trunk_->branchSelected(check, role, index_))
+    if(!trunk_->branchSelected(check, role, index_, slot))
         return false;
 
     if ((check > 0 && !checked_) || checkLimit(eSelectionLimit))
@@ -472,7 +471,7 @@ void ModelItemBasic::paintEvent(QPaintEvent *)
     {
         QPainter p(this);
         QLinearGradient g(0,0, width(),
-                          Settings::ItemMeta(Settings::eItem_Height));
+                          p_ItemHeight);
         if (checked_)
         {
             if (limit_ == eCriticalLimit)
@@ -645,7 +644,7 @@ void ModelItemBasic::updateSpecials(const QStringList &list,
     }
 }
 
-void ModelItemBasic::toggleCheck()
+void ModelItemBasic::toggleCheck(int slot)
 {
     if (!checked_ && limit_ > eCheckable)
         return;
@@ -654,7 +653,7 @@ void ModelItemBasic::toggleCheck()
     if (checked_)
         change = -change;
 
-    if (!trunk_->branchSelected(change, _unitCountsAs, index_))
+    if (!toggleSelected(change, slot))
         return;
 
     checked_ = !checked_;
@@ -686,6 +685,11 @@ void ModelItemBasic::toggleCheck()
         emit itemSelected(current_,0);
     else
         emit itemSelected(-current_,0);
+}
+
+bool ModelItemBasic::toggleSelected(int change, int slot)
+{
+    return trunk_->branchSelected(change, 0, index_, slot);
 }
 
 void ModelItemBasic::forceCheck(bool check)

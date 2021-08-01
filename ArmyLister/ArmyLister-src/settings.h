@@ -48,6 +48,7 @@ public:
         , eItem_SpinnerFontSize
         , eItem_ExpandButtonSize
         , eItem_CostFieldWidth
+        , eItem_MouseHoldTime
     };
 
     static const unsigned short ItemMeta(enum ItemMetas i);
@@ -95,6 +96,7 @@ private:
         , 12 //SpinnerFontSize
         , 20 //ExpandButtonSize
         , 50 //CostFieldWidth
+        , 2000 //MouseHoldTime
     };
 
     static inline QList<QFont> s_fonts_

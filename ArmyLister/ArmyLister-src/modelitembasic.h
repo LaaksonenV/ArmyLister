@@ -12,6 +12,7 @@ class QLabel;
 class ModelItemBasic : public ModelItemBase
 {
     Q_OBJECT
+    Q_PROPERTY(int itemHeight MEMBER p_ItemHeight WRITE setP_ItemHeight)
 
     void init();
 
@@ -62,7 +63,7 @@ public:
      * \brief setText setter for the items title
      * \param text title text
      */
-    void setText(const QString &text);
+    void setText(const QString &text, int = -1);
 
     /*!
      * \brief setSpecial setter for special elements
@@ -119,7 +120,11 @@ public:
      */
     void setCountsAs(int role);
 
+    virtual void setUnitCountsAs(int){}
+
     virtual void setRange(int, int = 0){}
+
+    virtual void setMultiCost(int, int){}
 
     virtual void loadSelection(QString &str);
 
@@ -152,7 +157,7 @@ public:
 
     virtual void branchExpanded(int item, int steps);
 
-    virtual bool branchSelected(int check, int role, int, int = 0);
+    virtual bool branchSelected(int check, int role, int, int slot = 0);
 
     bool checkLimit(int limit);
 
@@ -160,11 +165,13 @@ public:
 
     virtual void printToStream(QTextStream &str);
 
-    virtual void toggleCheck();
+    virtual void toggleCheck(int slot = -1);
 
     virtual void limitedBy(short flag);
 
 protected:
+
+    virtual bool toggleSelected(int change, int slot);
 
     void print(QTextStream &str, int pre,
                const QStringList &override = QStringList());
@@ -219,9 +226,11 @@ protected:
     bool checked_;
     int current_;
 
+    QLabel *title_;
+
 private:
 
-    QLabel *title_;
+
 
     QStringList specials_;
     QStringList specialLimiters_;
@@ -243,6 +252,9 @@ private:
     bool bMouseIn_;
 
     int limit_;
+
+    int p_ItemHeight;
+    void setP_ItemHeight(int i){p_ItemHeight = i;}
 };
 
 #endif // MODELITEMBASIC_H
