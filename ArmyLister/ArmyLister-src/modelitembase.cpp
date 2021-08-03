@@ -101,8 +101,8 @@ void ModelItemBase::setIndex(int i)
 
 void ModelItemBase::setCost(int i, int)
 {
-    cost_ = i;
-    initCost_ = i;
+    cost_ += i;
+    initCost_ += i;
     update();
 }
 

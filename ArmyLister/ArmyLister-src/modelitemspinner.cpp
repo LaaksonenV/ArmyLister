@@ -61,7 +61,7 @@ void ModelItemSpinner::setMultiCost(int base, int special)
 void ModelItemSpinner::setRange(int min, int max)
 {
     current_ = min;
-    ModelItemBase::setCost((singleCost_*current_)+otherCost_);
+    ModelItemBase::setCost((singleCost_*(current_-1))+otherCost_);
     if (max >= 0)
         createSpinner(min,max);
 }

@@ -174,6 +174,8 @@ public:
      */
     virtual void passCostDown(int left);
 
+    virtual void overrideModels(int){}
+
     /*!
      * \brief branchChecked is called when an item is attempted to check
      * \return true if the root of item allows checking

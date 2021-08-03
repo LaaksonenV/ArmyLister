@@ -609,8 +609,19 @@ void ItemFactory::compileSelection(const TempTreeModelItem *tempknot,
     if (groupMap.isEmpty())
         compileSlots(tempknot, knot, groupMap, defaults, ucont, sharedSat);
     else
+    {
+        QRegExp slotItem("/.* ");
+        slotItem.setMinimal(true);
         foreach (TempTreeModelItem *itm2, tempknot->unders_)
-            compileSlots(itm2, knot, groupMap, defaults, ucont, sharedSat);
+        {
+            // selections may contain other items than replacing
+            // items
+            if (itm2->control_.indexOf(slotItem) < 0)
+                compileItems(itm2, knot, ucont, sharedSat);
+            else
+                compileSlots(itm2, knot, groupMap, defaults, ucont, sharedSat);
+        }
+    }
 }
 
 void ItemFactory::compileSlots(const TempTreeModelItem *tempknot,
@@ -817,6 +828,13 @@ ItemSatellite *ItemFactory::checkControls(const TempTreeModelItem *tempknot,
                             new ItemSatelliteSelectionLimiter(ctrl.toInt(),
                                                      ModelItemBase::eNotClonable,
                                                       knot));
+        }
+        else if (ctrlchar == '¤')
+        {
+            if (ctrl.isEmpty())
+                knot->setModelOverride(1);
+            else
+                knot->setModelOverride(ctrl.toInt());
         }
     }
     return ret;

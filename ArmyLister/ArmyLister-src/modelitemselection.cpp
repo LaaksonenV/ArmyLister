@@ -53,7 +53,7 @@ void ModelItemSelection::setCost(int i, int slot)
 
     slots_[slot].defaultCost_ = i;
 
-    passCostUp(i);
+    ModelItemBase::setCost(i);
 }
 
 void ModelItemSelection::updateItem()

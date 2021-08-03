@@ -29,6 +29,8 @@ ModelItemBasic::ModelItemBasic(ModelItemBase *parent)
     , specialLimiters_(QStringList())
     , initialSpecials_(QStringList())
     , forAllModels_(-1)
+    , modelOverride_(0)
+    , overriddenModels_(0)
     , costLimit_(-1)
     , modelLimitMin_(0)
     , bHasModelLimitMin_(false)
@@ -55,6 +57,8 @@ ModelItemBasic::ModelItemBasic(ModelItemBasic *source, ModelItemBase *parent)
     , specialLimiters_(QStringList())
     , initialSpecials_(QStringList())
     , forAllModels_(-1)
+    , modelOverride_(0)
+    , overriddenModels_(0)
     , costLimit_(-1)
     , modelLimitMin_(0)
     , bHasModelLimitMin_(false)
@@ -82,6 +86,7 @@ ModelItemBasic::ModelItemBasic(ModelItemBasic *source, ModelItemBase *parent)
     setAlwaysChecked(source->bAlwaysChecked_);
     if (source->forAllModels_ >= 0)
         setForAll();
+    setModelOverride(source->modelOverride_);
     setCostLimit(source->costLimit_);
     setCountsAs(source->countsAs_-1);
 }
@@ -188,7 +193,8 @@ void ModelItemBasic::setModelLimiter(int min, int max)
 void ModelItemBasic::setAlwaysChecked(bool b)
 {
     if (b && !checked_)
-    {
+        toggleCheck();
+/*    {
         bool fa = false;
         int c = cost_;
         if (forAllModels_ >= 0)
@@ -198,7 +204,8 @@ void ModelItemBasic::setAlwaysChecked(bool b)
         }
         checked_ = true;
         trunk_->passCostUp(c,fa);
-    }
+    }*/
+
 
     bAlwaysChecked_ = b;
     update();
@@ -211,6 +218,13 @@ void ModelItemBasic::setForAll(bool b)
         forAllModels_ = cost_;
 //        setCost(_forAll*getCurrentCount());
     }
+}
+
+void ModelItemBasic::setModelOverride(int models)
+{
+    modelOverride_ = models;
+    if (modelOverride_ && checked_)
+        trunk_->overrideModels(modelOverride_);
 }
 
 void ModelItemBasic::setCostLimit(int limit)
@@ -285,7 +299,7 @@ void ModelItemBasic::passCostUp(int c, bool b, int role)
     if (forAllModels_ >= 0)
     {
         fa = true;
-        change *= getCurrentCount();
+        change *= getCurrentCount()-overriddenModels_;
         forAllModels_ += c;
     }
     ModelItemBase::passCostUp(change,false, role);
@@ -315,7 +329,7 @@ void ModelItemBasic::passModelsDown(int models, bool push)
     if (forAllModels_ >= 0)
     {
         models *= forAllModels_;
-        setCost(models+cost_);
+        ModelItemBase::passCostUp(models);
     }
     else
         ModelItemBase::passModelsDown(models, push);
@@ -376,6 +390,11 @@ void ModelItemBasic::passCostDown(int left)
     else
         limitedBy(-eCostLimit);
     ModelItemBase::passCostDown(left);
+}
+
+void ModelItemBasic::overrideModels(int models)
+{
+    overriddenModels_ += models;
 }
 
 void ModelItemBasic::branchExpanded(int item, int steps)
@@ -685,6 +704,14 @@ void ModelItemBasic::toggleCheck(int slot)
         emit itemSelected(current_,0);
     else
         emit itemSelected(-current_,0);
+
+    if (modelOverride_ > 0)
+    {
+        if (checked_)
+            trunk_->overrideModels(modelOverride_);
+        else
+            trunk_->overrideModels(-modelOverride_);
+    }
 }
 
 bool ModelItemBasic::toggleSelected(int change, int slot)

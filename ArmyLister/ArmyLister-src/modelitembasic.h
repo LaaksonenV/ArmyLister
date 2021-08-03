@@ -102,6 +102,8 @@ public:
      */
     void setForAll(bool b = true);
 
+    void setModelOverride(int models);
+
     /*!
      * \brief setCostLimit simple setter
      * \param limit max cost of item
@@ -154,6 +156,8 @@ public:
     virtual void passSpecialDown(const QStringList &list);
 
     virtual void passCostDown(int left);
+
+    virtual void overrideModels(int models);
 
     virtual void branchExpanded(int item, int steps);
 
@@ -238,6 +242,8 @@ private:
     QStringList initialSpecials_;
 
     int forAllModels_;
+    int modelOverride_;
+    int overriddenModels_;
     int costLimit_;
     int modelLimitMin_;
     bool bHasModelLimitMin_;
