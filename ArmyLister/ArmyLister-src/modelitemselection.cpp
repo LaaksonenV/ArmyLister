@@ -91,7 +91,11 @@ void ModelItemSelection::updateItem()
 bool ModelItemSelection::branchSelected(int check, int role, int index,
                                         int slot)
 {
-    // SLOT VALIDITY CHECK
+    if (slot >= slots_.count())
+    {
+        qDebug << "Slot over board " + getText();
+        return false;
+    }
 
     // selections from non-slots don't matter to selection
     if (slot < 0)
