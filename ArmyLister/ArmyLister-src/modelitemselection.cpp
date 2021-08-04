@@ -20,6 +20,13 @@ ModelItemSelection::ModelItemSelection(ModelItemSelection *source,
 {
     show();
     setAlwaysChecked();
+
+
+    for (int i = 0; i < source->slots_.count(); ++i)
+    {
+        setText(source->slots_.at(i).defaultText_, i);
+        setCost(source->slots_.at(i).defaultCost_, i);
+    }
 }
 
 ModelItemSelection::~ModelItemSelection()
@@ -49,6 +56,9 @@ void ModelItemSelection::setText(const QString &text, int slot)
 
 void ModelItemSelection::setCost(int i, int slot)
 {
+    if (slot < 0) // if slot is not defined, setting cost is meaningless
+        return;
+
     fillSlots(slot);
 
     slots_[slot].defaultCost_ = i;

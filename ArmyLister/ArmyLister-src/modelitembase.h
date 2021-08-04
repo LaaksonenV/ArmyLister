@@ -97,7 +97,7 @@ public:
      * \brief setCost simple setter
      * \param i new cost
      */
-    virtual void setCost(int i, int = 0);
+    virtual void setCost(int i, int = -1);
 
     virtual void loadSelection(QString &str);
 

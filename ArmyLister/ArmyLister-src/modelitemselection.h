@@ -32,7 +32,7 @@ public:
 
     virtual void setText(const QString &text, int slot);
 
-    virtual void setCost(int i, int slot);
+    virtual void setCost(int i, int slot = -1);
 
     virtual void updateItem();
 

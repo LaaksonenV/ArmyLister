@@ -875,7 +875,7 @@ const UnitContainer *ItemFactory::checkCost(ModelItemBasic *knot,
             knot->setMultiCost(cost, specCost);
         }
         else
-            knot->setCost(cost);
+            knot->setCost(cost, slot);
 
     }
     // otherwise the units stats are recorded in tables (40k)
@@ -888,7 +888,7 @@ const UnitContainer *ItemFactory::checkCost(ModelItemBasic *knot,
         {
             int cost = countItems(text, ucont);
             if (cost >= 0)
-                knot->setCost(cost);
+                knot->setCost(cost, slot);
 
             return ucont;
         }
