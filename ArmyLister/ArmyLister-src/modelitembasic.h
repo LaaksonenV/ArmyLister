@@ -245,6 +245,7 @@ private:
 
     int forAllModels_;
     int modelOverride_;
+    bool constantOverride_;
     int overriddenModels_;
     int costLimit_;
     int modelLimitMin_;

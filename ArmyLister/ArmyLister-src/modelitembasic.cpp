@@ -30,6 +30,7 @@ ModelItemBasic::ModelItemBasic(ModelItemBase *parent)
     , initialSpecials_(QStringList())
     , forAllModels_(-1)
     , modelOverride_(0)
+    , constantOverride_(true)
     , overriddenModels_(0)
     , costLimit_(-1)
     , modelLimitMin_(0)
@@ -59,6 +60,7 @@ ModelItemBasic::ModelItemBasic(ModelItemBasic *source, ModelItemBase *parent)
     , initialSpecials_(QStringList())
     , forAllModels_(-1)
     , modelOverride_(0)
+    , constantOverride_(true)
     , overriddenModels_(0)
     , costLimit_(-1)
     , modelLimitMin_(0)
@@ -226,9 +228,14 @@ void ModelItemBasic::setForAll(bool b)
 
 void ModelItemBasic::setModelOverride(int models)
 {
-    modelOverride_ = models;
-    if (modelOverride_ && checked_)
-        trunk_->overrideModels(modelOverride_);
+    if (models < 0)
+        constantOverride_ = false;
+    else
+    {
+        modelOverride_ = models;
+        if (modelOverride_ && checked_)
+            trunk_->overrideModels(modelOverride_);
+    }
 }
 
 void ModelItemBasic::setCostLimit(int limit)
@@ -423,6 +430,9 @@ bool ModelItemBasic::branchSelected(int check, int role, int, int slot)
 {
 //    if(!trunk_->branchSelected(check, role, index_, slot))
   //      return false;
+
+    if (!constantOverride_)
+        modelOverride_ += check;
 
     if ((check > 0 && !checked_) || checkLimit(eSelectionLimit))
         toggleCheck();
