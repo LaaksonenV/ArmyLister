@@ -122,6 +122,8 @@ public:
      */
     void setCountsAs(int role);
 
+    void setManualLock(bool lock = true);
+
     virtual void setUnitCountsAs(int){}
 
     virtual void setRange(int, int = 0){}
@@ -161,7 +163,7 @@ public:
 
     virtual void branchExpanded(int item, int steps);
 
-    virtual bool branchSelected(int check, int role, int, int slot = 0);
+    virtual bool branchSelected(int check, int role, int, int slot = -1);
 
     bool checkLimit(int limit);
 
@@ -258,6 +260,7 @@ private:
     bool bMouseIn_;
 
     int limit_;
+    int autoToggle_;
 
     int p_ItemHeight;
     void setP_ItemHeight(int i){p_ItemHeight = i;}

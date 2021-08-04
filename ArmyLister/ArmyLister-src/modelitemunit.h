@@ -38,7 +38,7 @@ public:
 
     virtual void passSpecialUp(const QStringList &list, bool check);
 
-    virtual bool branchSelected(bool check, int role, int, int = 0);
+    virtual bool branchSelected(bool check, int role, int, int = -1);
 
     virtual void passCostUp(int c, bool perModel = false, int role = 0);
 

@@ -81,15 +81,14 @@ void ModelItemSelection::updateItem()
 bool ModelItemSelection::branchSelected(int check, int role, int index,
                                         int slot)
 {
-    // SLOT VALIDITY CHECK, -1 -> no action!
+    // SLOT VALIDITY CHECK
 
+    // selections from non-slots don't matter to selection
+    if (slot < 0)
+        return ModelItemBasic::branchSelected(check, role, index);
 
     if (check >= 0)
     {
-        // check if able to select
-        if (!trunk_->branchSelected(check, role, index_, slot))
-            return false;
-
         if (slots_.at(slot).index_ == -1) // disable default if needed
             passCostUp(-slots_[slot].defaultCost_);
 

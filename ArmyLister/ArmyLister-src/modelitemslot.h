@@ -21,7 +21,7 @@ public:
 
     virtual int getCost() const;
 
-    virtual bool branchSelected(int check, int role, int ind, int = 0);
+    virtual bool branchSelected(int check, int role, int ind, int = -1);
 
     virtual void toggleCheck(int = -1);
 

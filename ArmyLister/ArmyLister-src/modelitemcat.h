@@ -14,7 +14,7 @@ public:
 
     virtual void passCostUp(int c, bool = false, int role = 0);
 
-    virtual bool branchSelected(int check, int role, int, int = 0);
+    virtual bool branchSelected(int check, int role, int, int = -1);
 
     virtual void printToStream(QTextStream &str);
 

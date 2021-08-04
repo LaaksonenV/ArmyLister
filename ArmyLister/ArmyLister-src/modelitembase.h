@@ -183,7 +183,7 @@ public:
      * As item without root, Base item return true. Implement on an item
      * with root
      */
-    virtual bool branchSelected(int, int, int, int = 0);
+    virtual bool branchSelected(int, int, int, int = -1);
 
     /*!
      * \brief resizeEvent reimplemented

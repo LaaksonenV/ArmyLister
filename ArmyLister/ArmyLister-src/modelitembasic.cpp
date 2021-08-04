@@ -42,6 +42,7 @@ ModelItemBasic::ModelItemBasic(ModelItemBase *parent)
     , bAlwaysChecked_(false)
     , bMouseIn_(false)
     , limit_(0)
+    , autoToggle_(-1)
     , p_ItemHeight(Settings::ItemMeta(Settings::eItem_Height))
 {
     init();
@@ -69,6 +70,7 @@ ModelItemBasic::ModelItemBasic(ModelItemBasic *source, ModelItemBase *parent)
     , bExpanded_(false)
     , bAlwaysChecked_(false)
     , bMouseIn_(false)
+    , autoToggle_(-1)
     , limit_(0)
 {
     init();
@@ -89,6 +91,8 @@ ModelItemBasic::ModelItemBasic(ModelItemBasic *source, ModelItemBase *parent)
     setModelOverride(source->modelOverride_);
     setCostLimit(source->costLimit_);
     setCountsAs(source->countsAs_-1);
+    if (source->autoToggle_ >= 0)
+        setManualLock();
 }
 
 ModelItemBasic::~ModelItemBasic()
@@ -237,6 +241,12 @@ void ModelItemBasic::setCountsAs(int role)
     countsAs_ = role+1;
 }
 
+void ModelItemBasic::setManualLock(bool lock)
+{
+    if (lock)
+        autoToggle_ = 0;
+}
+
 void ModelItemBasic::loadSelection(QString &str)
 {
     if (str.startsWith("!"))
@@ -328,6 +338,8 @@ void ModelItemBasic::passModelsDown(int models, bool push)
 
     if (forAllModels_ >= 0)
     {
+        if (push)
+            models -= overriddenModels_;
         models *= forAllModels_;
         ModelItemBase::passCostUp(models);
     }
@@ -409,11 +421,27 @@ void ModelItemBasic::branchExpanded(int item, int steps)
 
 bool ModelItemBasic::branchSelected(int check, int role, int, int slot)
 {
-    if(!trunk_->branchSelected(check, role, index_, slot))
-        return false;
+//    if(!trunk_->branchSelected(check, role, index_, slot))
+  //      return false;
 
     if ((check > 0 && !checked_) || checkLimit(eSelectionLimit))
         toggleCheck();
+
+    if (autoToggle_ >= 0)
+    {
+        autoToggle_ += check;
+        if (autoToggle_ < 0)
+        {
+            qDebug << "autotoggle disfunction";
+            autoToggle_ == 0;
+        }
+
+        if (autoToggle_ == 0 && checked_)
+            toggleCheck();
+    }
+
+    if (role)
+        return trunk_->branchSelected(check, role, index_, slot);
 
     return true;
 }
@@ -542,7 +570,7 @@ void ModelItemBasic::leaveEvent(QEvent*)
 
 void ModelItemBasic::mousePressEvent(QMouseEvent *e)
 {
-    if (!bAlwaysChecked_ && !checkLimit(eSelectionLimit) &&
+    if (!bAlwaysChecked_ && autoToggle_ < 0 && !checkLimit(eSelectionLimit) &&
             e->button() == Qt::LeftButton)
     {
         toggleCheck();
