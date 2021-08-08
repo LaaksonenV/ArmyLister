@@ -137,7 +137,7 @@ int ModelItemBase::getCurrentCount() const
     return -1;
 }
 
-void ModelItemBase::passSpecialUp(const QStringList &, bool)
+void ModelItemBase::passTagsUp(const QStringList &, bool)
 {}
 
 void ModelItemBase::passCostUp(int c, bool, int role)
@@ -158,11 +158,11 @@ void ModelItemBase::passModelsDown(int models, bool push)
     }
 }
 
-void ModelItemBase::passSpecialDown(const QStringList &list)
+void ModelItemBase::passTagsDown(const QStringList &list)
 {
     foreach (ModelItemBase *i, branches_)
     {
-        i->passSpecialDown(list);
+        i->passTagsDown(list);
     }
 }
 

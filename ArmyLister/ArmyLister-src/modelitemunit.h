@@ -27,7 +27,7 @@ public:
 
 //    virtual QString getPrintText() const;
 
-    virtual void passSpecialUp(const QStringList &list, bool check);
+    virtual void passTagsUp(const QStringList &list, bool check);
 
     virtual bool branchSelected(bool check, int role, int, int = -1);
 

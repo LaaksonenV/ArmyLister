@@ -90,7 +90,7 @@ bool ModelItemSelection::branchSelected(int check, int role, int index,
 {
     if (slot >= slots_.count())
     {
-        qDebug << "Slot over board " + getText();
+//        qDebug() << "Slot over board " + getText();
         return false;
     }
 

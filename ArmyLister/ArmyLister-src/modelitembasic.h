@@ -129,11 +129,9 @@ public:
      * If \a role is set != 0, when the item is checked its unit will
      * push its cost towards the role
      */
-    void setUnitCountsAs(int role);
+    virtual void setUnitCountsAs(int role);
 
     void setManualLock(bool lock = true);
-
-    virtual void setUnitCountsAs(int){}
 
     virtual void setRange(int, int = 0){}
 
@@ -158,13 +156,13 @@ public:
 
     virtual QString getPrintText() const;
 
-    virtual void passSpecialUp(const QStringList &list, bool check);
+    virtual void passTagsUp(const QStringList &list, bool check);
 
     virtual void passCostUp(int c, bool b = false, int role = 0);
 
     virtual void passModelsDown(int models, bool push = false);
 
-    virtual void passSpecialDown(const QStringList &list);
+    virtual void passTagsDown(const QStringList &list);
 
     virtual void passCostDown(int left);
 
@@ -200,7 +198,7 @@ protected:
 
     virtual void toggleExpand();
 
-    virtual void dealWithSpecials(const QStringList &list, bool check);
+    virtual void dealWithTags(const QStringList &list, bool check);
 
     virtual int endOfText() const;
 
@@ -211,7 +209,7 @@ private:
 
     virtual void expand(bool expanse);
 
-    void updateSpecials(const QStringList &list, QStringList &to, bool check);
+    void updateTags(const QStringList &list, QStringList &to, bool check);
 
 signals:
 
@@ -243,14 +241,16 @@ protected:
 
     QLabel *title_;
 
+    int unitCountsAs_;
+
 private:
 
 
 
-    QStringList specials_;
-    QStringList specialLimiters_;
+    QStringList tags_;
+    QStringList limitingTags_;
 
-    QStringList initialSpecials_;
+    QStringList initialTags_;
 
     int forAllModels_;
     int modelOverride_;
@@ -262,7 +262,6 @@ private:
     int modelLimitMax_;
     bool bHasModelLimitMax_;
     int countsAs_;
-    int unitCountsAs_;
 
     QPushButton *expandButton_;
     bool bExpanded_;

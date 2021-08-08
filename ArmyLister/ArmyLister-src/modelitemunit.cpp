@@ -42,7 +42,7 @@ void ModelItemUnit::clone(ModelItemBase*, int)
     trunk_->insertItem(clone, index_+1);
     cloning(clone);
     clone->resize(size());
-    clone->passSpecialUp(QStringList(), true);
+    clone->passTagsUp(QStringList(), true);
     ++cloned_;
     emit itemCloned();
 }
@@ -76,9 +76,9 @@ void ModelItemUnit::saveSelection(QTextStream &str)
     ModelItemSpinner::saveSelection(str);
 }
 
-void ModelItemUnit::passSpecialUp(const QStringList &list, bool check)
+void ModelItemUnit::passTagsUp(const QStringList &list, bool check)
 {
-    dealWithSpecials(list, check);
+    dealWithTags(list, check);
 }
 
 bool ModelItemUnit::branchSelected(bool check, int role, int, int)

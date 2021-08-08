@@ -19,6 +19,55 @@ class ItemFactory
 {
 
 public:
+
+    enum ControlCharacters
+    {
+        eControl_Global
+        , eControl_Local
+        , eControl_Print
+        , eControl_Model
+        , eControl_Take
+        , eControl_GlobalModelLimit
+        , eControl_GlobalCheck
+        , eControl_CreateUnitValues
+        , eControl_SelectPoints
+        , eControl_Comment
+        , eControl_Text
+        , eControl_Slot
+        , eControl_GlobalLimit
+        , eControl_Limit
+        , eControl_Multiple
+        , eControl_Selection
+        , eControl_ModelMax
+        , eControl_UnitCat
+        , eControl_ItemCat
+        , eControl_WildCard
+        , eControl_ForAll
+        , eControl_AutoCheck
+        , eControl_Replace
+        , eControl_AlwaysCheck
+        , eControl_ModelMin
+        , eControl_NOT
+        , eControl_GroupStart
+        , eControl_GroupEnd
+        , eControl_SlotStart
+        , eControl_SlotEnd
+        , eControl_ListStart
+        , eControl_ListEnd
+        , eControl_TagStart
+        , eControl_TagEnd
+        , eControl_Retinue
+        , eControl_OrgMainSplit
+        , eControl_OrgPointSplit
+        , eControl_CreateList
+        , eControl_LocalLimit
+        , eControl_CreateGroup
+        , eControl_NULL = -1
+    };
+
+    static const QChar& CCharacter(enum ControlCharacters c);
+    static const ControlCharacters ControlC(const QChar &c);
+
     ItemFactory();
     ~ItemFactory();
 
@@ -34,9 +83,23 @@ public:
      * between categories.
      */
     bool addArmyFile(ModelItemBase *top, const QString &fileName,
-                     bool newArmy = true, const QString &tag = QString());
+                     bool newArmy = true,
+                     const QStringList &tags = QStringList());
+
+
+
+
 
 private:
+
+    static inline const QList<QChar> s_controlcharacters
+    {
+        '§','!','"','@','#','£','€','¤','$','%','&','/','=','?','+','\\',
+        '^','¨','~','.',';',',',':','_','|','{','}','(',')','[',']',
+        '<','>','R','#',';','L','#','G'
+        ,'\0' // NULL, leave as last
+        // Unused ' ´ ` - ½
+    };
 
     /*!
      * \brief parseMainList Recursively reads through the main file to
@@ -60,7 +123,10 @@ private:
      */
     QString parseMainList(const QString &line, QTextStream &str,
                           TempTreeModelItem *parentBranch,
-                          const QString &supTag);
+                          const QStringList &supTags);
+
+    void parseGlobalControl(QString &line, QTextStream &str,
+                               const QStringList &supTags, bool &retinue);
 
     /*!
      * \brief parseIncludes Read the stream for included files
@@ -71,9 +137,19 @@ private:
      * unit model counts and equipment lists. This function will pass
      * filenames read from the mainfile to \sa parseFile()
      */
-    QString parseIncludes(QTextStream &str);
+    QString parseIncludes(QTextStream &str,
+                          const QStringList &tags = QStringList());
 
-    QString mapOrganisation(QTextStream &str);
+    /*!
+     * \brief parseFile Function for handling included files
+     * \param fileName
+     *
+     *
+     */
+    void parseFile(const QString &fileName,
+                   const QStringList &supTags = QStringList());
+
+    QString parseOrganisation(QTextStream &str);
 
     /*!
      * \brief parseControl Remove and return control elements from text
@@ -84,7 +160,7 @@ private:
      * with an exclamation point '!'. These are removed from \a text and
      * returned as a separate list.
      */
-    QStringList parseControl(QString &text, const QChar &ctrl = '!');
+    QStringList parseControl(QString &text, QChar ctrl = QChar());
 
     /*!
      * \brief parseSpecial Remove and return special information from
@@ -100,43 +176,7 @@ private:
      * Call parseSpecial() only after parseControl(), as control element
      * may contain names encased in <> also
      */
-    QStringList parseSpecial(QString &text);
-
-    void compileCategories(const TempTreeModelItem *temproot,
-                           ModelItemBase *root);
-    ModelItemBasic *compileUnit(const TempTreeModelItem *tempknot,
-                     ModelItemBase *trunk);
-    void compileItems(const TempTreeModelItem *tempknot,
-                      ModelItemBase *trunk,
-                      const UnitContainer *ucont,
-                      ItemSatellite *sharedSat = nullptr);
-    void compileList(const TempTreeModelItem *tempknot,
-                     ModelItemBase *trunk,
-                     const UnitContainer *ucont,
-                     ItemSatellite *sharedSat = nullptr);
-    void compileSelection(const TempTreeModelItem *tempknot,
-                          ModelItemBase *trunk,
-                          const UnitContainer *ucont,
-                          ItemSatellite *sharedSat = nullptr);
-    void compileSlots(const TempTreeModelItem *tempknot,
-                      ModelItemBase *trunk,
-                      const QMap<QString, int> &slotmap,
-                      const QStringList &defaults,
-                      const UnitContainer *ucont,
-                      ItemSatellite *sharedSat = nullptr);
-    ItemSatellite *checkControls(const TempTreeModelItem *tempknot,
-                                         ModelItemBasic *knot);
-    const UnitContainer *checkCost(ModelItemBasic *knot, const QString &text,
-                             int &models, const UnitContainer *ucont = nullptr,
-                             int slot = 0);
-
-    /*!
-     * \brief parseFile Function for handling included files
-     * \param fileName
-     *
-     *
-     */
-    void parseFile(const QString &fileName);
+    QStringList parseTags(QString &text);
 
     /*!
      * \brief parseList Simple function to read file for lists
@@ -150,10 +190,48 @@ private:
      * This function will also create global limiters of items when
      * neccessary
      */
-    QString parseList(QTextStream &str, QString line);
+    QString parseList(QTextStream &str, QString line, const QStringList &suptag);
+    void parseGroup(QString line);
 
 
     QString parseTable(QTextStream &str, QString line);
+
+    void compileCategories(const TempTreeModelItem *temproot,
+                           ModelItemBase *root);
+    ModelItemBasic *compileUnit(const TempTreeModelItem *tempknot,
+                     ModelItemBase *trunk);
+    void compileItems(const TempTreeModelItem *tempknot,
+                      ModelItemBase *trunk,
+                      const UnitContainer *ucont,
+                      QMap<QString, ItemSatellite *> &localGroupLimiters,
+                      ItemSatellite *takeLimiter = nullptr);
+    void compileList(const TempTreeModelItem *tempknot,
+                     ModelItemBase *trunk,
+                     const UnitContainer *ucont,
+                     QMap<QString, ItemSatellite *> &localGroupLimiters,
+                     ItemSatellite *takeLimiter = nullptr);
+    void compileSelection(const TempTreeModelItem *tempknot,
+                          ModelItemBase *trunk,
+                          const UnitContainer *ucont,
+                          QMap<QString, ItemSatellite *> &localGroupLimiters,
+                          ItemSatellite *takeLimiter = nullptr);
+    void compileSlots(const TempTreeModelItem *tempknot,
+                      ModelItemBase *trunk,
+                      const QMap<QString, int> &slotmap,
+                      const QStringList &defaults,
+                      const UnitContainer *ucont,
+                      QMap<QString, ItemSatellite *> &localGroupLimiters,
+                      ItemSatellite *takeLimiter = nullptr);
+    bool checkTagLimiter(const QStringList &limitingTags,
+                         const QStringList &tags);
+    ItemSatellite *checkControls(const TempTreeModelItem *tempknot,
+                                 ModelItemBasic *knot,
+                                 QMap<QString, ItemSatellite *>
+                                 &localGroupLimiters);
+    const UnitContainer *checkCost(ModelItemBasic *knot, const QString &text,
+                                   int &models,
+                                   const UnitContainer *ucont = nullptr,
+                                   int slot = 0);
 
     /*!
      * \brief countItems searches the cost of the given text item
@@ -175,8 +253,9 @@ private:
 private:
     QList<PointContainer*> pointList_;
     QMap<QString, UnitContainer *> unitMap_;
-    QMap<QString, QStringList> listMap_;
-    QMap<QString, ItemSatellite*> globalLimiterMap_;
+    QMap<QString, QList<TempTreeModelItem*> > listMap_;
+    QMap<QString, int> localLimitGroupMap_;
+    QMap<QString, ItemSatellite*> globalLimitMap_;
     QMap<QString, int> nameMap_;
     QMap<QString, TempTreeModelItem*> retinueMap_;
 
@@ -201,7 +280,7 @@ struct TempTreeModelItem
 
     QString text_;
     QStringList control_;
-    QStringList spec_;
+    QStringList tags_;
     QList<TempTreeModelItem*> unders_;
 
 };

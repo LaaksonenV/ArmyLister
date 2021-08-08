@@ -14,11 +14,24 @@
 #include <QStringList>
 #include <QMessageBox>
 
+const QChar& ItemFactory::CCharacter(ControlCharacters c)
+{
+    if (c == eControl_NULL)
+        return s_controlcharacters.last();
+    return s_controlcharacters.at(int(c));
+}
+
+const ItemFactory::ControlCharacters ItemFactory::ControlC(const QChar &c)
+{
+    return ControlCharacters(s_controlcharacters.indexOf(c));
+}
+
 ItemFactory::ItemFactory()
     : pointList_(QList<PointContainer*>())
     , unitMap_(QMap<QString, UnitContainer*>())
-    , listMap_(QMap<QString, QStringList>())
-    , globalLimiterMap_(QMap<QString, ItemSatellite*>())
+    , listMap_(QMap<QString, QList<TempTreeModelItem*> >())
+    , localLimitGroupMap_(QMap<QString, int>())
+    , globalLimitMap_(QMap<QString, ItemSatellite*>())
     , nameMap_(QMap<QString, int>())
     , retinueMap_(QMap<QString, TempTreeModelItem*>())
 {
@@ -31,7 +44,7 @@ ItemFactory::~ItemFactory()
 }
 
 bool ItemFactory::addArmyFile(ModelItemBase* top, const QString &fileName,
-                              bool newArmy, const QString &tag)
+                              bool newArmy, const QStringList &tags)
 {
     if (newArmy)
         clear();
@@ -45,8 +58,7 @@ bool ItemFactory::addArmyFile(ModelItemBase* top, const QString &fileName,
 
     TempTreeModelItem *tempitem = new TempTreeModelItem();
     QString line = str.readLine();
-    QStringList suptags;
-    QString suptag = QString();
+    QStringList suptags(tags);
 
     // Read through the list file. Each function reads lines until one starts
     // without an indent
@@ -61,39 +73,37 @@ bool ItemFactory::addArmyFile(ModelItemBase* top, const QString &fileName,
         // and their costs. If an item has different costs depending on entry,
         // these can be defined in a separate table.
         else if (line == "INCLUDES")
-            line = parseIncludes(str);
+            line = parseIncludes(str, tags);
 
         // ORGANISATION is used to map category names to a number for
         // units that count as other category in some cases (9th Age)
         else if (line == "ORGANISATION")
-            line = mapOrganisation(str);
+            line = parseOrganisation(str);
 
         // SUPPLEMENT denotes that current list adds content to other list.
         // Supplemented lists may be given a special tag, if needed (ie.
-        // Spacemarines.txt <Blood Angels>)
+        // Spacemarines.txt <Blood Angels>).
         else if (line == "SUPPLEMENT")
         {
             line = str.readLine();
-            suptags = parseSpecial(line);
-            if (!suptags.isEmpty())
-                suptag = suptags.first();
-            addArmyFile(top, line.trimmed(), false, suptag);
+            suptags += parseTags(line);
+            addArmyFile(top, line.trimmed(), false, suptags);
             line = str.readLine();
         }
 
-        // Lists may be defined in main file, though it should be on their own
+/*        // Lists may be defined in main file, though it should be on their own
         else if (line.startsWith('['))
             line = parseList(str, line);
-
+*/
 
         else
-            line = parseMainList(line,str,tempitem, tag);
+            line = parseMainList(line,str,tempitem, tags);
     }
 
 
     compileCategories(tempitem, top);
 
-    foreach (ItemSatellite *lim, globalLimiterMap_.values())
+    foreach (ItemSatellite *lim, globalLimitMap_.values())
         lim->setParent(top);
 
     return true;
@@ -101,97 +111,161 @@ bool ItemFactory::addArmyFile(ModelItemBase* top, const QString &fileName,
 
 QString ItemFactory::parseMainList(const QString &line, QTextStream &str,
                                    TempTreeModelItem *parentBranch,
-                                   const QString &supTag)
+                                   const QStringList &supTags)
 {
     // Main file is consructed with indented hierarchy
     int tabCount = line.count('\t');
-    QString nLine = line.trimmed();
+    QString parsingLine = line.trimmed();
 
-    // Check for compiletime control elements
-    QStringList tags = parseControl(nLine, '?');
-
-    // Retinue units may be included in other unit entries as options, so are
-    // saved also separately
     bool retinue = false;
-    if (tags.contains("R"))
-    {
-        retinue = true;
-        tags.removeAll("R");
-    }
-    // Check for supplement/faction specific entry. If specific and creating
-    // a different list, don't bother with the entry.
-    if (!supTag.isEmpty() && !tags.isEmpty() && !tags.contains(supTag))
-    {
-        // Recursion control. EOF and empty lines will cease parsing
-        if (str.atEnd())
-            return QString();
-        nLine = str.readLine();
-        // As long as the new line is further indented, it would further the
-        // recursion.
-        while (!nLine.isEmpty() && nLine.count('\t') > tabCount)
-        {
-            nLine = str.readLine();
-        }
-        return nLine;
-    }
 
-    QStringList ctrl = parseControl(nLine);
-    QStringList newspec = parseSpecial(nLine);
-    QStringList splitText = nLine.split('|');
+    parseGlobalControl(parsingLine, str, supTags, retinue);
+
+    QStringList control = parseControl(parsingLine);
+    QStringList tags = parseTags(parsingLine);
+    QStringList splitText = parsingLine.split('|');
     QString text = splitText.at(0).trimmed();
 
+    // pick up each separate listed item for the tag list
     foreach (QString s, text.split(','))
     {
-        s.remove(QRegExp("[\\d\\(\\)]"));
-        s = "+"+s.trimmed();
-        if (!newspec.contains(s))
-            newspec << s;
+        s.remove(QRegExp("\\w*" +
+                         QRegExp::escape(CCharacter(eControl_SlotStart))));
+        s.remove(QRegExp("[\\d" +
+                         QRegExp::escape(CCharacter(eControl_SlotEnd)) +
+                         "\\)]"));
+        s = s.trimmed();
+        if (!tags.contains(s))
+            tags << s;
     }
 
-    TempTreeModelItem *item = new TempTreeModelItem(nLine.trimmed(),ctrl,
-                                                    newspec, parentBranch);
+    TempTreeModelItem *item = new TempTreeModelItem(parsingLine.trimmed()
+                                                    ,control, tags,
+                                                    parentBranch);
 
     if (retinue)
         retinueMap_.insert(text, item);
 
-    // Recursion control. EOF and empty lines will cease parsing
-    if (str.atEnd())
-        return QString();
-    nLine = str.readLine();
-    // As long as the new line is further indented, it will further the
-    // recursion.
-    while (!nLine.isEmpty() && nLine.count('\t') > tabCount)
+    parsingLine = str.readLine();
+
+    while (!parsingLine.isEmpty() && parsingLine.count('\t') > tabCount)
     {
-        nLine = parseMainList(nLine, str, item, supTag);
+        parsingLine = parseMainList(parsingLine, str, item, supTags);
     }
-    return nLine;
+    return parsingLine;
 }
 
-QString ItemFactory::parseIncludes(QTextStream &str)
+void ItemFactory::parseGlobalControl(QString &line,
+                                        QTextStream &str,
+                                        const QStringList &supTags,
+                                        bool &retinue)
+{
+    QStringList control;
+
+    ControlCharacters ctrlchar;
+    QStringList tags;
+    int tabCount;
+    bool done = false;
+
+    // keep parsing globally controlled items until done
+    // done when stream is not read in loop ie. when item is not handled
+    // elsewhere
+    while (!done && !line.isEmpty())
+    {
+        done = true;
+        retinue = false;
+        tabCount = line.count('\t');
+        control = parseControl(line, CCharacter(eControl_Global));
+        foreach (QString ctrl, control)
+        {
+            ctrlchar = ControlC(ctrl.at(0));
+            ctrl.remove(0,1);
+            if (ctrlchar == eControl_Retinue)
+            {
+                retinue = true;
+            }
+
+            else if (ctrlchar == eControl_Limit)
+            {
+                tags = parseTags(ctrl);
+
+                if (!checkTagLimiter(tags, supTags))
+                {
+                    // skip item and branches
+                    line = str.readLine();
+                    while (!line.isEmpty()
+                           && line.count('\t') > tabCount)
+                    {
+                        line = str.readLine();
+                    }
+                    done = false;
+                }
+            }
+
+            else if (ctrlchar == eControl_CreateList)
+            {
+                line = parseList(str, line, supTags);
+                done = false;
+            }
+
+            else if (ctrlchar == eControl_CreateGroup)
+            {
+                parseGroup(ctrl);
+                line = str.readLine();
+                done = false;
+            }
+
+            else if (ctrlchar == eControl_CreateUnitValues)
+            {
+                line = parseTable(str, line);
+                done = false;
+            }
+        }
+    }
+}
+
+QString ItemFactory::parseIncludes(QTextStream &str,
+                                   const QStringList &tags)
 {
     QString line = str.readLine();
     while (!line.isNull() && line.startsWith('\t'))
     {
-        parseFile(line.trimmed());
+        parseFile(line.trimmed(), tags);
         line = str.readLine();
     }
     return line;
 }
 
-QString ItemFactory::mapOrganisation(QTextStream &str)
+void ItemFactory::parseFile(const QString &fileName,
+                            const QStringList &supTags)
+{
+    qDebug() << "parsingFile: " << fileName;
+    QFile file(fileName);
+    if (!file.open(QFile::Text | QFile::ReadOnly))
+        return;
+    QTextStream str(&file);
+    str.setCodec("utf-8");
+
+    QString line = str.readLine();
+    bool b;
+
+    parseGlobalControl(line, str, supTags, b);
+}
+
+QString ItemFactory::parseOrganisation(QTextStream &str)
 {
     QString line = str.readLine();
     QStringList entryLine;
-    while (!line.isNull() && line.startsWith('\t'))
+    while (!line.isEmpty() && line.startsWith('\t'))
     {
-        entryLine = line.split('#');
+        entryLine = line.split(CCharacter(eControl_OrgMainSplit));
         entryLine.removeFirst();
         foreach (QString entry, entryLine)
         {
             entry = entry.trimmed();
             if (!entry.isEmpty())
             {
-                entry = entry.split(';').at(0);
+                entry = entry.split(CCharacter(eControl_OrgPointSplit)).at(0);
                 nameMap_.insert(entry, nameMap_.count());
             }
         }
@@ -201,11 +275,13 @@ QString ItemFactory::mapOrganisation(QTextStream &str)
     return line;
 }
 
-QStringList ItemFactory::parseControl(QString &text, const QChar &ctrl)
+QStringList ItemFactory::parseControl(QString &text, QChar ctrl)
 {
     QStringList ret;
-    text = text.trimmed();
     int sep;
+
+    if (ctrl.isNull())
+        ctrl = CCharacter(eControl_Local);
 
     QRegExp contrl(QString("\\b") + ctrl);
     int prevsep = contrl.indexIn(text);
@@ -227,13 +303,13 @@ QStringList ItemFactory::parseControl(QString &text, const QChar &ctrl)
 
             // if there are no <>, or whitespace is found before one, the
             // whitespace is a word/element separator
-            if (text.indexOf('<', prevsep) < 0 ||
-                sep < text.indexOf('<', prevsep))
+            if (text.indexOf(CCharacter(eControl_TagStart), prevsep) < 0 ||
+                sep < text.indexOf(CCharacter(eControl_TagStart), prevsep))
                 break;
 
             // otherwise found whitespace is inside <>, so search starts again
             // after <> is closed
-            prevsep = text.indexOf('>', prevsep)+1;
+            prevsep = text.indexOf(CCharacter(eControl_TagEnd), prevsep)+1;
         }
         // after a whitespace that separates an element from another of from
         // the rest of the line is found, the word until it is stored
@@ -249,23 +325,245 @@ QStringList ItemFactory::parseControl(QString &text, const QChar &ctrl)
     return ret;
 }
 
-QStringList ItemFactory::parseSpecial(QString &text)
+QStringList ItemFactory::parseTags(QString &text)
 {
     QStringList ret;
     if (text.isEmpty())
         return ret;
 
-    QRegExp specialReg("<(.*)>");
-    specialReg.setMinimal(true);
-    int pos = -1;
+    QString tag = QRegExp::escape(CCharacter(eControl_TagStart)) +
+            "(.*)" +
+            QRegExp::escape(CCharacter(eControl_TagEnd));
 
-    while ((pos = specialReg.indexIn(text, pos+1)) > 0)
+    QRegExp controlReg("!\\w+"+tag);
+    controlReg.setMinimal(true);
+    QRegExp tagReg(tag);
+    tagReg.setMinimal(true);
+    int pos = 0, controlPos;
+
+    // skip control element
+    while ((controlPos = controlReg.indexIn(text, pos)) >= 0)
     {
-        ret << specialReg.cap(1).trimmed();
+        pos = controlPos + controlReg.matchedLength();
     }
 
-    text.remove(specialReg);
+
+    while ((pos = tagReg.indexIn(text, pos)) >= 0)
+    {
+        text.remove(pos, tagReg.matchedLength());
+        ret << tagReg.cap(1).trimmed();
+    }
+
+    text.remove(tagReg);
+    text = text.trimmed();
     return ret;
+}
+
+QString ItemFactory::parseList(QTextStream &str, QString line,
+                               const QStringList &suptag)
+{
+    if (line.isEmpty())
+    {
+        line = str.readLine();
+        while (!line.isEmpty() && line.startsWith('\t'))
+            parseList(str, line, suptag);
+        return line;
+    }
+    int tabCount = line.count('\t');
+
+    TempTreeModelItem *item;
+
+    QStringList controls = parseControl(line);
+    QStringList commonTags = parseTags(line);
+    line = line.trimmed();
+    QStringList tags;
+
+    QChar ctrlchar;
+
+    QList<TempTreeModelItem*> list = listMap_[line];
+
+    QRegExp limitReg(QRegExp::escape(CCharacter(eControl_GlobalLimit)) +
+                     "(\\d+)");
+
+    QString entry = CCharacter(eControl_ListStart) +
+            line +
+            CCharacter(eControl_ListEnd);
+
+    if (controls.indexOf(limitReg) >= 0)
+    {
+        if (globalLimitMap_.contains(entry))
+            qDebug() << "Multiple limit entries! " << line;
+        else
+            globalLimitMap_.insert(entry,
+                     new ItemSatelliteSelectionLimiter(limitReg.cap(1).toInt(),
+                                                ModelItemBasic::eGlobalLimit));
+    }
+
+    line = str.readLine();
+    int itemTabCount;
+    bool skip;
+
+    // read every indented line after listname
+    while (!line.isEmpty() && line.count('\t') > tabCount)
+    {
+        // Check for compiletime control elements
+        controls = parseControl(line, CCharacter(eControl_Global));
+        skip = false;
+        foreach (QString ctrl, controls)
+        {
+            ctrlchar = ControlC(ctrl.at(0));
+            ctrl.remove(0,1);
+
+            if (ctrlchar == eControl_Limit &&
+                    !checkTagLimiter(parseTags(ctrl), suptag))
+            {
+                skip = true;
+                line = str.readLine();
+                itemTabCount = line.count('\t');
+                while (!line.isEmpty()
+                       && line.count('\t') > itemTabCount)
+                {
+                    line = str.readLine();
+                }
+                break;
+            }
+        }
+
+        if (!skip)
+        {
+            controls = parseControl(line);
+            tags = parseTags(line) + commonTags;
+            item = new TempTreeModelItem(line.trimmed(), controls, tags);
+            entry = line.split('|').at(0).trimmed();
+
+            if (controls.indexOf(limitReg) >= 0)
+            {
+                if (globalLimitMap_.contains(entry))
+                    qDebug() << "Multiple limit entries! " << line;
+                else
+                    globalLimitMap_.insert(entry,
+                     new ItemSatelliteSelectionLimiter(limitReg.cap(1).toInt(),
+                                                ModelItemBasic::eGlobalLimit));
+            }
+
+            list << item;
+            line = str.readLine();
+        }
+    }
+
+    return line;
+}
+
+void ItemFactory::parseGroup(QString line)
+{
+    QRegExp groupLimitReg("(" +
+                          QRegExp::escape(CCharacter(eControl_GroupStart)) +
+                          ".+" +
+                          QRegExp::escape(CCharacter(eControl_GroupEnd)) +
+                          ")" +
+                          QRegExp::escape(CCharacter(eControl_Limit)) +
+                          "([" +
+                          CCharacter(eControl_GlobalLimit) +
+                          CCharacter(eControl_LocalLimit) +
+                          "])(\\d+)"
+                          );
+
+
+    if (groupLimitReg.indexIn(line) < 0)
+    {
+        qDebug() << "Faulty group entry " + line;
+        return;
+    }
+    QString group = groupLimitReg.cap(1);
+
+    if (ControlC(groupLimitReg.cap(2).at(0)) == eControl_GlobalLimit)
+    {
+        // if the entry contains a global limit control entry, it must be
+        // created. These will later be given to the top item, which will
+        // take care of destroying them
+        if (globalLimitMap_.contains(group))
+            qDebug() << "Multiple limit entries! " << line;
+        else
+            globalLimitMap_.insert(group,
+                new ItemSatelliteSelectionLimiter(groupLimitReg.cap(3).toInt(),
+                                                ModelItemBasic::eGlobalLimit));
+    }
+    else if (ControlC(groupLimitReg.cap(2).at(0)) == eControl_LocalLimit)
+    {
+        if (localLimitGroupMap_.contains(group))
+            qDebug() << "Multiple group entries! " << line;
+        else
+            localLimitGroupMap_.insert(group, groupLimitReg.cap(3).toInt());
+    }
+}
+
+
+QString ItemFactory::parseTable(QTextStream &str, QString line)
+{
+
+    if (line.isEmpty())
+    {
+        line = str.readLine();
+        while (!line.isEmpty() && line.startsWith('\t'))
+            parseTable(str, line);
+        return line;
+    }
+
+    int tabCount = line.count('\t');
+
+    QStringList splitLine = line.split("|");
+    QString name;
+
+    if (splitLine.count() > 1)
+    {
+        UnitContainer *ucont = new UnitContainer();
+        name = splitLine.at(0).trimmed();
+
+        ucont->points_ = splitLine.at(1).toInt();
+
+        if (splitLine.count() > 2)
+        {
+            if (splitLine.at(2).contains('-'))
+            {
+                QStringList splitEntry = splitLine.at(2).split('-');
+                ucont->min_ = splitEntry.at(0).toInt();
+                ucont->max_ = splitEntry.at(1).toInt();
+            }
+            else
+                ucont->min_ = splitLine.at(2).toInt();
+        }
+        else
+        {
+            qDebug() << "Unit entry not a unit! " << line;
+        }
+
+        if (splitLine.count() > 3)
+            ucont->specialPoints_ = splitLine.at(3).toInt();
+
+        unitMap_.insert(name, ucont);
+
+        ItemContainer item;
+
+        line = str.readLine();
+
+        while (!line.isEmpty() && line.count('\t') > tabCount)
+        {
+            splitLine = line.split("|");
+
+            name = splitLine.at(0).trimmed();
+
+            item = ItemContainer();
+            item.points_ = splitLine.at(1).toInt();
+
+            ucont->items_.insert(name, item);
+
+            line = str.readLine();
+        }
+    }
+    else
+        qDebug() << "Table entry without data " + line;
+
+    return line;
 }
 
 void ItemFactory::compileCategories(const TempTreeModelItem *temproot,
@@ -304,14 +602,16 @@ ModelItemBasic *ItemFactory::compileUnit(const TempTreeModelItem *tempknot,
 
     const UnitContainer *ucont = checkCost(knot, tempknot->text_, models);
 
-    knot->setSpecial(tempknot->spec_);
+    knot->setTags(tempknot->tags_);
 
-    checkControls(tempknot, knot);
+    QMap<QString, ItemSatellite *> localGroupLimiters;
+
+    checkControls(tempknot, knot, localGroupLimiters);
 
     foreach (TempTreeModelItem *itm2, tempknot->unders_)
-        compileItems(itm2, knot, ucont);
+        compileItems(itm2, knot, ucont, localGroupLimiters);
 
-    knot->passSpecialUp(QStringList(),true);
+    knot->passTagsUp(QStringList(),true);
     knot->passModelsDown(models, true);
 
     return knot;
@@ -320,16 +620,18 @@ ModelItemBasic *ItemFactory::compileUnit(const TempTreeModelItem *tempknot,
 void ItemFactory::compileItems(const TempTreeModelItem *tempknot,
                                ModelItemBase *trunk,
                                const UnitContainer *ucont,
-                               ItemSatellite *sharedSat)
+                               QMap<QString, ItemSatellite *>
+                               &localGroupLimiters,
+                               ItemSatellite *takeLimiter)
 {
     // lists are compiled separately
-    if (tempknot->text_.startsWith('['))
+    if (tempknot->text_.contains(CCharacter(eControl_ListStart)))
     {
-        compileList(tempknot, trunk, ucont, sharedSat);
+        compileList(tempknot, trunk, ucont, localGroupLimiters, takeLimiter);
         return;
     }
 
-    QChar ctrlchar;
+    ControlCharacters ctrlchar;
     bool spin = false;
     TempTreeModelItem *retinue = nullptr;
 
@@ -337,35 +639,37 @@ void ItemFactory::compileItems(const TempTreeModelItem *tempknot,
 
     foreach (QString ctrl, tempknot->control_)
     {
-        ctrlchar = ctrl.at(0);
+        ctrlchar = ControlC(ctrl.at(0));
 
         // selection roots are compiled differently
-        if (ctrlchar == '\\')
+        if (ctrlchar == eControl_Selection)
         {
-            compileSelection(tempknot, trunk, ucont);
+            compileSelection(tempknot, trunk, ucont, localGroupLimiters,
+                             takeLimiter);
             return;
         }
-        // compileSelection gives slotmap, which includes all available
-        // slotnames mapped to an integer
-        else if (ctrlchar == '/')
+        else if (ctrlchar == eControl_Slot)
         {
             qDebug() << "Slot item without Selection " << text;
             return;
         }
         // items selectable multiple times need spinners
-        else if (ctrlchar == '$')
+        else if (ctrlchar == eControl_Multiple)
             spin = true;
 
         // retinue items are compiled as units, and edited as needed
-        else if (ctrlchar == 'R')
+        else if (ctrlchar == eControl_Retinue)
         {
-            ctrl.remove(ctrlchar);
+            ctrl.remove(1,0);
             // retinue name may be omitted, if option text is the name, nothing
             // else
             if (ctrl.isEmpty())
                 ctrl = text;
             else
-                ctrl.remove(QRegExp("[<>]"));
+            {
+                ctrl.remove(CCharacter(eControl_TagStart));
+                ctrl.remove(CCharacter(eControl_TagEnd));
+            }
 
             retinue = retinueMap_.value(ctrl);
             if (!retinue)
@@ -394,70 +698,61 @@ void ItemFactory::compileItems(const TempTreeModelItem *tempknot,
 
     checkCost(knot, text, temp, ucont);
 
-    knot->setSpecial(tempknot->spec_);
+    knot->setTags(tempknot->tags_);
 
-    if (sharedSat)
-        knot->connectToSatellite(sharedSat);
+    if (takeLimiter)
+        knot->connectToSatellite(takeLimiter);
 
-    sharedSat = checkControls(tempknot, knot);
+    takeLimiter = checkControls(tempknot, knot, localGroupLimiters);
 
     foreach (TempTreeModelItem *itm2, tempknot->unders_)
-        compileItems(itm2, knot, ucont, sharedSat);
+        compileItems(itm2, knot, ucont, localGroupLimiters, takeLimiter);
 }
 
 void ItemFactory::compileList(const TempTreeModelItem *tempknot,
                               ModelItemBase *trunk,
                               const UnitContainer *ucont,
-                              ItemSatellite *sharedSat)
+                              QMap<QString, ItemSatellite *>
+                              &localGroupLimiters,
+                              ItemSatellite *takeLimiter)
 {
-    QString text = tempknot->text_;
-
-    QString name = text;
-    QString xgroup = QString();
-    QRegExp listname("(\\[.*\\])");
-    QRegExp extragroup("(\\{.*\\})");
-
-    if (listname.indexIn(text) >= 0)
-    {
-        name = listname.cap(1);
-        if (extragroup.indexIn(text) >= 0)
-        {
-            xgroup = extragroup.cap(1);
-        }
-    }
+    QString name = tempknot->text_;
+    name.remove(CCharacter(eControl_ListStart));
+    name.remove(CCharacter(eControl_ListEnd));
 
     if (!listMap_.contains(name))
     {
-        qDebug() << "Unknown listname: " << text;
+        qDebug() << "Unknown listname: " << tempknot->text_;
         return;
     }
 
-    QChar ctrlchar;
+    ControlCharacters ctrlchar;
 
     ModelItemBasic *knot = new ModelItemBasic(trunk);
 
     trunk->addItem(knot);
 
-    knot->setText(name.remove("[\\[\\]]"));
+    knot->setText(name);
 
-    QStringList list = listMap_.value(name);
-    QStringList specials = tempknot->spec_;
-    QStringList controls;
-    QRegExp specialEntry("!<(.+)>");
-    specialEntry.setMinimal(true);
-    QRegExp controlEntry("^!(.+)\\s");
-    controlEntry.setMinimal(true);;
-    QRegExp limitReg("!(.*)\\?#(\\d+)");
-    int pos;
-    QMap<QString, ItemSatellite*> limits;
+    ItemSatellite *globalLimiter = globalLimitMap_.value(tempknot->text_,
+                                                         nullptr);
+
+    QList<TempTreeModelItem*> list = listMap_.value(name);
+
     ItemSatellite *limiter;
-    int tries = 1;
+    QRegExp tagReg(QRegExp::escape(CCharacter(eControl_TagStart)) +
+                   "(.+)" +
+                   QRegExp::escape(CCharacter(eControl_TagEnd)));
+    tagReg.setMinimal(true);
+    QStringList tagList;
+    int pos;
 
-    foreach (QString listEntry, list)
+    foreach (TempTreeModelItem *listEntry, list)
     {
-        if (listEntry.startsWith('['))
+        if (listEntry->text_.contains(CCharacter(eControl_ListStart)))
         {
-            compileList(tempknot, trunk, ucont, sharedSat);
+            compileList(listEntry, knot, ucont, localGroupLimiters,
+                        takeLimiter);
             continue;
         }
 
@@ -465,97 +760,72 @@ void ItemFactory::compileList(const TempTreeModelItem *tempknot,
 
         knot->addItem(branch);
 
-        pos = 0;
-        specials.clear();
-        while ((pos = specialEntry.indexIn(listEntry,pos)) >= 0)
-        {
-            specials << specialEntry.cap(1);
-            pos += specialEntry.matchedLength();
-        }
-        listEntry.remove(specialEntry);
-
-        if (controlEntry.indexIn(listEntry) >= 0)
-        {
-            controls = controlEntry.cap(1).split('!');
-            listEntry.remove(controlEntry);
-        }
-
         int temp;
-        checkCost(branch, listEntry, temp);
+        checkCost(branch, listEntry->text_, temp);
 
-        branch->setSpecial(specials);
+        branch->setTags(listEntry->tags_);
 
-        if (sharedSat)
-            branch->connectToSatellite(sharedSat);
+        if (takeLimiter)
+            branch->connectToSatellite(takeLimiter);
+        if (globalLimiter)
+            branch->connectToSatellite(globalLimiter);
 
-        foreach (QString ctrl, controls)
+        foreach (QString ctrl, listEntry->control_)
         {
-            ctrlchar = ctrl.at(0);
+            ctrlchar = ControlC(ctrl.at(0));
             ctrl.remove(0,1);
 
-            if (ctrlchar == '=')
+            if (ctrlchar == eControl_GlobalLimit)
             {
-                if (!globalLimiterMap_.contains(listEntry))
-                    qDebug() << "Name not in lists: " << listEntry;
+                // global limiters were created while parsing
+                if (!globalLimitMap_.contains(listEntry->text_))
+                    qDebug() << "Name not in lists: " << listEntry->text_;
                 else
-                    branch->connectToSatellite(globalLimiterMap_[listEntry]);
+                    branch->connectToSatellite(
+                                globalLimitMap_[listEntry->text_]);
             }
 
-            else if (ctrlchar == '{' || !xgroup.isNull())
+            else if (ctrlchar == eControl_Limit)
             {
-                ctrl.prepend(ctrlchar);
-                tries = 1;
-                if (!xgroup.isNull())
+                // check if limit is by tags
+                if ((pos = tagReg.indexIn(ctrl)) >= 0)
                 {
-                    ctrl.append(xgroup);
-                    tries = 2;
-                }
-                while (tries)
-                {
-                    if (!globalLimiterMap_.contains(ctrl))
+                    tagList.clear();
+                    tagList << tagReg.cap(1);
+                    pos += tagReg.matchedLength();
+                    while ((pos = tagReg.indexIn(ctrl, pos)) >= 0)
                     {
-                        if (!listMap_.contains("[!]"))
-                        {
-                            qDebug() << "Faulty list name in list: " << ctrl;
-                            break;
-                        }
-
-                        foreach (QString group, listMap_.value("[!]"))
-                        {
-                            if (limitReg.indexIn(group) >= 0 &&
-                                    limitReg.cap(1) == ctrl)
-                            {
-                                if (limits.contains(ctrl))
-                               branch->connectToSatellite(limits[ctrl]);
-                                else
-                                {
-                                    limiter = new ItemSatelliteSelectionLimiter(
-                                                limitReg.cap(2).toInt(),
-                                                ModelItemBasic::eCountLimit,
-                                                knot);
-
-                               branch->connectToSatellite(limiter, true);
-
-                                    limits.insert(ctrl,limiter);
-                                }
-                                tries = 0;
-                                break;
-                            }
-                        }
-
+                        tagList << tagReg.cap(1);
+                        pos += tagReg.matchedLength();
                     }
+                    branch->setLimitingTags(tagList);
+                }
+
+                // if not then it's by group
+                else if (globalLimitMap_.contains(ctrl))
+                    branch->connectToSatellite(globalLimitMap_[ctrl]);
+
+                // local if not global
+                else if (localLimitGroupMap_.contains(ctrl))
+                {
+
+                    if (localGroupLimiters.contains(ctrl))
+                        branch->connectToSatellite(localGroupLimiters[ctrl]);
                     else
                     {
-                        branch->connectToSatellite(globalLimiterMap_[ctrl]);
-                        tries = 0;
-                    }
+                        limiter = new ItemSatelliteSelectionLimiter(
+                                    localLimitGroupMap_.value(ctrl),
+                                    ModelItemBasic::eCountLimit,
+                                    branch);
 
-                    if (tries)
-                    {
-                        ctrl.remove(xgroup);
-                        --tries;
+                        branch->connectToSatellite(limiter, true);
+
+                        localGroupLimiters.insert(ctrl,limiter);
                     }
                 }
+
+                else
+                     qDebug() << "Faulty limit " << listEntry->text_;
             }
         }
     }
@@ -564,7 +834,9 @@ void ItemFactory::compileList(const TempTreeModelItem *tempknot,
 void ItemFactory::compileSelection(const TempTreeModelItem *tempknot,
                                    ModelItemBase *trunk,
                                    const UnitContainer *ucont,
-                                   ItemSatellite *sharedSat)
+                                   QMap<QString, ItemSatellite *>
+                                   &localGroupLimiters,
+                                   ItemSatellite *takeLimiter)
 {
     ModelItemSelection *knot = new ModelItemSelection(trunk);
 
@@ -572,8 +844,10 @@ void ItemFactory::compileSelection(const TempTreeModelItem *tempknot,
 
     // Different slots are of form "group(item) group2(item2) ..."
     // or if only one slot group and parantheses may be omitted
-    QStringList texts = tempknot->text_.split(")", QString::SkipEmptyParts);
-    QString text, group;
+    QStringList texts = tempknot->text_.split(CCharacter(eControl_SlotEnd),
+                                              QString::SkipEmptyParts);
+    QString text;
+    QStringList grouped;
     QMap<QString,int> groupMap;
     QStringList defaults;
     int temp;
@@ -582,44 +856,52 @@ void ItemFactory::compileSelection(const TempTreeModelItem *tempknot,
     {
         text = texts.at(i);
 
+        // text splitting removed slot ending character, now remove beginning
+        grouped = text.split(CCharacter(eControl_SlotStart),
+                             QString::SkipEmptyParts);
         // extract group name if applicable
-        group = text.section("(",0,0);
-        if (text.contains('(') && !group.isEmpty())
+        if (grouped.count() > 1)
         {
             // groups are mapped to growing integer for programmatical reasons
-            groupMap.insert(group,i);
+            groupMap.insert(grouped.takeFirst(), i);
         }            
 
-        if (text.contains('('))
-            text = text.section("(",1);
+        text = grouped.at(0);
 
         defaults << text;
 
         checkCost(knot, text, temp, ucont, i);
     }
 
-    knot->setSpecial(tempknot->spec_);
+    knot->setTags(tempknot->tags_);
 
-    if (sharedSat)
-        knot->connectToSatellite(sharedSat);
+    if (takeLimiter)
+        knot->connectToSatellite(takeLimiter);
 
-    sharedSat = checkControls(tempknot, knot);
+    takeLimiter = checkControls(tempknot, knot, localGroupLimiters);
 
 
     if (groupMap.isEmpty())
-        compileSlots(tempknot, knot, groupMap, defaults, ucont, sharedSat);
+        // only one slot with no group defined, all children are replacing
+        // items
+        compileSlots(tempknot, knot, groupMap, defaults, ucont,
+                     localGroupLimiters, takeLimiter);
     else
     {
-        QRegExp slotItem("/.* ");
+        QRegExp slotItem(QRegExp::escape(CCharacter(eControl_Slot)) +
+                         ".* ");
         slotItem.setMinimal(true);
+
         foreach (TempTreeModelItem *itm2, tempknot->unders_)
         {
             // selections may contain other items than replacing
             // items
             if (itm2->control_.indexOf(slotItem) < 0)
-                compileItems(itm2, knot, ucont, sharedSat);
+                compileItems(itm2, knot, ucont, localGroupLimiters,
+                             takeLimiter);
             else
-                compileSlots(itm2, knot, groupMap, defaults, ucont, sharedSat);
+                compileSlots(itm2, knot, groupMap, defaults, ucont,
+                             localGroupLimiters, takeLimiter);
         }
     }
 }
@@ -629,7 +911,8 @@ void ItemFactory::compileSlots(const TempTreeModelItem *tempknot,
                                const QMap<QString, int> &slotmap,
                                const QStringList &defaults,
                                const UnitContainer *ucont,
-                               ItemSatellite *sharedSat)
+                            QMap<QString, ItemSatellite *> &localGroupLimiters,
+                               ItemSatellite *takeLimiter)
 {
     QList<int> slotList;
     // empty slotmap means only one unnamed slot without treemodelitem, and
@@ -638,15 +921,15 @@ void ItemFactory::compileSlots(const TempTreeModelItem *tempknot,
         slotList << 0;
     else
     {
-        QChar ctrlchar;
+        ControlCharacters ctrlchar;
 
         foreach (QString ctrl, tempknot->control_)
         {
-            ctrlchar = ctrl.at(0);
+            ctrlchar = ControlC(ctrl.at(0));
 
             // compileSelection gives slotmap, which includes all available
             // slotnames mapped to an integer
-            if (ctrlchar == '/')
+            if (ctrlchar == eControl_Slot)
             {
                 ctrl.remove(ctrlchar);
                 if (ctrl.isEmpty())
@@ -674,66 +957,79 @@ void ItemFactory::compileSlots(const TempTreeModelItem *tempknot,
         QString last = texts.takeLast();
         texts.last().append(" and " + last);
     }
-
     knot->setText(texts.join(", "));
 
     if (!slotmap.isEmpty())
     {
-        knot->setSpecial(tempknot->spec_);
+        knot->setTags(tempknot->tags_);
 
-        if (sharedSat)
-            knot->connectToSatellite(sharedSat);
+        if (takeLimiter)
+            knot->connectToSatellite(takeLimiter);
 
-        sharedSat = checkControls(tempknot, knot);
+        takeLimiter = checkControls(tempknot, knot, localGroupLimiters);
     }
 
     foreach (TempTreeModelItem *itm2, tempknot->unders_)
-        compileItems(itm2, knot, ucont, sharedSat);
+        compileItems(itm2, knot, ucont, localGroupLimiters, takeLimiter);
 }
 
-void ItemFactory::parseFile(const QString &fileName)
+bool ItemFactory::checkTagLimiter(const QStringList &limitingTags,
+                                  const QStringList &tags)
 {
-    qDebug() << "parsingFile: " << fileName;
-    QFile file(fileName);
-    if (!file.open(QFile::Text | QFile::ReadOnly))
-        return;
-    QTextStream str(&file);
-    str.setCodec("utf-8");
-
-    QString line = str.readLine();
-
-    while (!line.isNull())
+    int i = 0;
+    bool ok = false;
+    if (limitingTags.count() < 1)
+        ok = true;
+    // check every limiting tag if any one is ok
+    while (i < limitingTags.count() && !ok)
     {
-        // [AAA] denotes a category list entry
-        if (line.startsWith('['))
-            line = parseList(str, line);
+        ok = true;
+        // split each tag by comma to check if any separate tags are
+        // not ok
+        foreach (QString tag, limitingTags.at(i).split(','))
+        {
+            // if any separated tag fails, no need to check others
+            if (!tags.contains(tag.trimmed()))
+            {
+                ok = false;
+                break;
+            }
+        }
 
-        else
-            line = parseTable(str, line);
+        ++i;
     }
+
+    return ok;
 }
 
 ItemSatellite *ItemFactory::checkControls(const TempTreeModelItem *tempknot,
-                                                  ModelItemBasic *knot)
+                                          ModelItemBasic *knot,
+                                          QMap<QString, ItemSatellite *>
+                                          &localGroupLimiters)
 {
-    QChar ctrlchar;
+    ControlCharacters ctrlchar;
     ItemSatellite *ret = nullptr;
+    ItemSatellite *limiter;
+
     short sign;
-    QRegExp permodel("(\\d+)@(\\d+)");
+    QRegExp permodel("(\\d+)" +
+                     QRegExp::escape(CCharacter(eControl_Model)) +
+                     "(\\d+)");
+
+    QRegExp tagReg(QRegExp::escape(CCharacter(eControl_TagStart)) +
+                   "(.+)" +
+                   QRegExp::escape(CCharacter(eControl_TagEnd)));
+    tagReg.setMinimal(true);
+    QStringList tagList;
+    int pos;
 
     foreach (QString ctrl, tempknot->control_)
     {
         sign = 1;
-        ctrlchar = ctrl.at(0);
+        ctrlchar = ControlC(ctrl.at(0));
         ctrl.remove(0,1);
 
-        if (ctrlchar == ';')
-            knot->setCostLimit(ctrl.toInt());
-
-        else if (ctrlchar == ':')
-            knot->setAlwaysChecked();
-
-        else if (ctrlchar == '#')
+        if (ctrlchar == eControl_Take)
         {
             if (permodel.indexIn(ctrl) >= 0)
                 ret = new ItemSatelliteSelectionLimiterModels(
@@ -742,16 +1038,85 @@ ItemSatellite *ItemFactory::checkControls(const TempTreeModelItem *tempknot,
                             ModelItemBase::eCriticalLimit, knot);
             else
                 ret = new ItemSatelliteSelectionLimiter(ctrl.toInt(),
-                                            ModelItemBase::eCountLimit,
-                                             knot);
+                                                    ModelItemBase::eCountLimit,
+                                                        knot);
             knot->limitedBy(ModelItemBase::eSelectionLimit);
         }
 
-        else if (ctrlchar == '€')
+        else if (ctrlchar == eControl_GlobalModelLimit)
+        {
+            knot->connectToSatellite(
+                        new ItemSatelliteModelMirror(knot), true);
+            knot->setModelLimiter(0,ctrl.toInt());
+        }
+
+        else if (ctrlchar == eControl_GlobalCheck)
             knot->connectToSatellite(
                         new ItemSatelliteSelectionMirror(knot), true);
 
-        else if (ctrlchar == '$')
+        else if (ctrlchar == eControl_SelectPoints)
+            knot->setCostLimit(ctrl.toInt());
+
+
+
+
+
+        else if (ctrlchar == eControl_GlobalLimit)
+        {
+            if (ctrl == "1")
+                knot->limitedBy(ModelItemBase::eNotClonable);
+            else
+                knot->connectToSatellite(new ItemSatelliteSelectionLimiter(
+                                             ctrl.toInt(),
+                                             ModelItemBase::eNotClonable,
+                                             knot));
+        }
+
+        else if (ctrlchar == eControl_Limit)
+        {
+            // check if limit is by tags
+            if ((pos = tagReg.indexIn(ctrl)) >= 0)
+            {
+                tagList.clear();
+                tagList << tagReg.cap(1);
+                pos += tagReg.matchedLength();
+                while ((pos = tagReg.indexIn(ctrl, pos)) >= 0)
+                {
+                    tagList << tagReg.cap(1);
+                    pos += tagReg.matchedLength();
+                }
+                knot->setLimitingTags(tagList);
+            }
+
+            // if not then it's by group
+            else if (globalLimitMap_.contains(ctrl))
+                knot->connectToSatellite(globalLimitMap_[ctrl]);
+
+            // local if not global
+            else if (localLimitGroupMap_.contains(ctrl))
+            {
+
+                if (localGroupLimiters.contains(ctrl))
+                    knot->connectToSatellite(localGroupLimiters[ctrl]);
+                else
+                {
+                    limiter = new ItemSatelliteSelectionLimiter(
+                                localLimitGroupMap_.value(ctrl),
+                                ModelItemBasic::eCountLimit,
+                                knot);
+
+                    knot->connectToSatellite(limiter, true);
+
+                    localGroupLimiters.insert(ctrl,limiter);
+                }
+            }
+
+            else
+                 qDebug() << "Faulty limit " << tempknot->text_;
+
+        }
+
+        else if (ctrlchar == eControl_Multiple)
         {
             if (permodel.indexIn(ctrl) >= 0)
             {
@@ -767,41 +1132,39 @@ ItemSatellite *ItemFactory::checkControls(const TempTreeModelItem *tempknot,
                 knot->setRange(0,ctrl.toInt());
         }
 
-        else if (ctrlchar == '*')
-            knot->setForAll();
-
-        else if (ctrlchar == '^')
+        else if (ctrlchar == eControl_ModelMax)
             knot->setModelLimiter(0,ctrl.toInt());
 
-        else if (ctrlchar == '_')
-            knot->setModelLimiter(ctrl.toInt(),0);
-
-        else if (ctrlchar == '§')
+        else if (ctrlchar == eControl_UnitCat)
         {
-            knot->connectToSatellite(
-                        new ItemSatelliteModelMirror(knot), true);
-            knot->setModelLimiter(0,ctrl.toInt());
-        }
+            ctrl.remove(CCharacter(eControl_TagStart));
+            ctrl.remove(CCharacter(eControl_TagEnd));
 
-        else if (ctrlchar == '{')
-        {
-            ctrl.prepend(ctrlchar);
-
-            if (!globalLimiterMap_.contains(ctrl))
-                qDebug() << "Faulty list name in main list: " << ctrl;
-            else
-                knot->connectToSatellite(globalLimiterMap_[ctrl]);
-        }
-        else if (ctrlchar == '~')
-        {
-
-            if (ctrl.startsWith('/'))
+            sign = 1;
+            if (ctrl.startsWith(CCharacter(eControl_NOT)))
             {
                 sign = -1;
                 ctrl.remove(0,1);
             }
 
-            ctrl.remove(QRegExp("[<>]"));
+            if (!nameMap_.contains(ctrl))
+                qDebug() << "Faulty role name in main list: " << ctrl;
+            else
+                knot->setUnitCountsAs(sign* nameMap_.value(ctrl));
+
+        }
+
+        else if (ctrlchar == eControl_ItemCat)
+        {
+            ctrl.remove(CCharacter(eControl_TagStart));
+            ctrl.remove(CCharacter(eControl_TagEnd));
+
+            sign = 1;
+            if (ctrl.startsWith(CCharacter(eControl_NOT)))
+            {
+                sign = -1;
+                ctrl.remove(0,1);
+            }
 
             if (!nameMap_.contains(ctrl))
                 qDebug() << "Faulty role name in main list: " << ctrl;
@@ -809,33 +1172,27 @@ ItemSatellite *ItemFactory::checkControls(const TempTreeModelItem *tempknot,
                 knot->setCountsAs(sign* nameMap_.value(ctrl));
 
         }
-        else if (ctrlchar == '¨')
-        {
-            ctrl.remove(QRegExp("[<>]"));
 
-            if (!nameMap_.contains(ctrl))
-                qDebug() << "Faulty role name in main list: " << ctrl;
-            else
-                knot->setUnitCountsAs(nameMap_.value(ctrl));
+        else if (ctrlchar == eControl_ForAll)
+            knot->setForAll();
 
-        }
-        else if (ctrlchar == '=')
-        {
-            if (ctrl == "1")
-                knot->limitedBy(ModelItemBase::eNotClonable);
-            else
-                knot->connectToSatellite(
-                            new ItemSatelliteSelectionLimiter(ctrl.toInt(),
-                                                     ModelItemBase::eNotClonable,
-                                                      knot));
-        }
-        else if (ctrlchar == '¤')
+        else if (ctrlchar == eControl_AutoCheck)
+            knot->setManualLock(true);
+
+        else if (ctrlchar == eControl_Replace)
         {
             if (ctrl.isEmpty())
                 knot->setModelOverride(1);
             else
                 knot->setModelOverride(ctrl.toInt());
         }
+
+        else if (ctrlchar == eControl_AlwaysCheck)
+            knot->setAlwaysChecked();
+
+        else if (ctrlchar == eControl_ModelMin)
+            knot->setModelLimiter(ctrl.toInt(),0);
+
     }
     return ret;
 }
@@ -911,209 +1268,6 @@ const UnitContainer *ItemFactory::checkCost(ModelItemBasic *knot,
     return nullptr;
 }
 
-QString ItemFactory::parseList(QTextStream &str, QString line)
-{
-
-    QRegExp name("(\\[.*\\])");
-    if (name.indexIn(line) < 0)
-    {
-        qDebug() << "Unviable list name";
-        return QString();
-    }
-    QString listname = name.cap(1);
-
-    // special entries common to all list members may be added after list name
-    QString commonSpecial("");
-    line = line.remove(name).trimmed();
-    if (!line.isEmpty() && line.startsWith('!'))
-        commonSpecial = line;
-
-    QStringList list = listMap_.value(listname);
-
-    QRegExp groupLimitReg("!(\\{.*\\})\\?");
-//    groupLimitReg.setMinimal(true);
-    QRegExp limitReg("=(\\d+)");
-    QRegExp specialEntry("!<(.+)>");
-    specialEntry.setMinimal(true);
-    QRegExp controlEntry("!.+\\s");
-    controlEntry.setMinimal(true);
-    QString entry;
-
-    line = str.readLine();
-
-    // read every indented line after listname
-    while (!line.isNull() && line.startsWith('\t'))
-    {
-//        line = parseTableEntry(line).trimmed();
-        line = line.trimmed();
-        line = line.prepend(commonSpecial);
-
-        // if the entry contains a global limit control entry, it must be
-        // created. These will later be given to the top item, which will
-        // take care of destroying them
-        if (limitReg.indexIn(line) >= 0)
-        {
-            entry = "";
-            if (groupLimitReg.indexIn(line) >= 0)
-                entry = groupLimitReg.cap(1);
-            if (entry.isEmpty())
-            {
-                entry = line.split('|').at(0).trimmed();
-                entry.remove(specialEntry).remove(controlEntry);
-            }
-
-            if (globalLimiterMap_.contains(entry))
-                qDebug() << "Multiple limit entries! " << line;
-            else
-                globalLimiterMap_.insert(entry,
-                               new ItemSatelliteSelectionLimiter(limitReg.cap(1)
-                                                                 .toInt(),
-                                                  ModelItemBasic::eGlobalLimit));
-        }
-
-        list << line;
-        line = str.readLine();
-    }
-
-    listMap_.insert(listname, list);
-    return line;
-}
-
-QString ItemFactory::parseTable(QTextStream &str, QString line)
-{
-    // Unit entries have data after their name, otherwise the line is a heading
-    // and may be ignored
-    QStringList splitLine = line.split("|");
-    QString name;
-
-    if (splitLine.count() >= 1)
-    {
-        UnitContainer *ucont = new UnitContainer();
-        name = splitLine.at(0).trimmed();
-
-        ucont->points_ = splitLine.at(1).toInt();
-
-        if (splitLine.count() > 2)
-        {
-            if (splitLine.at(2).contains('-'))
-            {
-                QStringList splitEntry = splitLine.at(2).split('-');
-                ucont->min_ = splitEntry.at(0).toInt();
-                ucont->max_ = splitEntry.at(1).toInt();
-            }
-            else
-                ucont->min_ = splitLine.at(2).toInt();
-        }
-        else
-        {
-            qDebug() << "Unit entry not a unit! " << line;
-        }
-
-        // unit entries may also carry special cost aside from per model
-        // price
-        if (splitLine.count() > 3)
-            ucont->specialPoints_ = splitLine.at(3).toInt();
-
-        unitMap_.insert(name, ucont);
-
-        line = str.readLine();
-
-        ItemContainer item;
-
-        while (!line.isNull() && line.startsWith('\t'))
-        {
-            splitLine = line.split("|");
-
-            name = splitLine.at(0).trimmed();
-
-            item = ItemContainer();
-            item.points_ = splitLine.at(1).toInt();
-
-            ucont->items_.insert(name, item);
-
-            line = str.readLine();
-        }
-    }
-/*    // Entries that are not unit may or may not contain different information?
-    // Propably unnecessarily complicated, SM need only for 'Chapter Command',
-    // May be cut down in future.
-    else
-    {
-
-        QRegExp specialEntry("!<(.+)>");
-        specialEntry.setMinimal(true);
-
-        QRegExp multiplier("^(\\d+)");
-        QStringList splitEntry;
-
-        PointContainer *entry;
-
-        line = str.readLine();
-
-        while (!line.isNull() && line.startsWith('\t'))
-        {
-
-            splitLine = line.split("|");
-
-            name = splitLine.at(0);
-            if (name.contains('!'))
-                name = name.remove(specialEntry).trimmed();
-
-            // if the entry doesn't include price information, nothing else needs
-            // to be done
-            if (splitLine.count() >= 1)
-            {
-
-                entry = new PointContainer();
-                entry->text = name;
-
-                if (multiplier.indexIn(name) > 0)
-                {
-                    entry->multiplier = multiplier.cap(1).toInt();
-                    entry->text.remove(multiplier);
-                }
-
-
-                // look for special entries
-                int pos = 0;
-                while ((pos = specialEntry.indexIn(splitLine.at(0),pos)) >= 0)
-                {
-                    entry->special << specialEntry.cap(1);
-                    pos += specialEntry.cap(1).count();
-                }
-
-                // we have confirmed that entry has at least a price
-                entry->points = splitLine.at(1).toInt();
-
-                // if entry is a unit, it will have a second point of
-                // information for models
-                if (splitLine.count() > 2)
-                {
-                    if (splitLine.at(2).contains('-'))
-                    {
-                        splitEntry = splitLine.at(2).split('-');
-                        entry->min = splitEntry.at(0).toInt();
-                        entry->max = splitEntry.at(1).toInt();
-                    }
-                    else
-                        entry->min = splitLine.at(2).toInt();
-                }
-
-                // unit entries may also carry special cost aside from per model
-                // price
-                if (splitLine.count() > 3)
-                    entry->specialPoints = splitLine.at(3).toInt();
-
-                _pointList << entry;
-            }
-
-            line = str.readLine();
-        }
-
-    }*/
-    return line;
-}
-
 int ItemFactory::countItems(QString text,
                             const UnitContainer *ucont)
 {
@@ -1163,14 +1317,31 @@ void ItemFactory::clear()
         delete p;
         p = nullptr;
     }
+    pointList_.clear();
     foreach (UnitContainer *p, unitMap_.values())
     {
         delete p;
         p = nullptr;
     }
+    unitMap_.clear();
+    foreach (QList<TempTreeModelItem*> l, listMap_.values())
+        foreach (TempTreeModelItem* i, l)
+            if (i)
+            {
+                delete i;
+                i = nullptr;
+            }
     listMap_.clear();
-    globalLimiterMap_.clear();
+    localLimitGroupMap_.clear();
+    globalLimitMap_.clear();
     nameMap_.clear();
+    foreach (TempTreeModelItem* i, retinueMap_.values())
+        if (i)
+        {
+            delete i;
+            i = nullptr;
+        }
+    retinueMap_.clear();
 }
 
 TempTreeModelItem::TempTreeModelItem(const QString &text,
@@ -1179,7 +1350,7 @@ TempTreeModelItem::TempTreeModelItem(const QString &text,
                                      TempTreeModelItem *parent)
     : text_(text)
     , control_(ctrl)
-    , spec_(spec)
+    , tags_(spec)
     , unders_(QList<TempTreeModelItem*>())
 {
     if (parent)

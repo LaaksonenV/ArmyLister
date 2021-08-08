@@ -135,7 +135,7 @@ public:
      *
      * Units use special element information
      */
-    virtual void passSpecialUp(const QStringList &, bool);
+    virtual void passTagsUp(const QStringList &, bool);
 
     /*!
      * \brief changeCost changed cost value
@@ -165,7 +165,7 @@ public:
      * list needs to be spread to all items that have limitations
      * base on the special elements
      */
-    virtual void passSpecialDown(const QStringList &list);
+    virtual void passTagsDown(const QStringList &list);
 
     /*!
      * \brief passCostDown pass function for remaining points on limited

@@ -25,9 +25,10 @@ ModelItemBasic::ModelItemBasic(ModelItemBase *parent)
     , checked_(false)
     , current_(1)
     , title_(new QLabel(this))
-    , specials_(QStringList())
-    , specialLimiters_(QStringList())
-    , initialSpecials_(QStringList())
+    , unitCountsAs_(0)
+    , tags_(QStringList())
+    , limitingTags_(QStringList())
+    , initialTags_(QStringList())
     , forAllModels_(-1)
     , modelOverride_(0)
     , constantOverride_(true)
@@ -38,7 +39,6 @@ ModelItemBasic::ModelItemBasic(ModelItemBase *parent)
     , modelLimitMax_(0)
     , bHasModelLimitMax_(false)
     , countsAs_(0)
-    , unitCountsAs_(0)
     , expandButton_(nullptr)
     , bExpanded_(false)
     , bAlwaysChecked_(false)
@@ -56,9 +56,10 @@ ModelItemBasic::ModelItemBasic(ModelItemBasic *source, ModelItemBase *parent)
     , checked_(false)
     , current_(1)
     , title_(new QLabel(this))
-    , specials_(QStringList())
-    , specialLimiters_(QStringList())
-    , initialSpecials_(QStringList())
+    , unitCountsAs_(0)
+    , tags_(QStringList())
+    , limitingTags_(QStringList())
+    , initialTags_(QStringList())
     , forAllModels_(-1)
     , modelOverride_(0)
     , constantOverride_(true)
@@ -69,7 +70,6 @@ ModelItemBasic::ModelItemBasic(ModelItemBasic *source, ModelItemBase *parent)
     , modelLimitMax_(0)
     , bHasModelLimitMax_(false)
     , countsAs_(0)
-    , unitCountsAs_(0)
     , expandButton_(nullptr)
     , bExpanded_(false)
     , bAlwaysChecked_(false)
@@ -80,7 +80,7 @@ ModelItemBasic::ModelItemBasic(ModelItemBasic *source, ModelItemBase *parent)
     init();
 
     setText(source->getText());
-    setTags(source->initialSpecials_);
+    setTags(source->initialTags_);
     int min = 0;
     int max = 0;
     if (bHasModelLimitMin_)
@@ -170,16 +170,15 @@ void ModelItemBasic::setText(const QString &text, int)
 
 void ModelItemBasic::setTags(const QStringList &list)
 {
-    initialSpecials_.append(list);
-    foreach (QString s, list)
-    {
-        if (s.startsWith('-') || s.startsWith('+'))
-            specials_ << s;
-        else
-            specialLimiters_ << s;
-    }
+    initialTags_.append(list);
+    tags_.append(list);
     if (list.count() && checked_)
-        trunk_->passSpecialUp(specials_,true);
+        trunk_->passTagsUp(tags_,true);
+}
+
+void ModelItemBasic::setLimitingTags(const QStringList &list)
+{
+    limitingTags_.append(list);
 }
 
 void ModelItemBasic::setModelLimiter(int min, int max)
@@ -303,16 +302,16 @@ QString ModelItemBasic::getPrintText() const
     return title_->text();
 }
 
-void ModelItemBasic::passSpecialUp(const QStringList &list, bool check)
+void ModelItemBasic::passTagsUp(const QStringList &list, bool check)
 {
     if (check)
-        specials_ << list;
+        tags_ << list;
     else
         foreach (QString s, list)
-            specials_.removeOne(s);
+            tags_.removeOne(s);
 
     if (checked_)
-        trunk_->passSpecialUp(list, check);
+        trunk_->passTagsUp(list, check);
 }
 
 void ModelItemBasic::passCostUp(int c, bool b, int role)
@@ -362,21 +361,21 @@ void ModelItemBasic::passModelsDown(int models, bool push)
         ModelItemBase::passModelsDown(models, push);
 }
 
-void ModelItemBasic::passSpecialDown(const QStringList &list)
+void ModelItemBasic::passTagsDown(const QStringList &list)
 {
-    if (specialLimiters_.count())
+    if (limitingTags_.count())
     {
         bool ok = false;
         bool no = false;
         int ind = 0;
         QStringList l;
-        while (ind < specialLimiters_.count() && !ok)
+        while (ind < limitingTags_.count() && !ok)
         {
-            l = specialLimiters_.at(ind).split(",");
+            l = limitingTags_.at(ind).split(",");
             foreach (QString ss, l)
             {
                 ss = ss.trimmed();
-                if (ss.startsWith('/'))
+                if (ss.startsWith('|'))
                 {
                     no = true;
                     ss = ss.remove(0,1);
@@ -402,11 +401,11 @@ void ModelItemBasic::passSpecialDown(const QStringList &list)
     if (!checked_)
     {
         QStringList newlist(list);
-        updateSpecials(specials_, newlist, true);
-        ModelItemBase::passSpecialDown(newlist);
+        updateTags(tags_, newlist, true);
+        ModelItemBase::passTagsDown(newlist);
     }
     else
-        ModelItemBase::passSpecialDown(list);
+        ModelItemBase::passTagsDown(list);
 }
 
 
@@ -450,8 +449,8 @@ bool ModelItemBasic::branchSelected(int check, int role, int, int slot)
         autoToggle_ += check;
         if (autoToggle_ < 0)
         {
-            qDebug << "autotoggle disfunction";
-            autoToggle_ == 0;
+//            qDebug() << "autotoggle dysfunction";
+            autoToggle_ = 0;
         }
 
         if (autoToggle_ == 0 && checked_)
@@ -636,11 +635,11 @@ void ModelItemBasic::toggleExpand()
     }
 }
 
-void ModelItemBasic::dealWithSpecials(const QStringList &list, bool check)
+void ModelItemBasic::dealWithTags(const QStringList &list, bool check)
 {
-    updateSpecials(list, specialLimiters_, check);
+    updateTags(list, limitingTags_, check);
 
-    ModelItemBase::passSpecialDown(specialLimiters_);
+    ModelItemBase::passTagsDown(limitingTags_);
 }
 
 
@@ -683,12 +682,12 @@ void ModelItemBasic::expand(bool expanse)
     trunk_->branchExpanded(index_, toMove);
 }
 
-void ModelItemBasic::updateSpecials(const QStringList &list,
+void ModelItemBasic::updateTags(const QStringList &list,
                                     QStringList &to, bool check)
 {
     foreach (QString s, list)
     {
-        if (s.startsWith('-'))
+        if (s.startsWith('|'))
         {
             s.remove(0,1);
 
@@ -697,10 +696,8 @@ void ModelItemBasic::updateSpecials(const QStringList &list,
             else
                 to.removeOne(s);
         }
-        else if (s.startsWith('+'))
+        else
         {
-            s.remove(0,1);
-
             if (check)
                 to << s;
             else
@@ -742,8 +739,8 @@ void ModelItemBasic::toggleCheck(int slot)
     trunk_->passCostUp(c, fa);
     if (countsAs_ > 0)
         trunk_->passCostUp(c, fa, countsAs_);
-    if (specials_.count())
-        trunk_->passSpecialUp(specials_, checked_);
+    if (tags_.count())
+        trunk_->passTagsUp(tags_, checked_);
     update();
 
     if (checked_)
