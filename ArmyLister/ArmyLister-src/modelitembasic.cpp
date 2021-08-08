@@ -38,6 +38,7 @@ ModelItemBasic::ModelItemBasic(ModelItemBase *parent)
     , modelLimitMax_(0)
     , bHasModelLimitMax_(false)
     , countsAs_(0)
+    , unitCountsAs_(0)
     , expandButton_(nullptr)
     , bExpanded_(false)
     , bAlwaysChecked_(false)
@@ -68,6 +69,7 @@ ModelItemBasic::ModelItemBasic(ModelItemBasic *source, ModelItemBase *parent)
     , modelLimitMax_(0)
     , bHasModelLimitMax_(false)
     , countsAs_(0)
+    , unitCountsAs_(0)
     , expandButton_(nullptr)
     , bExpanded_(false)
     , bAlwaysChecked_(false)
@@ -78,7 +80,7 @@ ModelItemBasic::ModelItemBasic(ModelItemBasic *source, ModelItemBase *parent)
     init();
 
     setText(source->getText());
-    setSpecial(source->initialSpecials_);
+    setTags(source->initialSpecials_);
     int min = 0;
     int max = 0;
     if (bHasModelLimitMin_)
@@ -93,6 +95,7 @@ ModelItemBasic::ModelItemBasic(ModelItemBasic *source, ModelItemBase *parent)
     setModelOverride(source->modelOverride_);
     setCostLimit(source->costLimit_);
     setCountsAs(source->countsAs_-1);
+    setUnitCountsAs(source->unitCountsAs_-1);
     if (source->autoToggle_ >= 0)
         setManualLock();
 }
@@ -165,7 +168,7 @@ void ModelItemBasic::setText(const QString &text, int)
 //    _special << "+" + name;
 }
 
-void ModelItemBasic::setSpecial(const QStringList &list)
+void ModelItemBasic::setTags(const QStringList &list)
 {
     initialSpecials_.append(list);
     foreach (QString s, list)
@@ -246,6 +249,11 @@ void ModelItemBasic::setCostLimit(int limit)
 void ModelItemBasic::setCountsAs(int role)
 {
     countsAs_ = role+1;
+}
+
+void ModelItemBasic::setUnitCountsAs(int role)
+{
+    unitCountsAs_ = role+1;
 }
 
 void ModelItemBasic::setManualLock(bool lock)
@@ -373,8 +381,8 @@ void ModelItemBasic::passSpecialDown(const QStringList &list)
                     no = true;
                     ss = ss.remove(0,1);
                 }
-                ss.replace("**", ".*");
-                ss.replace('*', "\\w+");
+//?                ss.replace("**", ".*");
+                ss.replace('*', "\\w*");
                 if (list.indexOf(QRegExp(ss)) >= 0)
                     ok = true;
                 else
@@ -754,7 +762,7 @@ void ModelItemBasic::toggleCheck(int slot)
 
 bool ModelItemBasic::toggleSelected(int change, int slot)
 {
-    return trunk_->branchSelected(change, 0, index_, slot);
+    return trunk_->branchSelected(change, unitCountsAs_, index_, slot);
 }
 
 void ModelItemBasic::forceCheck(bool check)

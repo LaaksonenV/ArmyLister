@@ -10,7 +10,6 @@ ModelItemSelection::ModelItemSelection(ModelItemBase *parent)
     , slots_(QList<SelectionSlot>())
 {
     show();
-    setAlwaysChecked();
 }
 
 ModelItemSelection::ModelItemSelection(ModelItemSelection *source,
@@ -19,8 +18,6 @@ ModelItemSelection::ModelItemSelection(ModelItemSelection *source,
     , slots_(QList<SelectionSlot>())
 {
     show();
-    setAlwaysChecked();
-
 
     for (int i = 0; i < source->slots_.count(); ++i)
     {

@@ -69,10 +69,10 @@ public:
      * \brief setSpecial setter for special elements
      * \param list special element list
      *
-     * Special elements either change the units elements (start with +/-)
-     * or deny selection if elements aren't included in units elements
      */
-    void setSpecial(const QStringList &list);
+    void setTags(const QStringList &list);
+
+    void setLimitingTags(const QStringList &list);
 
     /*!
      * \brief setModelLimiter setter for model limits
@@ -121,6 +121,15 @@ public:
      * passed up towards the set role also, for limiting purposes
      */
     void setCountsAs(int role);
+
+    /*!
+     * \brief setUnitCountsAs simple setter
+     * \param role counts also as
+     *
+     * If \a role is set != 0, when the item is checked its unit will
+     * push its cost towards the role
+     */
+    void setUnitCountsAs(int role);
 
     void setManualLock(bool lock = true);
 
@@ -253,6 +262,7 @@ private:
     int modelLimitMax_;
     bool bHasModelLimitMax_;
     int countsAs_;
+    int unitCountsAs_;
 
     QPushButton *expandButton_;
     bool bExpanded_;

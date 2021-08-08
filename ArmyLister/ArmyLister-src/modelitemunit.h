@@ -19,16 +19,7 @@ public:
 
     virtual void clone(ModelItemBase * = nullptr, int = -1);
 
-    virtual void setSpecial(const QStringList &list);
-
-    /*!
-     * \brief setUnitCountsAs simple setter
-     * \param role counts also as
-     *
-     * If \a role is set != 0, when the item is checked its unit will
-     * push its cost towards the role
-     */
-    void setUnitCountsAs(int role);
+    virtual void setTags(const QStringList &list);
 
     virtual void loadSelection(QString &str);
 
@@ -65,7 +56,6 @@ private:
 
     int cloned_;
 
-    int unitCountsAs_;
 };
 
 #endif // MODELITEMUNIT_H

@@ -12,7 +12,6 @@
 ModelItemUnit::ModelItemUnit(ModelItemBase *parent)
     : ModelItemSpinner(parent)
     , cloned_(0)
-    , unitCountsAs_(0)
     , cloneAnimation_(nullptr)
 {
     setUpCloneAnimation();
@@ -21,11 +20,9 @@ ModelItemUnit::ModelItemUnit(ModelItemBase *parent)
 ModelItemUnit::ModelItemUnit(ModelItemUnit *source, ModelItemBase *parent)
     : ModelItemSpinner(source, parent)
     , cloned_(0)
-    , unitCountsAs_(0)
     , cloneAnimation_(nullptr)
 {
     setUpCloneAnimation();
-    setUnitCountsAs(source->unitCountsAs_-1);
 
 }
 
@@ -50,7 +47,7 @@ void ModelItemUnit::clone(ModelItemBase*, int)
     emit itemCloned();
 }
 
-void ModelItemUnit::setSpecial(const QStringList &list)
+void ModelItemUnit::setTags(const QStringList &list)
 {
     QStringList newlist;
     foreach (QString s, list)
@@ -59,12 +56,7 @@ void ModelItemUnit::setSpecial(const QStringList &list)
             s.remove(0,1);
         newlist << s.trimmed();
     }
-    ModelItemBasic::setSpecial(newlist);
-}
-
-void ModelItemUnit::setUnitCountsAs(int role)
-{
-    unitCountsAs_ = role+1;
+    ModelItemBasic::setTags(newlist);
 }
 
 void ModelItemUnit::loadSelection(QString &str)
