@@ -210,8 +210,7 @@ void ItemFactory::parseGlobalControl(QString &line,
 
             else if (ctrlchar == eControl_CreateGroup)
             {
-                parseGroup(ctrl);
-                line = str.readLine();
+                line = parseGroup(str, ctrl);
                 done = false;
             }
 
@@ -454,7 +453,7 @@ QString ItemFactory::parseList(QTextStream &str, QString line,
     return line;
 }
 
-void ItemFactory::parseGroup(QString line)
+QString ItemFactory::parseGroup(QTextStream &str, QString line)
 {
     QRegExp groupLimitReg("(" +
                           QRegExp::escape(CCharacter(eControl_GroupStart)) +
@@ -468,6 +467,13 @@ void ItemFactory::parseGroup(QString line)
                           "])(\\d+)"
                           );
 
+    if (line.isEmpty())
+    {
+        line = str.readLine();
+        while (!line.isEmpty() && line.startsWith('\t'))
+            parseGroup(str, line.trimmed());
+        return line;
+    }
 
     if (groupLimitReg.indexIn(line) < 0)
     {
@@ -495,6 +501,9 @@ void ItemFactory::parseGroup(QString line)
         else
             localLimitGroupMap_.insert(group, groupLimitReg.cap(3).toInt());
     }
+    line = str.readLine();
+
+    return line;
 }
 
 
@@ -1020,6 +1029,13 @@ ItemSatellite *ItemFactory::checkControls(const TempTreeModelItem *tempknot,
                    "(.+)" +
                    QRegExp::escape(CCharacter(eControl_TagEnd)));
     tagReg.setMinimal(true);
+    QRegExp groupReg("(" +
+                     QRegExp::escape(CCharacter(eControl_GroupStart)) +
+                     ".+" +
+                     QRegExp::escape(CCharacter(eControl_GroupEnd)) +
+                     ")");
+    groupReg.setMinimal(true);
+    QString group;
     QStringList tagList;
     int pos;
 
@@ -1089,28 +1105,36 @@ ItemSatellite *ItemFactory::checkControls(const TempTreeModelItem *tempknot,
             }
 
             // if not then it's by group
-            else if (globalLimitMap_.contains(ctrl))
-                knot->connectToSatellite(globalLimitMap_[ctrl]);
-
-            // local if not global
-            else if (localLimitGroupMap_.contains(ctrl))
+            else if ((pos = groupReg.indexIn(ctrl)) >= 0)
             {
-
-                if (localGroupLimiters.contains(ctrl))
-                    knot->connectToSatellite(localGroupLimiters[ctrl]);
-                else
+                do
                 {
-                    limiter = new ItemSatelliteSelectionLimiter(
-                                localLimitGroupMap_.value(ctrl),
-                                ModelItemBasic::eCountLimit,
-                                knot);
+                    pos += groupReg.matchedLength();
+                    group = groupReg.cap(1);
 
-                    knot->connectToSatellite(limiter, true);
+                    if (globalLimitMap_.contains(group))
+                        knot->connectToSatellite(globalLimitMap_[group]);
 
-                    localGroupLimiters.insert(ctrl,limiter);
-                }
+                    // local if not global
+                    else if (localLimitGroupMap_.contains(group))
+                    {
+
+                        if (localGroupLimiters.contains(group))
+                            knot->connectToSatellite(localGroupLimiters[group]);
+                        else
+                        {
+                            limiter = new ItemSatelliteSelectionLimiter(
+                                        localLimitGroupMap_.value(group),
+                                        ModelItemBasic::eCountLimit,
+                                        knot);
+
+                            knot->connectToSatellite(limiter, true);
+
+                            localGroupLimiters.insert(group,limiter);
+                        }
+                    }
+                } while ((pos = groupReg.indexIn(ctrl, pos)) >= 0);
             }
-
             else
                  qDebug() << "Faulty limit " << tempknot->text_;
 

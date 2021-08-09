@@ -191,7 +191,7 @@ private:
      * neccessary
      */
     QString parseList(QTextStream &str, QString line, const QStringList &suptag);
-    void parseGroup(QString line);
+    QString parseGroup(QTextStream &str, QString line);
 
 
     QString parseTable(QTextStream &str, QString line);
