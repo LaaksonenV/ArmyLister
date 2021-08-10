@@ -115,8 +115,6 @@ QString ListCreatorDetach::getOrganisationList(const QString &filename)
     QString line;
     QString ret;
 
-    bool ok;
-
     // NEEDS WORK
     while (!str.atEnd() && line != "ORGANISATION")
     {

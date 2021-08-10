@@ -277,46 +277,47 @@ QString ItemFactory::parseOrganisation(QTextStream &str)
 QStringList ItemFactory::parseControl(QString &text, QChar ctrl)
 {
     QStringList ret;
-    int sep;
+    int pos = 0;
+    int endPos = 0;
+
+    QString part;
 
     if (ctrl.isNull())
         ctrl = CCharacter(eControl_Local);
 
-    QRegExp contrl(QString("\\b") + ctrl);
-    int prevsep = contrl.indexIn(text);
+    QRegExp contrl(QString("(?:^| |\\t)") + QRegExp::escape(ctrl) +
+                   "(.+)(?=" + QRegExp::escape(ctrl) + "| |$)");
+    contrl.setMinimal(true);
+    QRegExp contrlEnd(QString("(.*)(?=") + QRegExp::escape(ctrl) +
+                      "| |$)");
+    contrlEnd.setMinimal(true);
+    QRegExp delimStart(QString("[") +
+                   CCharacter(eControl_TagStart) +
+                   CCharacter(eControl_GroupStart) +
+                   CCharacter(eControl_SlotStart) +
+                   "]");
+    QRegExp delimEnd(QString("[") +
+                   CCharacter(eControl_TagEnd) +
+                   CCharacter(eControl_GroupEnd) +
+                   CCharacter(eControl_SlotEnd) +
+                   "]");
 
-    while (prevsep >= 0)
+    while ((pos = contrl.indexIn(text, pos)) >= 0)
     {
-        // look for a whitespace, if its between <> it's part of a name,
-        // otherwise it separates a word, and thus also ends control elements
-        while (true)
+        endPos = pos+contrl.matchedLength();
+        part = contrl.cap(1);
+        if (text.contains(delimStart))
         {
-            sep = text.indexOf(' ', prevsep);
-            // if no whitespaces are found, the entire item is a control item
-            // This also ensures of breaking loop, as sep will eventually <=-1
-            if (sep < 0)
+            while (delimStart.lastIndexIn(text, endPos) >
+                   delimEnd.lastIndexIn(text, endPos))
             {
-                sep = text.count();
-                break;
+                endPos = contrlEnd.indexIn(text, endPos+1) +
+                        contrlEnd.matchedLength();
+                part += (QString(" ") + contrlEnd.cap(1));
             }
-
-            // if there are no <>, or whitespace is found before one, the
-            // whitespace is a word/element separator
-            if (text.indexOf(CCharacter(eControl_TagStart), prevsep) < 0 ||
-                sep < text.indexOf(CCharacter(eControl_TagStart), prevsep))
-                break;
-
-            // otherwise found whitespace is inside <>, so search starts again
-            // after <> is closed
-            prevsep = text.indexOf(CCharacter(eControl_TagEnd), prevsep)+1;
         }
-        // after a whitespace that separates an element from another of from
-        // the rest of the line is found, the word until it is stored
-        // as control elements and is removed from text
-        ret << text.left(sep).split(ctrl, QString::SkipEmptyParts);
-
-        text.remove(0,sep);
-        prevsep = contrl.indexIn(text);
+        ret << part;
+        text.remove(pos, endPos);
     }
 
     text = text.trimmed();
@@ -368,18 +369,26 @@ QString ItemFactory::parseList(QTextStream &str, QString line,
             parseList(str, line, suptag);
         return line;
     }
+
     int tabCount = line.count('\t');
 
-    TempTreeModelItem *item;
+    TempTreeModelItem *item = nullptr;
 
     QStringList controls = parseControl(line);
     QStringList commonTags = parseTags(line);
-    line = line.trimmed();
     QStringList tags;
 
     QChar ctrlchar;
 
-    QList<TempTreeModelItem*> list = listMap_[line];
+    QList<TempTreeModelItem*> &list = listMap_[line];
+
+    if (list.isEmpty())
+    {
+        item = new TempTreeModelItem(line, controls, tags);
+        list << item;
+    }
+    else if (!controls.isEmpty())
+        item->control_ = controls;
 
     QRegExp limitReg(QRegExp::escape(CCharacter(eControl_GlobalLimit)) +
                      "(\\d+)");
@@ -478,7 +487,7 @@ QString ItemFactory::parseGroup(QTextStream &str, QString line)
     if (groupLimitReg.indexIn(line) < 0)
     {
         qDebug() << "Faulty group entry " + line;
-        return;
+        return line;
     }
     QString group = groupLimitReg.cap(1);
 
@@ -640,7 +649,7 @@ void ItemFactory::compileItems(const TempTreeModelItem *tempknot,
         return;
     }
 
-    ControlCharacters ctrlchar;
+    ControlCharacters ctrlchar = eControl_NULL;
     bool spin = false;
     TempTreeModelItem *retinue = nullptr;
 
@@ -735,7 +744,7 @@ void ItemFactory::compileList(const TempTreeModelItem *tempknot,
         return;
     }
 
-    ControlCharacters ctrlchar;
+    ControlCharacters ctrlchar = eControl_NULL;
 
     ModelItemBasic *knot = new ModelItemBasic(trunk);
 
@@ -747,6 +756,19 @@ void ItemFactory::compileList(const TempTreeModelItem *tempknot,
                                                          nullptr);
 
     QList<TempTreeModelItem*> list = listMap_.value(name);
+
+    TempTreeModelItem *listItem = list.takeFirst();
+    QString parameter = QString();
+    QString parameterValue;
+    QRegExp parameterReg("\\((\\w+)=?(\\w*)\\)");
+
+    if (listItem->control_.indexOf(parameterReg) >= 0)
+    {
+        parameter = parameterReg.cap(1);
+        parameterValue = parameterReg.cap(2);
+    }
+    if (tempknot->control_.indexOf(parameterReg) >= 0)
+        parameterValue = parameterReg.cap(1);
 
     ItemSatellite *limiter;
     QRegExp tagReg(QRegExp::escape(CCharacter(eControl_TagStart)) +
@@ -783,6 +805,9 @@ void ItemFactory::compileList(const TempTreeModelItem *tempknot,
         {
             ctrlchar = ControlC(ctrl.at(0));
             ctrl.remove(0,1);
+
+            if (!parameterValue.isEmpty())
+                ctrl.replace(parameter, parameterValue);
 
             if (ctrlchar == eControl_GlobalLimit)
             {
@@ -898,7 +923,7 @@ void ItemFactory::compileSelection(const TempTreeModelItem *tempknot,
     else
     {
         QRegExp slotItem(QRegExp::escape(CCharacter(eControl_Slot)) +
-                         ".* ");
+                         ".*");
         slotItem.setMinimal(true);
 
         foreach (TempTreeModelItem *itm2, tempknot->unders_)
@@ -943,12 +968,15 @@ void ItemFactory::compileSlots(const TempTreeModelItem *tempknot,
                 ctrl.remove(ctrlchar);
                 if (ctrl.isEmpty())
                     ctrl = "null";
-                if (!slotmap.contains(ctrl))
+                foreach (QString c, ctrl.split(CCharacter(eControl_Slot)))
                 {
-                    qDebug() << "Faulty slot name in main list: " << ctrl;
-                    return;
+                    if (!slotmap.contains(c))
+                    {
+                        qDebug() << "Faulty slot name in main list: " << c;
+                        return;
+                    }
+                    slotList << slotmap.value(c);
                 }
-                slotList << slotmap.value(ctrl);
             }
         }
     }
@@ -985,10 +1013,12 @@ void ItemFactory::compileSlots(const TempTreeModelItem *tempknot,
 bool ItemFactory::checkTagLimiter(const QStringList &limitingTags,
                                   const QStringList &tags)
 {
+    if (limitingTags.count() < 1)
+        return true;
+
     int i = 0;
     bool ok = false;
-    if (limitingTags.count() < 1)
-        ok = true;
+
     // check every limiting tag if any one is ok
     while (i < limitingTags.count() && !ok)
     {
@@ -997,12 +1027,18 @@ bool ItemFactory::checkTagLimiter(const QStringList &limitingTags,
         // not ok
         foreach (QString tag, limitingTags.at(i).split(','))
         {
+            if (tag.startsWith(CCharacter(eControl_NOT)))
+            {
+                ok = false;
+                tag = tag.remove(0,1);
+            }
             // if any separated tag fails, no need to check others
             if (!tags.contains(tag.trimmed()))
             {
-                ok = false;
-                break;
+                ok = !ok;
             }
+            if (!ok)
+                break;
         }
 
         ++i;
@@ -1302,7 +1338,7 @@ int ItemFactory::countItems(QString text,
     int costModifier;
  //   int foundModifier;
     int newModifier;
-    QRegExp multiplier("^(\\d+)");
+    QRegExp multiplier("^(\\d+) ");
     QString tempText;
 
     for (int i = 0; i < items.count(); ++i)

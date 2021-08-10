@@ -31,8 +31,6 @@ ModelItemUnit::~ModelItemUnit()
 
 void ModelItemUnit::setUpCloneAnimation()
 {
-    connect(cloneAnimation_, &QParallelAnimationGroup::finished,
-            this, &ModelItemUnit::cloneEvent);
 
 }
 
@@ -176,6 +174,9 @@ void ModelItemUnit::mousePressEvent(QMouseEvent *e)
             grow->setKeyValueAt(1,1.0);
             cloneAnimation_->addAnimation(grow);
 
+            connect(cloneAnimation_, &QParallelAnimationGroup::finished,
+                    this, &ModelItemUnit::cloneEvent);
+
             cloneAnimation_->start(QAbstractAnimation::DeleteWhenStopped);
         }
 
@@ -190,7 +191,7 @@ void ModelItemUnit::mouseReleaseEvent(QMouseEvent *e)
         if (cloneAnimation_)
             cloneAnimation_->stop();
 
-        if (!checkLimit(eSelectionLimit))
+//        if (!checkLimit(eSelectionLimit))
             toggleCheck();
 
         e->accept();

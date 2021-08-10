@@ -366,28 +366,26 @@ void ModelItemBasic::passTagsDown(const QStringList &list)
     if (limitingTags_.count())
     {
         bool ok = false;
-        bool no = false;
         int ind = 0;
-        QStringList l;
         while (ind < limitingTags_.count() && !ok)
         {
-            l = limitingTags_.at(ind).split(",");
-            foreach (QString ss, l)
+            ok = true;
+            foreach (QString ss, limitingTags_.at(ind).split(","))
             {
                 ss = ss.trimmed();
                 if (ss.startsWith('|'))
                 {
-                    no = true;
+                    // don't bother with limiting tag if its item itself checked
+                    if (checked_ && ss == getText())
+                        break;
+                    ok = false;
                     ss = ss.remove(0,1);
                 }
 //?                ss.replace("**", ".*");
                 ss.replace('*', "\\w*");
-                if (list.indexOf(QRegExp(ss)) >= 0)
-                    ok = true;
-                else
-                    ok = false;
-                if (no)
+                if (list.indexOf(QRegExp(ss)) < 0)
                     ok = !ok;
+
                 if (!ok)
                     break;
             }
@@ -441,7 +439,7 @@ bool ModelItemBasic::branchSelected(int check, int role, int, int slot)
     if (!constantOverride_)
         modelOverride_ += check;
 
-    if ((check > 0 && !checked_) || checkLimit(eSelectionLimit))
+    if ((check > 0 && !checked_))// || checkLimit(eSelectionLimit))
         toggleCheck();
 
     if (autoToggle_ >= 0)
@@ -587,7 +585,8 @@ void ModelItemBasic::leaveEvent(QEvent*)
 
 void ModelItemBasic::mousePressEvent(QMouseEvent *e)
 {
-    if (!bAlwaysChecked_ && autoToggle_ < 0 && !checkLimit(eSelectionLimit) &&
+    if (!bAlwaysChecked_ && autoToggle_ < 0 &&
+            // !checkLimit(eSelectionLimit) &&
             e->button() == Qt::LeftButton)
     {
         toggleCheck();
