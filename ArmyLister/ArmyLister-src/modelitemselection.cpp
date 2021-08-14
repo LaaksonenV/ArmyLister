@@ -67,10 +67,16 @@ void ModelItemSelection::updateItem()
 {
     QStringList newtext;
 
+    QList<int> done;
+
     foreach (SelectionSlot s, slots_)
     {
-        if (s.index_ >= 0)
-            newtext << branches_.at(current_)->getText();
+        if (s.index_ >= 0 && !done.contains(s.index_))
+        {
+            foreach (QString t, branches_.at(s.index_)->getText().split(','))
+                newtext << t.trimmed();
+            done << s.index_;
+        }
         else if (s.index_ == -1)
             newtext << s.defaultText_;
         // else nonting
@@ -98,18 +104,22 @@ bool ModelItemSelection::branchSelected(int check, int role, int index,
     if (slot < 0)
         return ModelItemBasic::branchSelected(check, role, index);
 
-    if (check >= 0)
+    if (check > 0)
     {
         if (slots_.at(slot).index_ == -1) // disable default if needed
+        {
             passCostUp(-slots_[slot].defaultCost_);
 
-        // check if current slot is used by different item and needs to change
-        if (slots_.at(slot).index_ != index)
-        {
-            slots_[slot].index_ = -2; // slot is changing
-            branches_.at(slots_.at(slot).index_)->toggleCheck();
-            slots_[slot].index_ = index;
         }
+        // check if current slot is used by different item and needs to change
+        else if (slots_.at(slot).index_ != index)
+        {
+            int old = slots_.at(slot).index_;
+            slots_[slot].index_ = -2; // slot is changing
+            branches_.at(old)->toggleCheck();
+        }
+        slots_[slot].index_ = index;
+
         updateItem();
 
     }
@@ -121,8 +131,7 @@ bool ModelItemSelection::branchSelected(int check, int role, int index,
         updateItem();
     }
 
-    if (role)
-        ModelItemBasic::branchSelected(check, role, index);
+    ModelItemBasic::branchSelected(check, role, index);
     return true;
 }
 

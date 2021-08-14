@@ -142,7 +142,7 @@ void ModelItemBase::passTagsUp(const QStringList &, bool)
 
 void ModelItemBase::passCostUp(int c, bool, int role)
 {
-    if (role <= 0)
+    if (!role)
     {
         cost_ += c;
         update();

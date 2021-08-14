@@ -67,13 +67,13 @@ bool ModelItemSlot::branchSelected(int check, int role, int ind, int)
         int oldIndex = currentIndex_;
         currentIndex_ = ind;
 
-        // if trunk disallows change, reset changes and return
+/*        // if trunk disallows change, reset changes and return
         if (!ModelItemBasic::branchSelected(check, role, index_, slots_.at(0)))
         {
             currentIndex_ = oldIndex;
             return false;
         }
-
+*/
         // if a branch was previously selected, it must be deselected
         if (oldIndex >= 0)
             branches_.at(oldIndex)->toggleCheck();
@@ -85,7 +85,8 @@ bool ModelItemSlot::branchSelected(int check, int role, int ind, int)
         if (currentIndex_ == ind)
         {
             // if no selections are made, slot is inactive
-            toggleCheck();
+            if (checked_)
+                toggleCheck();
             currentIndex_ = -1;
         }
         // otherwise deselection was the effect of selecting other branch,
@@ -101,8 +102,8 @@ bool ModelItemSlot::branchSelected(int check, int role, int ind, int)
 void ModelItemSlot::toggleCheck(int)
 {
     // slot selectable only if selection is made
-    if (currentIndex_ <= 0)
-        return
+    if (currentIndex_ < 0)
+        return;
 
     // toggle with first slot
     ModelItemBasic::toggleCheck(slots_.at(0));

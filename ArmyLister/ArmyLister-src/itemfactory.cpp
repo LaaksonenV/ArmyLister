@@ -115,11 +115,14 @@ QString ItemFactory::parseMainList(const QString &line, QTextStream &str,
 {
     // Main file is consructed with indented hierarchy
     int tabCount = line.count('\t');
-    QString parsingLine = line.trimmed();
+    QString parsingLine = line;
 
     bool retinue = false;
 
     parseGlobalControl(parsingLine, str, supTags, retinue);
+
+    if (parsingLine.isEmpty())
+        return parsingLine;
 
     QStringList control = parseControl(parsingLine);
     QStringList tags = parseTags(parsingLine);
@@ -127,13 +130,13 @@ QString ItemFactory::parseMainList(const QString &line, QTextStream &str,
     QString text = splitText.at(0).trimmed();
 
     // pick up each separate listed item for the tag list
-    foreach (QString s, text.split(','))
+    foreach (QString ss, text.split(CCharacter(eControl_SlotEnd),
+                                    Qt::SkipEmptyParts))
+    foreach (QString s, ss.split(','))
     {
         s.remove(QRegExp("\\w*" +
                          QRegExp::escape(CCharacter(eControl_SlotStart))));
-        s.remove(QRegExp("[\\d" +
-                         QRegExp::escape(CCharacter(eControl_SlotEnd)) +
-                         "\\)]"));
+        s.remove(QRegExp("\\d+ "));
         s = s.trimmed();
         if (!tags.contains(s))
             tags << s;
@@ -265,7 +268,7 @@ QString ItemFactory::parseOrganisation(QTextStream &str)
             if (!entry.isEmpty())
             {
                 entry = entry.split(CCharacter(eControl_OrgPointSplit)).at(0);
-                nameMap_.insert(entry, nameMap_.count());
+                nameMap_.insert(entry, nameMap_.count()+1);
             }
         }
 
@@ -317,7 +320,7 @@ QStringList ItemFactory::parseControl(QString &text, QChar ctrl)
             }
         }
         ret << part;
-        text.remove(pos, endPos);
+        text.remove(pos, endPos-pos);
     }
 
     text = text.trimmed();
@@ -366,7 +369,7 @@ QString ItemFactory::parseList(QTextStream &str, QString line,
     {
         line = str.readLine();
         while (!line.isEmpty() && line.startsWith('\t'))
-            parseList(str, line, suptag);
+            line = parseList(str, line, suptag);
         return line;
     }
 
@@ -480,7 +483,7 @@ QString ItemFactory::parseGroup(QTextStream &str, QString line)
     {
         line = str.readLine();
         while (!line.isEmpty() && line.startsWith('\t'))
-            parseGroup(str, line.trimmed());
+            line = parseGroup(str, line.trimmed());
         return line;
     }
 
@@ -510,9 +513,8 @@ QString ItemFactory::parseGroup(QTextStream &str, QString line)
         else
             localLimitGroupMap_.insert(group, groupLimitReg.cap(3).toInt());
     }
-    line = str.readLine();
 
-    return line;
+    return str.readLine();
 }
 
 
@@ -616,7 +618,7 @@ ModelItemBasic *ItemFactory::compileUnit(const TempTreeModelItem *tempknot,
 
     trunk->addItem(knot);
 
-    int models;
+    int models = 0;
 
     const UnitContainer *ucont = checkCost(knot, tempknot->text_, models);
 
@@ -897,10 +899,10 @@ void ItemFactory::compileSelection(const TempTreeModelItem *tempknot,
         if (grouped.count() > 1)
         {
             // groups are mapped to growing integer for programmatical reasons
-            groupMap.insert(grouped.takeFirst(), i);
+            groupMap.insert(grouped.takeFirst().trimmed(), i);
         }            
 
-        text = grouped.at(0);
+        text = grouped.at(0).trimmed();
 
         defaults << text;
 
@@ -922,9 +924,9 @@ void ItemFactory::compileSelection(const TempTreeModelItem *tempknot,
                      localGroupLimiters, takeLimiter);
     else
     {
-        QRegExp slotItem(QRegExp::escape(CCharacter(eControl_Slot)) +
+        QRegExp slotItem(QString("^") +
+                         QRegExp::escape(CCharacter(eControl_Slot)) +
                          ".*");
-        slotItem.setMinimal(true);
 
         foreach (TempTreeModelItem *itm2, tempknot->unders_)
         {
@@ -965,7 +967,7 @@ void ItemFactory::compileSlots(const TempTreeModelItem *tempknot,
             // slotnames mapped to an integer
             if (ctrlchar == eControl_Slot)
             {
-                ctrl.remove(ctrlchar);
+                ctrl.remove(0,1);
                 if (ctrl.isEmpty())
                     ctrl = "null";
                 foreach (QString c, ctrl.split(CCharacter(eControl_Slot)))
@@ -1314,7 +1316,7 @@ const UnitContainer *ItemFactory::checkCost(ModelItemBasic *knot,
         {
             ucont = unitMap_.value(text);
 
-            int models = ucont->min_;
+            models = ucont->min_;
             knot->setRange(models, ucont->max_);
 
             if (ucont->specialPoints_)

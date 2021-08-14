@@ -5,6 +5,7 @@
 #include <QPropertyAnimation>
 #include <QParallelAnimationGroup>
 #include <QLabel>
+#include <QTimer>
 
 #include "settings.h"
 #include "itemsatellite.h"
@@ -13,17 +14,20 @@ ModelItemUnit::ModelItemUnit(ModelItemBase *parent)
     : ModelItemSpinner(parent)
     , cloned_(0)
     , cloneAnimation_(nullptr)
+    , cloneTimer_(new QTimer(this))
 {
     setUpCloneAnimation();
+    cloneTimer_->setSingleShot(true);
 }
 
 ModelItemUnit::ModelItemUnit(ModelItemUnit *source, ModelItemBase *parent)
     : ModelItemSpinner(source, parent)
     , cloned_(0)
     , cloneAnimation_(nullptr)
+    , cloneTimer_(new QTimer(this))
 {
     setUpCloneAnimation();
-
+    cloneTimer_->setSingleShot(true);
 }
 
 ModelItemUnit::~ModelItemUnit()
@@ -79,26 +83,22 @@ void ModelItemUnit::passTagsUp(const QStringList &list, bool check)
     dealWithTags(list, check);
 }
 
-bool ModelItemUnit::branchSelected(bool check, int role, int, int)
+bool ModelItemUnit::branchSelected(int check, int role, int, int)
 {
-    if (ModelItemBasic::branchSelected(check, role, 0))
+    if (role)
     {
-        if (role)
+        if (check > 0)
         {
-            if (check)
-            {
-                unitCountsAs_ = role;
-                trunk_->passCostUp(cost_, false, role);
-            }
-            else
-            {
-                trunk_->passCostUp(-cost_, false, role);
-                unitCountsAs_ = 0;
-            }
+            unitCountsAs_ = role;
+            trunk_->passCostUp(cost_, false, role);
         }
-        return true;
+        else
+        {
+            trunk_->passCostUp(-cost_, false, role);
+            unitCountsAs_ = 0;
+        }
     }
-    return false;
+    return true;
 }
 
 void ModelItemUnit::passCostUp(int c, bool perModel, int role)
@@ -144,15 +144,6 @@ void ModelItemUnit::mousePressEvent(QMouseEvent *e)
 
             QPropertyAnimation *grow;
 
-            if (height() <= Settings::ItemMeta(Settings::eItem_Height))
-            {
-            grow = new QPropertyAnimation(this, "height");
-            grow->setDuration(Settings::ItemMeta(Settings::eItem_MouseHoldTime));
-            grow->setStartValue(Settings::ItemMeta(Settings::eItem_Height));
-            grow->setEndValue(2*Settings::ItemMeta(Settings::eItem_Height));
-            cloneAnimation_->addAnimation(grow);
-            }
-
             grow = new QPropertyAnimation(this, "itemHeight");
             grow->setDuration(Settings::ItemMeta(Settings::eItem_MouseHoldTime));
             grow->setKeyValueAt(0,Settings::ItemMeta(Settings::eItem_Height));
@@ -160,24 +151,12 @@ void ModelItemUnit::mousePressEvent(QMouseEvent *e)
             grow->setKeyValueAt(1,Settings::ItemMeta(Settings::eItem_Height));
             cloneAnimation_->addAnimation(grow);
 
-            QLabel *ghost = new QLabel(title_);
-            grow = new QPropertyAnimation(ghost, "pos");
-            grow->setDuration(Settings::ItemMeta(Settings::eItem_MouseHoldTime));
-            grow->setStartValue(ghost->pos());
-            grow->setEndValue(ghost->pos()+QPoint(0,Settings::ItemMeta(Settings::eItem_Height)));
-            cloneAnimation_->addAnimation(grow);
-
-            grow = new QPropertyAnimation(ghost, "windowOpacity");
-            grow->setDuration(Settings::ItemMeta(Settings::eItem_MouseHoldTime));
-            grow->setKeyValueAt(0,0.0);
-            grow->setKeyValueAt(0.9,0.6);
-            grow->setKeyValueAt(1,1.0);
-            cloneAnimation_->addAnimation(grow);
-
             connect(cloneAnimation_, &QParallelAnimationGroup::finished,
                     this, &ModelItemUnit::cloneEvent);
+            connect(cloneTimer_, &QTimer::timeout,
+                    this, &ModelItemUnit::cloneTimerTimeout);
 
-            cloneAnimation_->start(QAbstractAnimation::DeleteWhenStopped);
+            cloneTimer_->start(200);
         }
 
         e->accept();
@@ -188,11 +167,26 @@ void ModelItemUnit::mouseReleaseEvent(QMouseEvent *e)
 {
     if (e->button() == Qt::LeftButton)
     {
-        if (cloneAnimation_)
-            cloneAnimation_->stop();
+
+        if (cloneTimer_->isActive() ||
+                (cloneAnimation_ &&
+            cloneAnimation_->state() == QAbstractAnimation::Running))
+        {
+            cloneTimer_->stop();
+
+            if (cloneAnimation_)
+            {
+                cloneAnimation_->setCurrentTime(0);
+                cloneAnimation_->stop();
+                delete cloneAnimation_;
+
+            }
+            toggleCheck();
+
+        }
+
 
 //        if (!checkLimit(eSelectionLimit))
-            toggleCheck();
 
         e->accept();
     }
@@ -200,6 +194,7 @@ void ModelItemUnit::mouseReleaseEvent(QMouseEvent *e)
 
 void ModelItemUnit::cloneEvent()
 {
+    delete cloneAnimation_;
     clone();
 }
 
@@ -207,4 +202,9 @@ void ModelItemUnit::connectToSatellite(ItemSatellite *sat)
 {
     connect(this, &ModelItemUnit::itemCloned,
             sat, &ItemSatellite::on_itemSelected);
+}
+
+void ModelItemUnit::cloneTimerTimeout()
+{
+    cloneAnimation_->start();
 }

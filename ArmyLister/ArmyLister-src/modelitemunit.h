@@ -4,6 +4,7 @@
 #include "modelitemspinner.h"
 
 class QParallelAnimationGroup;
+class QTimer;
 
 class ModelItemUnit : public ModelItemSpinner
 {
@@ -29,7 +30,7 @@ public:
 
     virtual void passTagsUp(const QStringList &list, bool check);
 
-    virtual bool branchSelected(bool check, int role, int, int = -1);
+    virtual bool branchSelected(int check, int role, int, int = -1);
 
     virtual void passCostUp(int c, bool perModel = false, int role = 0);
 
@@ -47,12 +48,18 @@ protected:
 
     virtual void connectToSatellite(ItemSatellite *sat);
 
+private slots:
+
+    void cloneTimerTimeout();
+
 signals:
 
     void itemCloned(bool = true, int = 0);
 
 private:
     QParallelAnimationGroup *cloneAnimation_;
+
+    QTimer *cloneTimer_;
 
     int cloned_;
 

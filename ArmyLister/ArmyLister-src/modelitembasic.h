@@ -63,7 +63,7 @@ public:
      * \brief setText setter for the items title
      * \param text title text
      */
-    void setText(const QString &text, int = -1);
+    virtual void setText(const QString &text, int = -1);
 
     /*!
      * \brief setSpecial setter for special elements
@@ -193,6 +193,7 @@ protected:
     virtual void enterEvent(QEvent*);
     virtual void leaveEvent(QEvent*);
     virtual void mousePressEvent(QMouseEvent*e);
+    virtual void mouseReleaseEvent(QMouseEvent*e);
 
     virtual QPushButton* createPlus();
 
@@ -244,8 +245,6 @@ protected:
     int unitCountsAs_;
 
 private:
-
-
 
     QStringList tags_;
     QStringList limitingTags_;

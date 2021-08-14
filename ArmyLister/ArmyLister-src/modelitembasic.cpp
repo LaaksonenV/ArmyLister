@@ -94,7 +94,7 @@ ModelItemBasic::ModelItemBasic(ModelItemBasic *source, ModelItemBase *parent)
         setForAll();
     setModelOverride(source->modelOverride_);
     setCostLimit(source->costLimit_);
-    setCountsAs(source->countsAs_-1);
+    setCountsAs(source->countsAs_);
     setUnitCountsAs(source->unitCountsAs_-1);
     if (source->autoToggle_ >= 0)
         setManualLock();
@@ -247,12 +247,12 @@ void ModelItemBasic::setCostLimit(int limit)
 
 void ModelItemBasic::setCountsAs(int role)
 {
-    countsAs_ = role+1;
+    countsAs_ = role;
 }
 
 void ModelItemBasic::setUnitCountsAs(int role)
 {
-    unitCountsAs_ = role+1;
+    unitCountsAs_ = role;
 }
 
 void ModelItemBasic::setManualLock(bool lock)
@@ -585,12 +585,23 @@ void ModelItemBasic::leaveEvent(QEvent*)
 
 void ModelItemBasic::mousePressEvent(QMouseEvent *e)
 {
-    if (!bAlwaysChecked_ && autoToggle_ < 0 &&
-            // !checkLimit(eSelectionLimit) &&
-            e->button() == Qt::LeftButton)
+    if (e->button() == Qt::LeftButton)
     {
-        toggleCheck();
+        e->accept();
+    }
+}
 
+void ModelItemBasic::mouseReleaseEvent(QMouseEvent *e)
+{
+    if (e->button() == Qt::LeftButton)
+    {
+        if (!bAlwaysChecked_ && autoToggle_ < 0
+                //&& !checkLimit(eSelectionLimit)
+                )
+        {
+            toggleCheck();
+
+        }
         e->accept();
     }
 }
@@ -636,9 +647,9 @@ void ModelItemBasic::toggleExpand()
 
 void ModelItemBasic::dealWithTags(const QStringList &list, bool check)
 {
-    updateTags(list, limitingTags_, check);
+    updateTags(list, tags_, check);
 
-    ModelItemBase::passTagsDown(limitingTags_);
+    ModelItemBase::passTagsDown(tags_);
 }
 
 
