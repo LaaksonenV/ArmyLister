@@ -95,6 +95,7 @@ bool ModelItemSlot::branchSelected(int check, int role, int ind, int)
             return trunk_->branchSelected(check, role, index_, -1);
     }
     updateText();
+    ModelItemBase::branchSelected(check, role, ind);
     return true;
 
 }

@@ -26,6 +26,11 @@ ModelItemUnit::ModelItemUnit(ModelItemUnit *source, ModelItemBase *parent)
     , cloneAnimation_(nullptr)
     , cloneTimer_(new QTimer(this))
 {
+    if (unitCountsAs_)
+    {
+        delete unitCountsAs_;
+        unitCountsAs_ = nullptr;
+    }
     setUpCloneAnimation();
     cloneTimer_->setSingleShot(true);
 }
@@ -83,29 +88,36 @@ void ModelItemUnit::passTagsUp(const QStringList &list, bool check)
     dealWithTags(list, check);
 }
 
-bool ModelItemUnit::branchSelected(int check, int role, int, int)
+bool ModelItemUnit::branchSelected(int check, int role, int index, int)
 {
     if (role)
     {
+        if (!unitCountsAs_)
+            unitCountsAs_ = new QList<int>();
         if (check > 0)
         {
-            unitCountsAs_ = role;
+            if (!unitCountsAs_->contains(role))
+                unitCountsAs_->append(role);
             trunk_->passCostUp(cost_, false, role);
         }
         else
         {
             trunk_->passCostUp(-cost_, false, role);
-            unitCountsAs_ = 0;
+            if (unitCountsAs_->contains(role))
+                unitCountsAs_->removeOne(role);
         }
     }
+    ModelItemBase::branchSelected(check, role, index);
     return true;
 }
 
 void ModelItemUnit::passCostUp(int c, bool perModel, int role)
 {
     ModelItemSpinner::passCostUp(c, perModel, role);
-    if (unitCountsAs_ && -role != unitCountsAs_)
-        ModelItemSpinner::passCostUp(c, perModel, unitCountsAs_);
+    if (unitCountsAs_)
+        foreach (int i, *unitCountsAs_)
+            if (i != -role)
+                ModelItemSpinner::passCostUp(c, perModel, i);
 }
 
 void ModelItemUnit::printToStream(QTextStream &str)
@@ -128,10 +140,10 @@ void ModelItemUnit::printToStream(QTextStream &str)
     }
 }
 
-bool ModelItemUnit::toggleSelected(int change, int slot)
+/*bool ModelItemUnit::toggleSelected(int change, int slot)
 {
     return trunk_->branchSelected(change, unitCountsAs_, index_, slot);
-}
+}*/
 
 void ModelItemUnit::mousePressEvent(QMouseEvent *e)
 {

@@ -30,7 +30,7 @@ public:
 
     virtual void passTagsUp(const QStringList &list, bool check);
 
-    virtual bool branchSelected(int check, int role, int, int = -1);
+    virtual bool branchSelected(int check, int role, int index, int = -1);
 
     virtual void passCostUp(int c, bool perModel = false, int role = 0);
 
@@ -38,7 +38,7 @@ public:
 
 protected:
 
-    virtual bool toggleSelected(int change, int slot);
+//    virtual bool toggleSelected(int change, int slot);
 
     virtual void mousePressEvent(QMouseEvent*e);
 

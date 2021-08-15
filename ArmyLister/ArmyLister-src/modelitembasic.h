@@ -113,6 +113,7 @@ public:
      */
     void setCostLimit(int limit);
 
+
     /*!
      * \brief setCountsAs simple setter
      * \param role counts also as
@@ -130,6 +131,7 @@ public:
      * push its cost towards the role
      */
     virtual void setUnitCountsAs(int role);
+
 
     void setManualLock(bool lock = true);
 
@@ -166,11 +168,14 @@ public:
 
     virtual void passCostDown(int left);
 
+    virtual void passTakeLimitDown(int left);
+
     virtual void overrideModels(int models);
 
     virtual void branchExpanded(int item, int steps);
 
-    virtual bool branchSelected(int check, int role, int, int slot = -1);
+    virtual bool branchSelected(int check, int role, int index,
+                                int slot = -1);
 
     bool checkLimit(int limit);
 
@@ -242,7 +247,7 @@ protected:
 
     QLabel *title_;
 
-    int unitCountsAs_;
+    QList<int> *unitCountsAs_;
 
 private:
 
@@ -260,7 +265,7 @@ private:
     bool bHasModelLimitMin_;
     int modelLimitMax_;
     bool bHasModelLimitMax_;
-    int countsAs_;
+    QList<int> *countsAs_;
 
     QPushButton *expandButton_;
     bool bExpanded_;

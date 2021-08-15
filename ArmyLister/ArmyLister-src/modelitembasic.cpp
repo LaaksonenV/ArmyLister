@@ -25,7 +25,7 @@ ModelItemBasic::ModelItemBasic(ModelItemBase *parent)
     , checked_(false)
     , current_(1)
     , title_(new QLabel(this))
-    , unitCountsAs_(0)
+    , unitCountsAs_(nullptr)
     , tags_(QStringList())
     , limitingTags_(QStringList())
     , initialTags_(QStringList())
@@ -38,7 +38,7 @@ ModelItemBasic::ModelItemBasic(ModelItemBase *parent)
     , bHasModelLimitMin_(false)
     , modelLimitMax_(0)
     , bHasModelLimitMax_(false)
-    , countsAs_(0)
+    , countsAs_(nullptr)
     , expandButton_(nullptr)
     , bExpanded_(false)
     , bAlwaysChecked_(false)
@@ -56,7 +56,7 @@ ModelItemBasic::ModelItemBasic(ModelItemBasic *source, ModelItemBase *parent)
     , checked_(false)
     , current_(1)
     , title_(new QLabel(this))
-    , unitCountsAs_(0)
+    , unitCountsAs_(nullptr)
     , tags_(QStringList())
     , limitingTags_(QStringList())
     , initialTags_(QStringList())
@@ -69,7 +69,7 @@ ModelItemBasic::ModelItemBasic(ModelItemBasic *source, ModelItemBase *parent)
     , bHasModelLimitMin_(false)
     , modelLimitMax_(0)
     , bHasModelLimitMax_(false)
-    , countsAs_(0)
+    , countsAs_(nullptr)
     , expandButton_(nullptr)
     , bExpanded_(false)
     , bAlwaysChecked_(false)
@@ -94,14 +94,23 @@ ModelItemBasic::ModelItemBasic(ModelItemBasic *source, ModelItemBase *parent)
         setForAll();
     setModelOverride(source->modelOverride_);
     setCostLimit(source->costLimit_);
-    setCountsAs(source->countsAs_);
-    setUnitCountsAs(source->unitCountsAs_-1);
+    if (source->unitCountsAs_)
+        foreach (int i, *(source->unitCountsAs_))
+            setCountsAs(i-1);
+    if (source->unitCountsAs_)
+        foreach (int i, *(source->unitCountsAs_))
+            setUnitCountsAs(i-1);
     if (source->autoToggle_ >= 0)
         setManualLock();
 }
 
 ModelItemBasic::~ModelItemBasic()
-{}
+{
+    if (countsAs_)
+        delete countsAs_;
+    if (unitCountsAs_)
+        delete unitCountsAs_;
+}
 
 void ModelItemBasic::clone(ModelItemBase *toRoot)
 {
@@ -247,12 +256,16 @@ void ModelItemBasic::setCostLimit(int limit)
 
 void ModelItemBasic::setCountsAs(int role)
 {
-    countsAs_ = role;
+    if (!countsAs_)
+        countsAs_ = new QList<int>();
+    countsAs_->append(role);
 }
 
 void ModelItemBasic::setUnitCountsAs(int role)
 {
-    unitCountsAs_ = role;
+    if (!unitCountsAs_)
+        unitCountsAs_ = new QList<int>();
+    unitCountsAs_->append(role);
 }
 
 void ModelItemBasic::setManualLock(bool lock)
@@ -329,8 +342,10 @@ void ModelItemBasic::passCostUp(int c, bool b, int role)
     ModelItemBase::passCostUp(change,false, role);
     if (checked_)
         trunk_->passCostUp(c, fa || b, role);
-    if (countsAs_ && countsAs_ != role)
-        trunk_->passCostUp(c, fa || b, countsAs_);
+    if (countsAs_)
+        foreach (int i, *countsAs_)
+            if (i != role)
+                trunk_->passCostUp(c, fa || b, i);
     if (costLimit_ > 0 && !role)
         ModelItemBase::passCostDown(costLimit_-cost_);
 }
@@ -416,6 +431,14 @@ void ModelItemBasic::passCostDown(int left)
     ModelItemBase::passCostDown(left);
 }
 
+void ModelItemBasic::passTakeLimitDown(int left)
+{
+    if (left <= 0)
+        limitedBy(eTakeLimit);
+    else
+        limitedBy(-eTakeLimit);
+}
+
 void ModelItemBasic::overrideModels(int models)
 {
     overriddenModels_ += models;
@@ -431,10 +454,13 @@ void ModelItemBasic::branchExpanded(int item, int steps)
     update();
 }
 
-bool ModelItemBasic::branchSelected(int check, int role, int, int slot)
+bool ModelItemBasic::branchSelected(int check, int role, int index, int slot)
 {
 //    if(!trunk_->branchSelected(check, role, index_, slot))
   //      return false;
+
+    if (!ModelItemBase::branchSelected(check, role, index))
+        return false;
 
     if (!constantOverride_)
         modelOverride_ += check;
@@ -456,7 +482,7 @@ bool ModelItemBasic::branchSelected(int check, int role, int, int slot)
     }
 
     if (role)
-        return trunk_->branchSelected(check, role, index_, slot);
+        trunk_->branchSelected(check, role, index_, slot);
 
     return true;
 }
@@ -747,8 +773,9 @@ void ModelItemBasic::toggleCheck(int slot)
         c = -c;
 
     trunk_->passCostUp(c, fa);
-    if (countsAs_ > 0)
-        trunk_->passCostUp(c, fa, countsAs_);
+    if (countsAs_)
+        foreach (int i, *countsAs_)
+            trunk_->passCostUp(c, fa, i);
     if (tags_.count())
         trunk_->passTagsUp(tags_, checked_);
     update();
@@ -769,7 +796,28 @@ void ModelItemBasic::toggleCheck(int slot)
 
 bool ModelItemBasic::toggleSelected(int change, int slot)
 {
-    return trunk_->branchSelected(change, unitCountsAs_, index_, slot);
+    bool ok = true;
+    if (unitCountsAs_)
+    {
+        int i = 0;
+        while (ok && i < unitCountsAs_->count())
+        {
+            ok = trunk_->branchSelected(change, unitCountsAs_->at(i),
+                                        index_, slot);
+            ++i;
+        }
+        if (!ok)
+        {
+            --i;
+            while (i >= 0)
+            {
+                trunk_->branchSelected(-change, unitCountsAs_->at(i),
+                                                        index_, slot);
+                --i;
+            }
+        }
+    }
+    return ok;
 }
 
 void ModelItemBasic::forceCheck(bool check)

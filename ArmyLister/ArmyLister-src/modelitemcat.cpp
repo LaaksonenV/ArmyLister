@@ -28,7 +28,7 @@ void ModelItemCategory::passCostUp(int c, bool, int role)
     }
 }
 
-bool ModelItemCategory::branchSelected(int check, int role, int, int)
+bool ModelItemCategory::branchSelected(int check, int role, int index, int)
 {
 //    ModelItemBasic::branchChecked(check,0,0);
 /*    if (check > 0)
@@ -40,12 +40,12 @@ bool ModelItemCategory::branchSelected(int check, int role, int, int)
     }
     else
     {*/
-        if (role)
-            emit itemSelected(check, role);
-        else
-            emit itemSelected(check, index_);
-//    }
-
+    if (role)
+        emit itemSelected(check, role);
+    else
+        emit itemSelected(check, index_);
+    //    }
+    ModelItemBase::branchSelected(check, role, index);
     return true;
 }
 

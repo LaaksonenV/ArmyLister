@@ -205,28 +205,24 @@ private:
     void compileItems(const TempTreeModelItem *tempknot,
                       ModelItemBase *trunk,
                       const UnitContainer *ucont,
-                      QMap<QString, ItemSatellite *> &localGroupLimiters,
-                      ItemSatellite *takeLimiter = nullptr);
+                      QMap<QString, ItemSatellite *> &localGroupLimiters);
     void compileList(const TempTreeModelItem *tempknot,
                      ModelItemBase *trunk,
                      const UnitContainer *ucont,
-                     QMap<QString, ItemSatellite *> &localGroupLimiters,
-                     ItemSatellite *takeLimiter = nullptr);
+                     QMap<QString, ItemSatellite *> &localGroupLimiters);
     void compileSelection(const TempTreeModelItem *tempknot,
                           ModelItemBase *trunk,
                           const UnitContainer *ucont,
-                          QMap<QString, ItemSatellite *> &localGroupLimiters,
-                          ItemSatellite *takeLimiter = nullptr);
+                          QMap<QString, ItemSatellite *> &localGroupLimiters);
     void compileSlots(const TempTreeModelItem *tempknot,
                       ModelItemBase *trunk,
                       const QMap<QString, int> &slotmap,
                       const QStringList &defaults,
                       const UnitContainer *ucont,
-                      QMap<QString, ItemSatellite *> &localGroupLimiters,
-                      ItemSatellite *takeLimiter = nullptr);
+                      QMap<QString, ItemSatellite *> &localGroupLimiters);
     bool checkTagLimiter(const QStringList &limitingTags,
                          const QStringList &tags);
-    ItemSatellite *checkControls(const TempTreeModelItem *tempknot,
+    void checkControls(const TempTreeModelItem *tempknot,
                                  ModelItemBasic *knot,
                                  QMap<QString, ItemSatellite *>
                                  &localGroupLimiters);

@@ -99,6 +99,8 @@ public:
      */
     virtual void setCost(int i, int = -1);
 
+    void setTakeLimit(int take, int by = 0);
+
     virtual void loadSelection(QString &str);
 
     virtual void saveSelection(QTextStream &str);
@@ -174,6 +176,8 @@ public:
      */
     virtual void passCostDown(int left);
 
+    virtual void passTakeLimitDown(int limit);
+
     virtual void overrideModels(int){}
 
     /*!
@@ -183,7 +187,7 @@ public:
      * As item without root, Base item return true. Implement on an item
      * with root
      */
-    virtual bool branchSelected(int, int, int, int = -1);
+    virtual bool branchSelected(int check, int, int index, int = -1);
 
     /*!
      * \brief resizeEvent reimplemented
@@ -212,8 +216,9 @@ public:
         eCostLimit = eSpecialLimit*2,
         eCountLimit = eCostLimit*2,
         eModelsLimit = eCountLimit*2,
+        eTakeLimit = eModelsLimit*2,
 
-        eCriticalLimit = eModelsLimit*2,
+        eCriticalLimit = eTakeLimit*2,
 
 
         eCheckable = eSelectionLimit,
@@ -287,6 +292,12 @@ protected:
     int index_;
 
     QList<ModelItemBase *> branches_;
+    QList<int> selectedBranches_;
+
+    int takeLimit_;
+    int initTakeLimit_;
+    int takeBy_;
+
 
 private:
 

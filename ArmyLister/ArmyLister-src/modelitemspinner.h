@@ -33,6 +33,8 @@ public:
 
     virtual void passCostUp(int c, bool perModel = false, int role = 0);
 
+    virtual void passTakeLimitDown(int left);
+
     virtual void currentLimitChanged(int current, bool whole);
 
 private:

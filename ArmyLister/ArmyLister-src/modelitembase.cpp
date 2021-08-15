@@ -9,6 +9,9 @@ ModelItemBase::ModelItemBase(QWidget *parent)
     , cost_(0)
     , index_(-1)
     , branches_(QList<ModelItemBase *>())
+    , takeLimit_(0)
+    , initTakeLimit_(0)
+    , takeBy_(0)
     , initCost_(0)
 {
     setFixedHeight(0);
@@ -20,6 +23,7 @@ ModelItemBase::ModelItemBase(ModelItemBase *source, ModelItemBase *parent)
     : ModelItemBase(parent)
 {
     setCost(source->initCost_);
+    setTakeLimit(source->initTakeLimit_, source->takeBy_);
     setFixedHeight(0);
     setSizePolicy(QSizePolicy::MinimumExpanding,
                   QSizePolicy::Fixed);
@@ -106,6 +110,18 @@ void ModelItemBase::setCost(int i, int)
     update();
 }
 
+void ModelItemBase::setTakeLimit(int take, int by)
+{
+    takeLimit_ = take;
+    initTakeLimit_ = take;
+    if (by)
+    {
+        takeLimit_ = (getCurrentCount()*take)/by;
+        takeBy_ = by;
+    }
+}
+
+
 void ModelItemBase::loadSelection(QString &str)
 {
     foreach (ModelItemBase *i, branches_)
@@ -152,6 +168,14 @@ void ModelItemBase::passCostUp(int c, bool, int role)
 
 void ModelItemBase::passModelsDown(int models, bool push)
 {
+    int change = takeLimit_;
+    if (takeBy_)
+    {
+        takeLimit_ = (getCurrentCount()*initTakeLimit_)/takeBy_;
+        if (change != takeLimit_)
+            ModelItemBase::passTakeLimitDown(takeLimit_);
+    }
+
     foreach (ModelItemBase *i, branches_)
     {
         i->passModelsDown(models, push);
@@ -174,8 +198,31 @@ void ModelItemBase::passCostDown(int left)
     }
 }
 
-bool ModelItemBase::branchSelected(int, int, int, int)
+void ModelItemBase::passTakeLimitDown(int limit)
 {
+    int newlimit = limit - selectedBranches_.count();
+    for (int i = 0; i < branches_.count(); ++i)
+    {
+        if (!selectedBranches_.contains(i))
+            branches_.at(i)->passTakeLimitDown(newlimit);
+    }
+}
+
+bool ModelItemBase::branchSelected(int check, int, int index, int)
+{
+    if (initTakeLimit_ && selectedBranches_.count() + check > takeLimit_)
+        return false;
+
+    if (check > 0)
+        for (int i = 0; i < check; ++i)
+            selectedBranches_.append(index);
+    if (check < 0)
+        for (int i = 0; i > check; --i)
+            selectedBranches_.removeOne(index);
+
+    if (initTakeLimit_)
+        ModelItemBase::passTakeLimitDown(takeLimit_);
+
     return true;
 }
 

@@ -116,6 +116,12 @@ void ModelItemSpinner::passCostUp(int c, bool perModel, int role)
     ModelItemBasic::passCostUp(change, false, role);
 }
 
+void ModelItemSpinner::passTakeLimitDown(int left)
+{
+    spinner_->setMaximum(left);
+    ModelItemBasic::passTakeLimitDown(left);
+}
+
 void ModelItemSpinner::createSpinner(int min, int max)
 {
     spinner_ = new QSpinBox(this);

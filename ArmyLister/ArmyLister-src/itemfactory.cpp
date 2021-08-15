@@ -641,13 +641,12 @@ void ItemFactory::compileItems(const TempTreeModelItem *tempknot,
                                ModelItemBase *trunk,
                                const UnitContainer *ucont,
                                QMap<QString, ItemSatellite *>
-                               &localGroupLimiters,
-                               ItemSatellite *takeLimiter)
+                               &localGroupLimiters)
 {
     // lists are compiled separately
     if (tempknot->text_.contains(CCharacter(eControl_ListStart)))
     {
-        compileList(tempknot, trunk, ucont, localGroupLimiters, takeLimiter);
+        compileList(tempknot, trunk, ucont, localGroupLimiters);
         return;
     }
 
@@ -664,8 +663,7 @@ void ItemFactory::compileItems(const TempTreeModelItem *tempknot,
         // selection roots are compiled differently
         if (ctrlchar == eControl_Selection)
         {
-            compileSelection(tempknot, trunk, ucont, localGroupLimiters,
-                             takeLimiter);
+            compileSelection(tempknot, trunk, ucont, localGroupLimiters);
             return;
         }
         else if (ctrlchar == eControl_Slot)
@@ -720,21 +718,17 @@ void ItemFactory::compileItems(const TempTreeModelItem *tempknot,
 
     knot->setTags(tempknot->tags_);
 
-    if (takeLimiter)
-        knot->connectToSatellite(takeLimiter);
-
-    takeLimiter = checkControls(tempknot, knot, localGroupLimiters);
+    checkControls(tempknot, knot, localGroupLimiters);
 
     foreach (TempTreeModelItem *itm2, tempknot->unders_)
-        compileItems(itm2, knot, ucont, localGroupLimiters, takeLimiter);
+        compileItems(itm2, knot, ucont, localGroupLimiters);
 }
 
 void ItemFactory::compileList(const TempTreeModelItem *tempknot,
                               ModelItemBase *trunk,
                               const UnitContainer *ucont,
                               QMap<QString, ItemSatellite *>
-                              &localGroupLimiters,
-                              ItemSatellite *takeLimiter)
+                              &localGroupLimiters)
 {
     QString name = tempknot->text_;
     name.remove(CCharacter(eControl_ListStart));
@@ -784,8 +778,7 @@ void ItemFactory::compileList(const TempTreeModelItem *tempknot,
     {
         if (listEntry->text_.contains(CCharacter(eControl_ListStart)))
         {
-            compileList(listEntry, knot, ucont, localGroupLimiters,
-                        takeLimiter);
+            compileList(listEntry, knot, ucont, localGroupLimiters);
             continue;
         }
 
@@ -794,12 +787,10 @@ void ItemFactory::compileList(const TempTreeModelItem *tempknot,
         knot->addItem(branch);
 
         int temp;
-        checkCost(branch, listEntry->text_, temp);
+        checkCost(branch, listEntry->text_, temp, ucont);
 
         branch->setTags(listEntry->tags_);
 
-        if (takeLimiter)
-            branch->connectToSatellite(takeLimiter);
         if (globalLimiter)
             branch->connectToSatellite(globalLimiter);
 
@@ -871,8 +862,7 @@ void ItemFactory::compileSelection(const TempTreeModelItem *tempknot,
                                    ModelItemBase *trunk,
                                    const UnitContainer *ucont,
                                    QMap<QString, ItemSatellite *>
-                                   &localGroupLimiters,
-                                   ItemSatellite *takeLimiter)
+                                   &localGroupLimiters)
 {
     ModelItemSelection *knot = new ModelItemSelection(trunk);
 
@@ -911,17 +901,14 @@ void ItemFactory::compileSelection(const TempTreeModelItem *tempknot,
 
     knot->setTags(tempknot->tags_);
 
-    if (takeLimiter)
-        knot->connectToSatellite(takeLimiter);
-
-    takeLimiter = checkControls(tempknot, knot, localGroupLimiters);
+    checkControls(tempknot, knot, localGroupLimiters);
 
 
     if (groupMap.isEmpty())
         // only one slot with no group defined, all children are replacing
         // items
         compileSlots(tempknot, knot, groupMap, defaults, ucont,
-                     localGroupLimiters, takeLimiter);
+                     localGroupLimiters);
     else
     {
         QRegExp slotItem(QString("^") +
@@ -933,11 +920,10 @@ void ItemFactory::compileSelection(const TempTreeModelItem *tempknot,
             // selections may contain other items than replacing
             // items
             if (itm2->control_.indexOf(slotItem) < 0)
-                compileItems(itm2, knot, ucont, localGroupLimiters,
-                             takeLimiter);
+                compileItems(itm2, knot, ucont, localGroupLimiters);
             else
                 compileSlots(itm2, knot, groupMap, defaults, ucont,
-                             localGroupLimiters, takeLimiter);
+                             localGroupLimiters);
         }
     }
 }
@@ -947,8 +933,7 @@ void ItemFactory::compileSlots(const TempTreeModelItem *tempknot,
                                const QMap<QString, int> &slotmap,
                                const QStringList &defaults,
                                const UnitContainer *ucont,
-                            QMap<QString, ItemSatellite *> &localGroupLimiters,
-                               ItemSatellite *takeLimiter)
+                            QMap<QString, ItemSatellite *> &localGroupLimiters)
 {
     QList<int> slotList;
     // empty slotmap means only one unnamed slot without treemodelitem, and
@@ -1002,14 +987,11 @@ void ItemFactory::compileSlots(const TempTreeModelItem *tempknot,
     {
         knot->setTags(tempknot->tags_);
 
-        if (takeLimiter)
-            knot->connectToSatellite(takeLimiter);
-
-        takeLimiter = checkControls(tempknot, knot, localGroupLimiters);
+        checkControls(tempknot, knot, localGroupLimiters);
     }
 
     foreach (TempTreeModelItem *itm2, tempknot->unders_)
-        compileItems(itm2, knot, ucont, localGroupLimiters, takeLimiter);
+        compileItems(itm2, knot, ucont, localGroupLimiters);
 }
 
 bool ItemFactory::checkTagLimiter(const QStringList &limitingTags,
@@ -1049,13 +1031,12 @@ bool ItemFactory::checkTagLimiter(const QStringList &limitingTags,
     return ok;
 }
 
-ItemSatellite *ItemFactory::checkControls(const TempTreeModelItem *tempknot,
+void ItemFactory::checkControls(const TempTreeModelItem *tempknot,
                                           ModelItemBasic *knot,
                                           QMap<QString, ItemSatellite *>
                                           &localGroupLimiters)
 {
     ControlCharacters ctrlchar;
-    ItemSatellite *ret = nullptr;
     ItemSatellite *limiter;
 
     short sign;
@@ -1086,15 +1067,10 @@ ItemSatellite *ItemFactory::checkControls(const TempTreeModelItem *tempknot,
         if (ctrlchar == eControl_Take)
         {
             if (permodel.indexIn(ctrl) >= 0)
-                ret = new ItemSatelliteSelectionLimiterModels(
-                            permodel.cap(1).toInt(), permodel.cap(2).toInt(),
-                            ModelItemBase::eModelsLimit,
-                            ModelItemBase::eCriticalLimit, knot);
+                knot->setTakeLimit(permodel.cap(1).toInt(),
+                                   permodel.cap(2).toInt());
             else
-                ret = new ItemSatelliteSelectionLimiter(ctrl.toInt(),
-                                                    ModelItemBase::eCountLimit,
-                                                        knot);
-            knot->limitedBy(ModelItemBase::eSelectionLimit);
+                knot->setTakeLimit(ctrl.toInt());
         }
 
         else if (ctrlchar == eControl_GlobalModelLimit)
@@ -1256,7 +1232,6 @@ ItemSatellite *ItemFactory::checkControls(const TempTreeModelItem *tempknot,
             knot->setModelLimiter(ctrl.toInt(),0);
 
     }
-    return ret;
 }
 
 const UnitContainer *ItemFactory::checkCost(ModelItemBasic *knot,
