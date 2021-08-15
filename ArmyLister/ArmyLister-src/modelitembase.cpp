@@ -12,6 +12,7 @@ ModelItemBase::ModelItemBase(QWidget *parent)
     , takeLimit_(0)
     , initTakeLimit_(0)
     , takeBy_(0)
+    , bDynamicText_(false)
     , initCost_(0)
 {
     setFixedHeight(0);
@@ -103,6 +104,11 @@ void ModelItemBase::setIndex(int i)
     index_ = i;
 }
 
+void ModelItemBase::setText(const QString &, int)
+{
+    bDynamicText_ = true;
+}
+
 void ModelItemBase::setCost(int i, int)
 {
     cost_ += i;
@@ -119,6 +125,7 @@ void ModelItemBase::setTakeLimit(int take, int by)
         takeLimit_ = (getCurrentCount()*take)/by;
         takeBy_ = by;
     }
+    setText("Take up to " + QString::number(takeLimit_) + ": ");
 }
 
 
@@ -201,6 +208,13 @@ void ModelItemBase::passCostDown(int left)
 void ModelItemBase::passTakeLimitDown(int limit)
 {
     int newlimit = limit - selectedBranches_.count();
+    while (newlimit < 0)
+    {
+        branches_.at(selectedBranches_.first())->toggleCheck();
+        // as a branch deselects, it calls this's branchSelected() and removes
+        // one from selecteds
+        newlimit = limit - selectedBranches_.count();
+    }
     for (int i = 0; i < branches_.count(); ++i)
     {
         if (!selectedBranches_.contains(i))
@@ -221,7 +235,42 @@ bool ModelItemBase::branchSelected(int check, int, int index, int)
             selectedBranches_.removeOne(index);
 
     if (initTakeLimit_)
+    {
+        if (bDynamicText_)
+        {
+            QString text;
+            QStringList texts;
+            QList<int> done;
+            int amount;
+            foreach (int i, selectedBranches_)
+            {
+                if (!done.contains(i))
+                {
+                    done << i;
+                    amount = selectedBranches_.count(i);
+                    if (amount > 1)
+                    {
+                        text = QString::number(amount) + " " +
+                                branches_.at(i)->getText();
+                        if (!text.endsWith('s'))
+                            text.append('s');
+                        texts << text;
+                    }
+                    else
+                        texts << branches_.at(i)->getText();
+                }
+            }
+            if (texts.count() > 1)
+            {
+                text = texts.takeLast();
+                texts.last().append(" and " + text);
+            }
+            setText("Take up to " + QString::number(takeLimit_) + ": " +
+                    texts.join(', '));
+        } // if (bDynamicText_)
+
         ModelItemBase::passTakeLimitDown(takeLimit_);
+    }
 
     return true;
 }

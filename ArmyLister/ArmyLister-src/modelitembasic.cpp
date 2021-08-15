@@ -165,6 +165,11 @@ void ModelItemBasic::setTrunk(ModelItemBase *item)
 
 void ModelItemBasic::setText(const QString &text, int)
 {
+    if (text.isEmpty())
+    {
+        ModelItemBase::setText(text);
+        return;
+    }
     QString name = text;
     QRegExp ttip("\\{(.*)\\}");
     int pos = 0;

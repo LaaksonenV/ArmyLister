@@ -93,6 +93,8 @@ public:
      */
     void setIndex(int i);
 
+    virtual void setText(const QString &, int = -1);
+
     /*!
      * \brief setCost simple setter
      * \param i new cost
@@ -298,6 +300,7 @@ protected:
     int initTakeLimit_;
     int takeBy_;
 
+    bool bDynamicText_;
 
 private:
 

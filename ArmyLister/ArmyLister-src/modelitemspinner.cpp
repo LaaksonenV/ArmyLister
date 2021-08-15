@@ -118,7 +118,6 @@ void ModelItemSpinner::passCostUp(int c, bool perModel, int role)
 
 void ModelItemSpinner::passTakeLimitDown(int left)
 {
-    spinner_->setMaximum(left);
     ModelItemBasic::passTakeLimitDown(left);
 }
 
