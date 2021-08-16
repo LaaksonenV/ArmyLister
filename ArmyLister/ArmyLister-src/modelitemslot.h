@@ -13,7 +13,7 @@ public:
 
     virtual void clone(ModelItemBase *toRoot);
 
-    virtual void setText(const QString &text, int = -1);
+    virtual void setText(const QString &text, bool = false, int = -1);
 
     virtual void updateText();
 

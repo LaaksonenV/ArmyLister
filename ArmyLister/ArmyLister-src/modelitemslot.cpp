@@ -31,7 +31,7 @@ void ModelItemSlot::clone(ModelItemBase *toRoot)
     cloning(clone);
 }
 
-void ModelItemSlot::setText(const QString &text, int)
+void ModelItemSlot::setText(const QString &text, bool, int)
 {
     defaultText_ = text;
     updateText();

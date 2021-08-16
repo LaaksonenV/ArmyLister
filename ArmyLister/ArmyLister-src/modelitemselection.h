@@ -30,7 +30,7 @@ public:
 
     virtual void clone(ModelItemBase *toRoot, int = 0);
 
-    virtual void setText(const QString &text, int slot);
+    virtual void setText(const QString &text, bool, int slot);
 
     virtual void setCost(int i, int slot = -1);
 

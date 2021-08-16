@@ -746,7 +746,7 @@ void ItemFactory::compileList(const TempTreeModelItem *tempknot,
 
     trunk->addItem(knot);
 
-    knot->setText(name);
+    knot->setText(name, true);
 
     ItemSatellite *globalLimiter = globalLimitMap_.value(tempknot->text_,
                                                          nullptr);
@@ -1243,12 +1243,21 @@ const UnitContainer *ItemFactory::checkCost(ModelItemBasic *knot,
 
     int specCost = 0;
 
+    QString name = splitText.at(0).trimmed();
+    bool dynamic = false;
+    if (name.isEmpty())
+        dynamic = true;
+    else if (name.endsWith(':'))
+    {
+        dynamic = true;
+        name.remove(name.size()-1,1);
+    }
+    knot->setText(splitText.at(0).trimmed(), dynamic, slot);
+
     // if Item stats are in base list (9A)
     // for items Name|cost
     if (splitText.count()>1)
     {
-        knot->setText(splitText.at(0).trimmed(), slot);
-
         int cost = splitText.at(1).trimmed().toInt();
 
         // for units
@@ -1275,8 +1284,6 @@ const UnitContainer *ItemFactory::checkCost(ModelItemBasic *knot,
     // otherwise the units stats are recorded in tables (40k)
     else
     {
-        knot->setText(text, slot);
-
         // if unitcontainer is given, use that
         if (ucont)
         {

@@ -21,7 +21,7 @@ ModelItemSelection::ModelItemSelection(ModelItemSelection *source,
 
     for (int i = 0; i < source->slots_.count(); ++i)
     {
-        setText(source->slots_.at(i).defaultText_, i);
+        setText(source->slots_.at(i).defaultText_, false, i);
         setCost(source->slots_.at(i).defaultCost_, i);
     }
 }
@@ -42,7 +42,7 @@ void ModelItemSelection::printToStream(QTextStream &str)
     print(str, 2);
 }
 
-void ModelItemSelection::setText(const QString &text, int slot)
+void ModelItemSelection::setText(const QString &text, bool, int slot)
 {
     fillSlots(slot);
 

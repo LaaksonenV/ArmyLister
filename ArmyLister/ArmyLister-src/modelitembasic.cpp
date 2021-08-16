@@ -79,7 +79,11 @@ ModelItemBasic::ModelItemBasic(ModelItemBasic *source, ModelItemBase *parent)
 {
     init();
 
-    setText(source->getText());
+    if (source->bDynamicText_)
+        setText(source->ModelItemBase::getText(), true);
+    else
+        setText(source->getText(), false);
+
     setTags(source->initialTags_);
     int min = 0;
     int max = 0;
@@ -163,13 +167,11 @@ void ModelItemBasic::setTrunk(ModelItemBase *item)
     trunk_ = item;
 }
 
-void ModelItemBasic::setText(const QString &text, int)
+void ModelItemBasic::setText(const QString &text, bool dynamic, int)
 {
-    if (text.isEmpty())
-    {
-        ModelItemBase::setText(text);
-        return;
-    }
+
+    ModelItemBase::setText(text, dynamic);
+
     QString name = text;
     QRegExp ttip("\\{(.*)\\}");
     int pos = 0;
@@ -312,12 +314,14 @@ int ModelItemBasic::getCurrentCount() const
 
 QString ModelItemBasic::getText() const
 {
+    if (bDynamicText_)
+        return title_->text().section(':',1).trimmed();
     return title_->text();
 }
 
 QString ModelItemBasic::getPrintText() const
 {
-    return title_->text();
+    return ModelItemBasic::getText();
 }
 
 void ModelItemBasic::passTagsUp(const QStringList &list, bool check)

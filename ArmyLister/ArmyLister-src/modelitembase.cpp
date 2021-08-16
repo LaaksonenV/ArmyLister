@@ -14,6 +14,7 @@ ModelItemBase::ModelItemBase(QWidget *parent)
     , takeBy_(0)
     , bDynamicText_(false)
     , initCost_(0)
+    , initText_(QString())
 {
     setFixedHeight(0);
     setSizePolicy(QSizePolicy::MinimumExpanding,
@@ -104,9 +105,13 @@ void ModelItemBase::setIndex(int i)
     index_ = i;
 }
 
-void ModelItemBase::setText(const QString &, int)
+void ModelItemBase::setText(const QString &text, bool dynamic, int)
 {
-    bDynamicText_ = true;
+    if (dynamic || initText_.isEmpty())
+    {
+        bDynamicText_ = dynamic;
+        initText_ = text;
+    }
 }
 
 void ModelItemBase::setCost(int i, int)
@@ -125,7 +130,8 @@ void ModelItemBase::setTakeLimit(int take, int by)
         takeLimit_ = (getCurrentCount()*take)/by;
         takeBy_ = by;
     }
-    setText("Take up to " + QString::number(takeLimit_) + ": ");
+    if (initText_.isEmpty())
+        setText("Take up to " + QString::number(takeLimit_) + ": ", true);
 }
 
 
@@ -147,7 +153,7 @@ void ModelItemBase::saveSelection(QTextStream &str)
 
 QString ModelItemBase::getText() const
 {
-     return QString();
+     return initText_;
 }
 
 int ModelItemBase::getCost() const
@@ -234,41 +240,46 @@ bool ModelItemBase::branchSelected(int check, int, int index, int)
         for (int i = 0; i > check; --i)
             selectedBranches_.removeOne(index);
 
+
+    if (bDynamicText_)
+    {
+        QString text;
+        QStringList texts;
+        QList<int> done;
+        int amount;
+        foreach (int i, selectedBranches_)
+        {
+            if (!done.contains(i))
+            {
+                done << i;
+                amount = selectedBranches_.count(i);
+                if (amount > 1)
+                {
+                    text = QString::number(amount) + " " +
+                            branches_.at(i)->getText();
+                    if (!text.endsWith('s'))
+                        text.append('s');
+                    texts << text;
+                }
+                else
+                    texts << branches_.at(i)->getText();
+            }
+        }
+        if (texts.count() > 1)
+        {
+            text = texts.takeLast();
+            texts.last().append(" and " + text);
+        }
+        if (initTakeLimit_)
+            setText(initText_ + " " + QString::number(takeLimit_) + ": " +
+                    texts.join(', '), false);
+        else
+            setText(initText_ + ": " +
+                    texts.join(', '), false);
+    } // if (bDynamicText_)
+
     if (initTakeLimit_)
     {
-        if (bDynamicText_)
-        {
-            QString text;
-            QStringList texts;
-            QList<int> done;
-            int amount;
-            foreach (int i, selectedBranches_)
-            {
-                if (!done.contains(i))
-                {
-                    done << i;
-                    amount = selectedBranches_.count(i);
-                    if (amount > 1)
-                    {
-                        text = QString::number(amount) + " " +
-                                branches_.at(i)->getText();
-                        if (!text.endsWith('s'))
-                            text.append('s');
-                        texts << text;
-                    }
-                    else
-                        texts << branches_.at(i)->getText();
-                }
-            }
-            if (texts.count() > 1)
-            {
-                text = texts.takeLast();
-                texts.last().append(" and " + text);
-            }
-            setText("Take up to " + QString::number(takeLimit_) + ": " +
-                    texts.join(', '));
-        } // if (bDynamicText_)
-
         ModelItemBase::passTakeLimitDown(takeLimit_);
     }
 

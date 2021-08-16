@@ -93,7 +93,7 @@ public:
      */
     void setIndex(int i);
 
-    virtual void setText(const QString &, int = -1);
+    virtual void setText(const QString &text, bool dynamic, int = -1);
 
     /*!
      * \brief setCost simple setter
@@ -305,6 +305,7 @@ protected:
 private:
 
     int initCost_;
+    QString initText_;
 
 };
 

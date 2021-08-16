@@ -63,7 +63,7 @@ public:
      * \brief setText setter for the items title
      * \param text title text
      */
-    virtual void setText(const QString &text, int = -1);
+    virtual void setText(const QString &text, bool dynamic = false, int = -1);
 
     /*!
      * \brief setSpecial setter for special elements
